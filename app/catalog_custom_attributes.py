@@ -25,7 +25,6 @@ TARGET_KEYS = {spec["key"] for spec in TARGET_DEFINITIONS}
 
 
 def _definition_data(spec):
-    # Keep Phase 0A simple: both values are plain strings on ITEM objects.
     return {
         "key": spec["key"],
         "name": spec["name"],
