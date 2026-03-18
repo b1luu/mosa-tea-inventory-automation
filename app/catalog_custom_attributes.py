@@ -21,9 +21,11 @@ TARGET_DEFINITIONS = [
         ),
     },
 ]
+TARGET_KEYS = {spec["key"] for spec in TARGET_DEFINITIONS}
 
 
 def _definition_data(spec):
+    # Keep Phase 0A simple: both values are plain strings on ITEM objects.
     return {
         "key": spec["key"],
         "name": spec["name"],
@@ -89,7 +91,7 @@ def _list_target_definitions(client):
         data = catalog_object.custom_attribute_definition_data
         if not data or not data.key:
             continue
-        if data.key in {spec["key"] for spec in TARGET_DEFINITIONS}:
+        if data.key in TARGET_KEYS:
             definitions_by_key[data.key] = catalog_object
 
     return definitions_by_key

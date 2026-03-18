@@ -1,5 +1,3 @@
-import sys
-
 from square.core.api_error import ApiError
 
 from app.catalog_custom_attributes import (
