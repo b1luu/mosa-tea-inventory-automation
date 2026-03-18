@@ -4,10 +4,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN")
 
-if not SQUARE_ACCESS_TOKEN:
-    raise ValueError(
-        "Missing required environment variable: SQUARE_ACCESS_TOKEN. "
-        "Set it in your .env file before running the application."
-    )
+def get_square_access_token():
+    access_token = os.getenv("SQUARE_ACCESS_TOKEN")
+    if not access_token:
+        raise ValueError(
+            "Missing required environment variable: SQUARE_ACCESS_TOKEN. "
+            "Set it in your environment or .env file before running the script."
+        )
+    return access_token
+
+
+def get_square_environment_name():
+    environment_name = os.getenv("SQUARE_ENVIRONMENT", "sandbox").strip().lower()
+    if environment_name not in {"sandbox", "production"}:
+        raise ValueError(
+            "Invalid SQUARE_ENVIRONMENT value. Use 'sandbox' or 'production'."
+        )
+    return environment_name
