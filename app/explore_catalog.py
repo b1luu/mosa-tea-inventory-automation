@@ -8,8 +8,16 @@ from square.core.api_error import ApiError
 def catalog_list(client):
     try:
         response = client.catalog.list(types="ITEM")
-        print(
-            json.dumps(response.model_dump(by_alias=True, exclude_none=True), indent=2)
-        )
+        items = []
+        for item in response:
+            item.append(item.model_dump(by_alias=True, exclude_none=True))
+
+            print(json.dumps(items, indent=2))
+
     except ApiError as error:
         print(error)
+
+if __name__ == "__main__":
+    client = create_square_client()
+    catalog_list(client):
+
