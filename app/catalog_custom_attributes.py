@@ -31,33 +31,6 @@ def _model_to_dict(model):
     return model.model_dump(by_alias=True, exclude_none=True)
 
 
-def _normalized_definition(catalog_object):
-    data = catalog_object.custom_attribute_definition_data
-    string_config = data.string_config if data else None
-
-    return {
-        "key": data.key if data else None,
-        "name": data.name if data else None,
-        "description": data.description if data else None,
-        "type": data.type if data else None,
-        "allowed_object_types": sorted(data.allowed_object_types or []) if data else [],
-        "seller_visibility": data.seller_visibility if data else None,
-        "app_visibility": data.app_visibility if data else None,
-        "string_config": {
-            "enforce_uniqueness": (
-                string_config.enforce_uniqueness if string_config else None
-            )
-        },
-    }
-
-
-def _definition_matches_spec(catalog_object):
-    current = _normalized_definition(catalog_object)
-    expected = _definition_data()
-    expected["allowed_object_types"] = sorted(expected["allowed_object_types"])
-    return current == expected
-
-
 def _build_upsert_object():
     # New catalog objects use a client-generated temporary ID that starts with #.
     return {
@@ -77,16 +50,38 @@ def _find_existing_definition(client):
 
 
 def _validate_definition_shape(catalog_object):
-    # Fail clearly if the existing definition does not match the expected schema.
-    if not catalog_object.custom_attribute_definition_data:
+    # Fail clearly only if the important schema is wrong.
+    data = catalog_object.custom_attribute_definition_data
+    if not data:
         raise ValueError(
             f"Catalog object {catalog_object.id} is missing custom attribute definition data."
         )
 
-    if not _definition_matches_spec(catalog_object):
+    if data.key != REQUIRED_COMPONENTS_DEFINITION["key"]:
         raise ValueError(
-            "The existing 'required_components' definition was found, but its "
-            "shape does not match this script's expected configuration."
+            "The existing definition does not use the expected key "
+            "'required_components'."
+        )
+
+    if data.type != "STRING":
+        raise ValueError(
+            "The existing 'required_components' definition is not a STRING attribute."
+        )
+
+    if sorted(data.allowed_object_types or []) != ["ITEM"]:
+        raise ValueError(
+            "The existing 'required_components' definition is not limited to ITEM "
+            "catalog objects."
+        )
+
+    if data.seller_visibility != "SELLER_VISIBILITY_HIDDEN":
+        raise ValueError(
+            "The existing 'required_components' definition is not hidden from seller UI."
+        )
+
+    if data.app_visibility != "APP_VISIBILITY_HIDDEN":
+        raise ValueError(
+            "The existing 'required_components' definition is not hidden from other apps."
         )
 
 
