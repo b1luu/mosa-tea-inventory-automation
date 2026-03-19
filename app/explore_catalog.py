@@ -3,8 +3,6 @@ import json
 from app.client import create_square_client
 from square.core.api_error import ApiError
 
-
-# returns a pager
 def catalog_list(client):
     try:
         response = client.catalog.list(types="ITEM")
