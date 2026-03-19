@@ -1,8 +1,9 @@
 from square.core.api_error import ApiError
 
 from app.catalog_custom_attributes import (
-    ensure_catalog_custom_attribute_definitions,
+    create_or_retrieve_required_components_definition,
     format_api_error,
+    print_definition_response,
 )
 from app.client import create_square_client
 from app.config import get_square_environment_name
@@ -10,16 +11,19 @@ from app.config import get_square_environment_name
 
 def main():
     try:
-        print("Square catalog custom attribute definition setup")
+        print("Square required_components custom attribute setup")
         print(f"Environment: {get_square_environment_name()}")
 
         # Build the Sandbox client from environment variables.
         client = create_square_client()
 
-        # Create or update the two definitions, then fetch them back for inspection.
-        definitions = ensure_catalog_custom_attribute_definitions(client)
+        # Create the definition if needed, or retrieve the current one if it already exists.
+        response = create_or_retrieve_required_components_definition(client)
 
-        print(f"\nSuccess. Verified {len(definitions)} definition(s).")
+        # Show the final server response as formatted JSON.
+        print_definition_response(response)
+
+        print("\nSuccess. Verified 1 definition.")
         return 0
     except ValueError as error:
         print(f"Configuration error: {error}")

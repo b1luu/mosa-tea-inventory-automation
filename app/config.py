@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
+# Load values from a local .env file if one exists.
 load_dotenv()
 
 
@@ -16,6 +17,7 @@ def get_square_access_token():
 
 
 def get_square_environment_name():
+    # Default to Sandbox so this project stays safely out of Production.
     environment_name = os.getenv("SQUARE_ENVIRONMENT", "sandbox").strip().lower()
     if environment_name not in {"sandbox", "production"}:
         raise ValueError(
