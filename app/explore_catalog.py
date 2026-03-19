@@ -19,5 +19,5 @@ def catalog_list(client):
 
 if __name__ == "__main__":
     client = create_square_client()
-    catalog_list(client):
+    catalog_list(client)
 
