@@ -10,7 +10,7 @@ def catalog_list(client):
         response = client.catalog.list(types="ITEM")
         items = []
         for item in response:
-            item.append(item.model_dump(by_alias=True, exclude_none=True))
+            items.append(item.model_dump(by_alias=True, exclude_none=True))
 
             print(json.dumps(items, indent=2))
 
