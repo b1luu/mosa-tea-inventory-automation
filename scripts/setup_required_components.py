@@ -14,13 +14,8 @@ def main():
         print("Square required_components custom attribute setup")
         print(f"Environment: {get_square_environment_name()}")
 
-        # Build the Sandbox client from environment variables.
         client = create_square_client()
-
-        # Create the definition if needed, or retrieve the current one if it already exists.
         response = create_or_retrieve_required_components_definition(client)
-
-        # Show the final server response as formatted JSON.
         print_definition_response(response)
 
         print("\nSuccess. Verified 1 definition.")
