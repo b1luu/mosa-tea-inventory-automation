@@ -1,3 +1,5 @@
+import json
+
 from fastapi import FastAPI, Request, Response
 from app.config import (
     get_square_webhook_signature_key,
@@ -30,8 +32,14 @@ async def square_webhook(request: Request):
         )
 
     headers = dict(request.headers)
+    pretty_body = request_body
+
+    try:
+        pretty_body = json.dumps(json.loads(request_body), indent=2)
+    except json.JSONDecodeError:
+        pass
 
     print(headers)
-    print(request_body)
+    print(pretty_body)
 
     return {"ok": True}
