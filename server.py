@@ -1,6 +1,10 @@
 import json
 
 from fastapi import FastAPI, Request, Response
+from app.catalog_change_search import (
+    search_changed_catalog_objects,
+    summarize_changed_object,
+)
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
     get_square_webhook_signature_key,
@@ -42,6 +46,14 @@ async def square_webhook(request: Request):
     if payload.get("type") == "catalog.version.updated":
         last_synced_at = get_or_create_last_synced_at()
         print(f"last_synced_at: {last_synced_at}")
+
+        changed_objects = search_changed_catalog_objects(last_synced_at)
+        changed_summaries = [
+            summarize_changed_object(catalog_object)
+            for catalog_object in changed_objects
+        ]
+        print("changed_objects:")
+        print(json.dumps(changed_summaries, indent=2))
 
         catalog_version = payload.get("data", {}).get("object", {}).get(
             "catalog_version", {}
