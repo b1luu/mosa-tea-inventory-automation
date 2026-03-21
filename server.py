@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request
 
+#Minimal viable webhook receiver for learning 
+
 app = FastAPI()
 
 @app.post("/webhook/square")
