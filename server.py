@@ -2,12 +2,13 @@ from fastapi import FastAPI, Request
 
 app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"message": "Mosa Tea backend running"}
+@app.post("/webhook/square")
+async def square_webhook(request: Request):
+    headers = dict(request.headers)
+    body = await request.body()
+    text = body.decode("utf-8")
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    body = await request.json()
-    print("Webhook received:", body)
-    return {"status": "ok"}
+    print(headers)
+    print(text)
+
+    return {"ok": True}
