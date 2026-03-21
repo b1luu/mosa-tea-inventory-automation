@@ -1,4 +1,9 @@
 from fastapi import FastAPI, Request
+from app.config import (
+    get_square_webhook_signature_key,
+    get_square_webhook_notification_url,
+)
+from square.utils.webhooks_helper import verify_signature
 
 #Minimal viable webhook receiver for learning 
 
