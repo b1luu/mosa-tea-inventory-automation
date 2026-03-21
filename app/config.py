@@ -22,3 +22,12 @@ def get_square_environment_name():
             "Invalid SQUARE_ENVIRONMENT value. Use 'sandbox' or 'production'."
         )
     return environment_name
+
+def get_square_webhook_signature_key():
+    signature_key = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
+    if signature_key:
+        raise ValueError(
+            "Missing Webhook Signature Key"
+        )
+    return signature_key 
+
