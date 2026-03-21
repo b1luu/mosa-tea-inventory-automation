@@ -23,21 +23,22 @@ def get_square_environment_name():
         )
     return environment_name
 
+
 def get_square_webhook_signature_key():
     signature_key = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
     if not signature_key:
         raise ValueError(
-            "Missing Webhook Signature Key"
+            "Missing required environment variable: SQUARE_WEBHOOK_SIGNATURE_KEY. "
+            "Set it in your environment or .env file before running the webhook server."
         )
-    return signature_key 
+    return signature_key
+
 
 def get_square_webhook_notification_url():
     notification_url = os.getenv("SQUARE_WEBHOOK_NOTIFICATION_URL")
     if not notification_url:
         raise ValueError(
-            "Missing correct URL for webhook"
+            "Missing required environment variable: SQUARE_WEBHOOK_NOTIFICATION_URL. "
+            "Set it in your environment or .env file before running the webhook server."
         )
     return notification_url
-
-
-
