@@ -1,6 +1,7 @@
 import json
 
 from fastapi import FastAPI, Request, Response
+from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
@@ -31,15 +32,24 @@ async def square_webhook(request: Request):
             status_code=403,
         )
 
+    payload = json.loads(request_body)
     headers = dict(request.headers)
-    pretty_body = request_body
-
-    try:
-        pretty_body = json.dumps(json.loads(request_body), indent=2)
-    except json.JSONDecodeError:
-        pass
+    pretty_body = json.dumps(payload, indent=2)
 
     print(headers)
     print(pretty_body)
+
+    if payload.get("type") == "catalog.version.updated":
+        last_synced_at = get_or_create_last_synced_at()
+        print(f"last_synced_at: {last_synced_at}")
+
+        catalog_version = payload.get("data", {}).get("object", {}).get(
+            "catalog_version", {}
+        )
+        updated_at = catalog_version.get("updated_at")
+
+        if updated_at:
+            update_last_synced_at(updated_at)
+            print(f"updated checkpoint to: {updated_at}")
 
     return {"ok": True}
