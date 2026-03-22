@@ -8,17 +8,39 @@ The current design treats:
 Right now the goal is not propagation yet. The goal is to reliably detect when a tracked Square variation changes and inspect its current sold-out state.
 
 ## Current Chain
-Square Dashboard change
-  -> `catalog.version.updated`
-  -> webhook receive
-  -> signature verify
-  -> load local checkpoint
-  -> search changed catalog objects
-  -> filter tracked `ITEM_VARIATION`s
-  -> map variation IDs back to component keys
-  -> retrieve full variation details
-  -> inspect `location_overrides[].sold_out`
-  -> update checkpoint
+```text
+         Square Dashboard change
+                    |
+                    v
+       `catalog.version.updated`
+                    |
+                    v
+             webhook receive
+                    |
+                    v
+             signature verify
+                    |
+                    v
+           load local checkpoint
+                    |
+                    v
+       search changed catalog objects
+                    |
+                    v
+      filter tracked ITEM_VARIATIONs
+                    |
+                    v
+   map variation IDs back to component keys
+                    |
+                    v
+      retrieve full variation details
+                    |
+                    v
+   inspect location_overrides[].sold_out
+                    |
+                    v
+             update checkpoint
+```
 
 ## Current Limitation
 - Dependency propagation is not implemented yet.
