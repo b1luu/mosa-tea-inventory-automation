@@ -1,48 +1,24 @@
+## Context
+This project is a small Sandbox-first backend experiment for learning how Square catalog webhooks, sold-out inspection, and dependency-driven availability might work for a tea menu.
+
+The current design treats:
+- item-level concepts as the business layer
+- variation-level sold-out state as the Square operational layer
+
+Right now the goal is not propagation yet. The goal is to reliably detect when a tracked Square variation changes and inspect its current sold-out state.
+
 ## Current Chain
-1. Manual sold-out toggle in Square Dashboard
-2. `catalog.version.updated` webhook arrives
-3. Webhook signature is verified
-4. `last_synced_at` is read from `data/catalog_sync_state.json`
-5. `SearchCatalogObjects` runs with `begin_time=last_synced_at`
-6. Changed catalog objects are printed
-7. Changed `ITEM_VARIATION` objects are matched against `data/component_variation_map.json`
-8. Matching variation IDs are reverse-mapped back to component keys
-9. `RetrieveCatalogObject` loads the full variation details
-10. Current sold-out-related fields are printed from `location_overrides`
-11. Checkpoint is updated after successful processing
-
-## Current Files
-Core app logic:
-- `app/config.py`
-- `app/client.py`
-- `app/catalog_change_search.py`
-- `app/catalog_sync_state.py`
-- `app/component_variation_map.py`
-- `app/catalog_custom_attributes.py`
-- `app/catalog_lookup.py`
-
-CLI / scripts:
-- `scripts/setup_required_components.py`
-- `scripts/explore_catalog.py`
-
-Webhook server:
-- `server.py`
-
-Local runtime data:
-- `data/catalog_sync_state.json`
-- `data/component_variation_map.json`
-
-## Current Data Files
-`data/catalog_sync_state.json`
-- Stores the last processed catalog timestamp.
-
-`data/component_variation_map.json`
-- Stores the business-facing component key to Square variation ID mapping.
-- The server builds the reverse `variation_id -> component_key` map in memory at runtime.
+1. A catalog change happens in Square Dashboard.
+2. Square sends `catalog.version.updated` to the webhook endpoint.
+3. The webhook signature is verified.
+4. The app reads the last processed timestamp from a local state file.
+5. The app searches Square for catalog objects changed since that timestamp.
+6. The app filters changed objects down to tracked `ITEM_VARIATION` IDs using a local component-to-variation mapping.
+7. The app retrieves the full variation object for those tracked matches.
+8. The app inspects the current variation state, including `location_overrides[].sold_out`.
+9. The app updates the local checkpoint after successful processing.
 
 ## Current Limitation
 - Dependency propagation is not implemented yet.
-- The component mapping file is still manually maintained.
-- The current tracked example uses:
-  - `genmai_green_milk_tea -> MFEUN6CYRHERVYYWV7H7WWVZ`
-- `catalog.version.updated` only tells us that the catalog changed, so the app still needs follow-up Catalog API reads to inspect current variation state.
+- The component-to-variation mapping is still manually maintained.
+- `catalog.version.updated` only tells us that the catalog changed, so follow-up Catalog API reads are still required to inspect current variation state.
