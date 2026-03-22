@@ -60,3 +60,32 @@ def summarize_changed_object(catalog_object):
         summary["name"] = category_data.name if category_data else None
 
     return summary
+
+
+def retrieve_variation_details(variation_id):
+    client = create_square_client()
+    response = client.catalog.object.get(object_id=variation_id)
+    return response.object
+
+
+def summarize_variation_details(catalog_object):
+    variation_data = catalog_object.item_variation_data
+    location_overrides = variation_data.location_overrides or []
+
+    return {
+        "type": catalog_object.type,
+        "id": catalog_object.id,
+        "item_id": variation_data.item_id if variation_data else None,
+        "name": variation_data.name if variation_data else None,
+        "track_inventory": variation_data.track_inventory if variation_data else None,
+        "sellable": variation_data.sellable if variation_data else None,
+        "stockable": variation_data.stockable if variation_data else None,
+        "location_overrides": [
+            {
+                "location_id": override.location_id,
+                "track_inventory": override.track_inventory,
+                "sold_out": override.sold_out,
+            }
+            for override in location_overrides
+        ],
+    }

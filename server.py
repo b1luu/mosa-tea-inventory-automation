@@ -2,8 +2,10 @@ import json
 
 from fastapi import FastAPI, Request, Response
 from app.catalog_change_search import (
+    retrieve_variation_details,
     search_changed_catalog_objects,
     summarize_changed_object,
+    summarize_variation_details,
 )
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
@@ -77,6 +79,15 @@ async def square_webhook(request: Request):
                     indent=2,
                 )
             )
+
+            tracked_variation_details = [
+                summarize_variation_details(
+                    retrieve_variation_details(catalog_object.id)
+                )
+                for catalog_object in tracked_variation_changes
+            ]
+            print("tracked variation details:")
+            print(json.dumps(tracked_variation_details, indent=2))
 
         catalog_version = payload.get("data", {}).get("object", {}).get(
             "catalog_version", {}
