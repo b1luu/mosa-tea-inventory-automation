@@ -1,7 +1,7 @@
 ## Current Chain
-manual sold-out toggle in Square Dashboard
-webhook arrives
-signature passes
-changed objects are found
-tracked variation is matched
-full variation retrieval confirms sold_out: true
+1. manual sold-out toggle in Square Dashboard
+2. webhook arrives
+3. ignature passes
+4. changed objects are found
+5. tracked variation is matched
+6. full variation retrieval confirms sold_out: true
