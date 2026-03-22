@@ -1,5 +1,10 @@
 from app.client import create_square_client
+"""
+catalog_change_search.py
 
+Utility functions for retrieving and summarizing catalog changes from Square.
+Used to inspect updates triggered by `catalog.version.updated` webhooks.
+"""
 
 SEARCH_OBJECT_TYPES = [
     "ITEM",
