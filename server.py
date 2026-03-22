@@ -7,16 +7,13 @@ from app.catalog_change_search import (
     summarize_changed_object,
     summarize_variation_details,
 )
+from app.component_variation_map import build_variation_to_component_map
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
 )
 from square.utils.webhooks_helper import verify_signature
-
-TRACKED_VARIATION_IDS = {
-    "MFEUN6CYRHERVYYWV7H7WWVZ",
-}
 
 app = FastAPI()
 
@@ -48,6 +45,7 @@ async def square_webhook(request: Request):
     print(pretty_body)
 
     if payload.get("type") == "catalog.version.updated":
+        variation_to_component = build_variation_to_component_map()
         last_synced_at = get_or_create_last_synced_at()
         print(f"last_synced_at: {last_synced_at}")
 
@@ -63,7 +61,7 @@ async def square_webhook(request: Request):
             catalog_object
             for catalog_object in changed_objects
             if catalog_object.type == "ITEM_VARIATION"
-            and catalog_object.id in TRACKED_VARIATION_IDS
+            and catalog_object.id in variation_to_component
         ]
 
         if tracked_variation_changes:
@@ -77,6 +75,12 @@ async def square_webhook(request: Request):
                     indent=2,
                 )
             )
+            changed_components = [
+                variation_to_component[catalog_object.id]
+                for catalog_object in tracked_variation_changes
+            ]
+            print("changed components:")
+            print(json.dumps(changed_components, indent=2))
 
             tracked_variation_details = [
                 summarize_variation_details(
