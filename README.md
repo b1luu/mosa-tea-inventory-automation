@@ -1,5 +1,4 @@
 ## Current Chain
-
 manual sold-out toggle in Square Dashboard
 webhook arrives
 signature passes
