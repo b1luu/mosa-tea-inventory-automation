@@ -14,6 +14,10 @@ from square.utils.webhooks_helper import verify_signature
 
 # Minimal viable Square webhook receiver for learning.
 
+TRACKED_VARIATION_IDS = {
+    "MFEUN6CYRHERVYYWV7H7WWVZ",
+}
+
 app = FastAPI()
 
 
@@ -54,6 +58,25 @@ async def square_webhook(request: Request):
         ]
         print("changed_objects:")
         print(json.dumps(changed_summaries, indent=2))
+
+        tracked_variation_changes = [
+            catalog_object
+            for catalog_object in changed_objects
+            if catalog_object.type == "ITEM_VARIATION"
+            and catalog_object.id in TRACKED_VARIATION_IDS
+        ]
+
+        if tracked_variation_changes:
+            print("tracked variation changes:")
+            print(
+                json.dumps(
+                    [
+                        summarize_changed_object(catalog_object)
+                        for catalog_object in tracked_variation_changes
+                    ],
+                    indent=2,
+                )
+            )
 
         catalog_version = payload.get("data", {}).get("object", {}).get(
             "catalog_version", {}
