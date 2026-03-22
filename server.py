@@ -14,8 +14,6 @@ from app.config import (
 )
 from square.utils.webhooks_helper import verify_signature
 
-# Minimal viable Square webhook receiver for learning.
-
 TRACKED_VARIATION_IDS = {
     "MFEUN6CYRHERVYYWV7H7WWVZ",
 }
