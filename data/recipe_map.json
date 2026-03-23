@@ -11,6 +11,18 @@
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
         }
       ]
+    },
+    "UT2LQ5DFYMM3TJDOGVGSJ542":{
+      "drink_key": "four_seaons_milk_tea",
+      "drink_name": "Four Seasons Milk Tea",
+      "ingredients":[
+        {
+          "inventory_key": "4s",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed 4s volume per drink."
+        }
+      ]
     }
   }
 }
