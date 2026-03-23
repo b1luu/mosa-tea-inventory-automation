@@ -1,8 +1,8 @@
 {
   "sold_variation_recipes": {
-    "REPLACE_WITH_SOLD_DRINK_VARIATION_ID": {
-      "drink_key": "replace_with_drink_key",
-      "drink_name": "Replace With Real Drink Name",
+    "B526AZ22TDNVJGUAE4HRXJKS": {
+      "drink_key": "tgy_special",
+      "drink_name": "TGY Special",
       "ingredients": [
         {
           "inventory_key": "tgy",
