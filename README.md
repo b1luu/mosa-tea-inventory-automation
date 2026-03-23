@@ -55,3 +55,11 @@ Right now the goal is not propagation yet. The goal is to reliably detect when a
 - Define a lightweight ingredient intelligence schema based on SKU inventory, batch yields, and drink recipe usage.
 - Evaluate whether the Inventory API should be used as an operational workaround or as part of a broader internal inventory model.
 - Continue treating the current webhook flow as a detection and inspection pipeline, not as direct Square sold-out propagation.
+
+## Ingredient Intelligence Template
+- A starter template now lives in `data/ingredient_intelligence_template.json`.
+- It is intended to model:
+  - raw SKUs
+  - batch yields
+  - component keys
+  - drink recipe usage
