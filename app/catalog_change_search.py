@@ -14,7 +14,6 @@ SEARCH_OBJECT_TYPES = [
     "CATEGORY",
 ]
 
-
 def search_changed_catalog_objects(begin_time):
     client = create_square_client()
     changed_objects = []
