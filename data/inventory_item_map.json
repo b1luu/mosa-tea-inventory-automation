@@ -6,7 +6,7 @@
       "unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
-        "input_amount": 140,
+        "input_amount": 160,
         "input_unit": "g",
         "output_amount": 6000,
         "output_unit": "ml"
@@ -19,7 +19,7 @@
       "unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
-        "input_amount": 140,
+        "input_amount": 160,
         "input_unit": "g",
         "output_amount": 6000,
         "output_unit": "ml"
