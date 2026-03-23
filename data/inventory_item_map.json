@@ -5,6 +5,12 @@
       "name": "TGY",
       "unit": "g",
       "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 140,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
       "notes": "Internal inventory ledger item. This variation is not meant to be sold directly."
     }
   }

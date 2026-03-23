@@ -6,9 +6,9 @@
       "ingredients": [
         {
           "inventory_key": "tgy",
-          "amount": 200,
-          "unit": "g",
-          "notes": "Replace this with the real usage amount for one sold drink."
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
         }
       ]
     }

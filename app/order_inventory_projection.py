@@ -30,6 +30,33 @@ def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
 
+def _convert_to_inventory_unit(amount, from_unit, inventory_item):
+    inventory_unit = inventory_item["unit"]
+    normalized_amount = Decimal(str(amount))
+
+    if from_unit == inventory_unit:
+        return normalized_amount
+
+    yield_conversion = inventory_item.get("yield_conversion")
+    if not yield_conversion:
+        raise ValueError(
+            f"No unit conversion found for inventory key '{inventory_item['name']}'."
+        )
+
+    input_amount = Decimal(str(yield_conversion["input_amount"]))
+    output_amount = Decimal(str(yield_conversion["output_amount"]))
+    input_unit = yield_conversion["input_unit"]
+    output_unit = yield_conversion["output_unit"]
+
+    if from_unit == output_unit and inventory_unit == input_unit:
+        return normalized_amount * (input_amount / output_amount)
+
+    raise ValueError(
+        "Unsupported conversion path for "
+        f"inventory key '{inventory_item['name']}': {from_unit} -> {inventory_unit}."
+    )
+
+
 def project_line_item_usage(sold_variation_id, quantity):
     recipe = get_recipe_for_sold_variation(sold_variation_id)
     if not recipe:
@@ -49,15 +76,23 @@ def project_line_item_usage(sold_variation_id, quantity):
                 f"No inventory item mapping found for key '{inventory_key}'."
             )
 
-        per_drink_amount = Decimal(str(ingredient["amount"]))
-        total_amount = per_drink_amount * normalized_quantity
+        recipe_amount = Decimal(str(ingredient["amount"]))
+        recipe_unit = ingredient["unit"]
+        inventory_amount_per_drink = _convert_to_inventory_unit(
+            recipe_amount,
+            recipe_unit,
+            inventory_item,
+        )
+        total_amount = inventory_amount_per_drink * normalized_quantity
 
         projected_usage.append(
             {
                 "inventory_key": inventory_key,
                 "square_variation_id": inventory_item["square_variation_id"],
-                "unit": ingredient["unit"],
-                "per_drink_amount": float(per_drink_amount),
+                "recipe_unit": recipe_unit,
+                "recipe_amount": float(recipe_amount),
+                "inventory_unit": inventory_item["unit"],
+                "per_drink_inventory_amount": float(inventory_amount_per_drink),
                 "sold_quantity": float(normalized_quantity),
                 "total_amount": float(total_amount),
             }
@@ -82,7 +117,7 @@ def combine_projected_usage(projected_line_items):
                 combined[inventory_key] = {
                     "inventory_key": inventory_key,
                     "square_variation_id": usage["square_variation_id"],
-                    "unit": usage["unit"],
+                    "inventory_unit": usage["inventory_unit"],
                     "total_amount": Decimal("0"),
                 }
 
