@@ -14,6 +14,7 @@ SEARCH_OBJECT_TYPES = [
     "CATEGORY",
 ]
 
+
 def search_changed_catalog_objects(begin_time):
     client = create_square_client()
     changed_objects = []
@@ -36,6 +37,15 @@ def search_changed_catalog_objects(begin_time):
         cursor = response.cursor
 
     return changed_objects
+
+
+def get_latest_updated_at(changed_objects):
+    updated_at_values = [
+        catalog_object.updated_at
+        for catalog_object in changed_objects
+        if catalog_object.updated_at
+    ]
+    return max(updated_at_values) if updated_at_values else None
 
 
 def summarize_changed_object(catalog_object):

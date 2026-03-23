@@ -2,6 +2,7 @@ import json
 
 from fastapi import FastAPI, Request, Response
 from app.catalog_change_search import (
+    get_latest_updated_at,
     retrieve_variation_details,
     search_changed_catalog_objects,
     summarize_changed_object,
@@ -94,10 +95,12 @@ async def square_webhook(request: Request):
         catalog_version = payload.get("data", {}).get("object", {}).get(
             "catalog_version", {}
         )
-        updated_at = catalog_version.get("updated_at")
+        webhook_updated_at = catalog_version.get("updated_at")
+        latest_object_updated_at = get_latest_updated_at(changed_objects)
+        checkpoint_updated_at = latest_object_updated_at or webhook_updated_at
 
-        if updated_at:
-            update_last_synced_at(updated_at)
-            print(f"updated checkpoint to: {updated_at}")
+        if checkpoint_updated_at:
+            update_last_synced_at(checkpoint_updated_at)
+            print(f"updated checkpoint to: {checkpoint_updated_at}")
 
     return {"ok": True}
