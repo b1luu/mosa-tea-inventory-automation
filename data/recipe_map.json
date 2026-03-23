@@ -1,0 +1,16 @@
+{
+  "sold_variation_recipes": {
+    "REPLACE_WITH_SOLD_DRINK_VARIATION_ID": {
+      "drink_key": "replace_with_drink_key",
+      "drink_name": "Replace With Real Drink Name",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 200,
+          "unit": "g",
+          "notes": "Replace this with the real usage amount for one sold drink."
+        }
+      ]
+    }
+  }
+}

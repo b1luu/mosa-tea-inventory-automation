@@ -1,0 +1,11 @@
+{
+  "inventory_items": {
+    "tgy": {
+      "square_variation_id": "DFSCYEJEFN4PTIKTE4YVJWLH",
+      "name": "TGY",
+      "unit": "g",
+      "category": "INV - Tea",
+      "notes": "Internal inventory ledger item. This variation is not meant to be sold directly."
+    }
+  }
+}
