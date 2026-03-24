@@ -35,6 +35,42 @@
           "notes": "Brewed 4s volume per drink."
         }
       ]
+    },
+    "DX2LRA7T4EFSSFH6POETDJHY": {
+      "drink_key": "matcha_latte",
+      "drink_name": "Matcha Latte",
+      "ingredients": [
+        {
+          "inventory_key": "matcha",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ]
+    },
+    "EJJASVYVTOW2RW42KNIANNZO": {
+      "drink_key": "hot_spice_apple_tea_cider",
+      "drink_name": "Hot Spice Apple Tea Cider",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
+    "CYCWISFBGJBMVQJT327EKXKA": {
+      "drink_key": "mango_matcha_latte",
+      "drink_name": "Mango Matcha Latte",
+      "ingredients": [
+        {
+          "inventory_key": "matcha",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ]
     }
   }
 }

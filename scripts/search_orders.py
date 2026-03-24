@@ -1,4 +1,5 @@
 import json
+import sys
 
 from square.core.api_error import ApiError
 
@@ -17,6 +18,7 @@ def summarize_order(order):
 
 
 def main():
+    state_filter = sys.argv[1].upper() if len(sys.argv) > 1 else "COMPLETED"
     client = create_square_client()
 
     try:
@@ -35,7 +37,7 @@ def main():
             query={
                 "filter": {
                     "state_filter": {
-                        "states": ["OPEN", "COMPLETED"]
+                        "states": [state_filter]
                     }
                 },
                 "sort": {

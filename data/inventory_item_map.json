@@ -25,6 +25,32 @@
         "output_unit": "ml"
       },
       "notes": "Internal inventory ledger item for Four Seasons tea. This variation is not meant to be sold directly."
+    },
+    "matcha": {
+      "square_variation_id": "NQ3U5ZT6VS5UGCI7MQ6SVWQK",
+      "name": "Matcha",
+      "unit": "g",
+      "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 35,
+        "input_unit": "g",
+        "output_amount": 800,
+        "output_unit": "ml"
+      },
+      "notes": "Internal inventory ledger item for matcha. Fill in the Square variation ID after creating the supply item."
+    },
+    "black_tea": {
+      "square_variation_id": "UUNXKESV2Y62F6DIAJ737KOO",
+      "name": "Black Tea",
+      "unit": "g",
+      "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 140,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
+      "notes": "Internal inventory ledger item for black tea. Fill in the Square variation ID after creating the supply item."
     }
   }
 }
