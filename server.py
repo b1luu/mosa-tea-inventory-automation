@@ -4,12 +4,9 @@ from datetime import datetime
 from fastapi import FastAPI, Request, Response
 from app.catalog_change_search import (
     get_latest_updated_at,
-    retrieve_variation_details,
     search_changed_catalog_objects,
     summarize_changed_object,
-    summarize_variation_details,
 )
-from app.component_variation_map import build_variation_to_component_map
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
     get_square_webhook_signature_key,
@@ -51,7 +48,6 @@ async def square_webhook(request: Request):
     print(pretty_body)
 
     if payload.get("type") == "catalog.version.updated":
-        variation_to_component = build_variation_to_component_map()
         last_synced_at = get_or_create_last_synced_at()
         print(f"last_synced_at: {last_synced_at}")
 
@@ -62,40 +58,6 @@ async def square_webhook(request: Request):
         ]
         print("changed_objects:")
         print(json.dumps(changed_summaries, indent=2))
-
-        tracked_variation_changes = [
-            catalog_object
-            for catalog_object in changed_objects
-            if catalog_object.type == "ITEM_VARIATION"
-            and catalog_object.id in variation_to_component
-        ]
-
-        if tracked_variation_changes:
-            print("tracked variation changes:")
-            print(
-                json.dumps(
-                    [
-                        summarize_changed_object(catalog_object)
-                        for catalog_object in tracked_variation_changes
-                    ],
-                    indent=2,
-                )
-            )
-            changed_components = [
-                variation_to_component[catalog_object.id]
-                for catalog_object in tracked_variation_changes
-            ]
-            print("changed components:")
-            print(json.dumps(changed_components, indent=2))
-
-            tracked_variation_details = [
-                summarize_variation_details(
-                    retrieve_variation_details(catalog_object.id)
-                )
-                for catalog_object in tracked_variation_changes
-            ]
-            print("tracked variation details:")
-            print(json.dumps(tracked_variation_details, indent=2))
 
         latest_object_updated_at = get_latest_updated_at(changed_objects)
 
