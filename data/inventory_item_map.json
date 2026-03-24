@@ -57,6 +57,12 @@
       "name": "Buckwheat",
       "unit": "g",
       "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 120,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
     },
     "barley": {
@@ -64,6 +70,12 @@
       "name": "Barley",
       "unit": "g",
       "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 240,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
     },
     "green_tea": {
@@ -71,6 +83,12 @@
       "name": "Green Tea",
       "unit": "g",
       "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 160,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
     },
     "genmai": {
@@ -78,6 +96,12 @@
       "name": "Genmai",
       "unit": "g",
       "category": "INV - Tea",
+      "yield_conversion": {
+        "input_amount": 120,
+        "input_unit": "g",
+        "output_amount": 6000,
+        "output_unit": "ml"
+      },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
     }
   }
