@@ -1,4 +1,76 @@
 {
+  "tea_bases": {
+    "genmai_green": {
+      "ingredients": [
+        {
+          "inventory_key": "genmai",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        },
+        {
+          "inventory_key": "green_tea",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        }
+      ]
+    },
+    "roasted_buckwheat_barley": {
+      "ingredients": [
+        {
+          "inventory_key": "buckwheat",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        },
+        {
+          "inventory_key": "barley",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        }
+      ]
+    },
+    "genmai_matcha": {
+      "ingredients": [
+        {
+          "inventory_key": "genmai",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        },
+        {
+          "inventory_key": "matcha",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        }
+      ]
+    },
+    "four_seasons_roasted_buckwheat_barley": {
+      "ingredients": [
+        {
+          "inventory_key": "4s",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        },
+        {
+          "inventory_key": "buckwheat",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        },
+        {
+          "inventory_key": "barley",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Derived tea base component."
+        }
+      ]
+    }
+  },
   "sold_variation_recipes": {
     "B526AZ22TDNVJGUAE4HRXJKS": {
       "drink_key": "tgy_special",

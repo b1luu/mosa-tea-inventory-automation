@@ -17,17 +17,40 @@ def load_inventory_item_map():
 
 
 def load_recipe_map():
-    data = _load_json(RECIPE_MAP_FILE)
-    return data.get("sold_variation_recipes", {})
+    return _load_json(RECIPE_MAP_FILE)
 
 
 def get_recipe_for_sold_variation(sold_variation_id):
     recipe_map = load_recipe_map()
-    return recipe_map.get(sold_variation_id)
+    return recipe_map.get("sold_variation_recipes", {}).get(sold_variation_id)
+
+
+def get_tea_base_map():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("tea_bases", {})
 
 
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
+
+
+def _expand_ingredients(recipe_ingredients):
+    tea_bases = get_tea_base_map()
+    expanded_ingredients = []
+
+    for ingredient in recipe_ingredients:
+        tea_base_key = ingredient.get("tea_base_key")
+        if not tea_base_key:
+            expanded_ingredients.append(ingredient)
+            continue
+
+        tea_base = tea_bases.get(tea_base_key)
+        if not tea_base:
+            raise ValueError(f"No tea base mapping found for key '{tea_base_key}'.")
+
+        expanded_ingredients.extend(tea_base.get("ingredients", []))
+
+    return expanded_ingredients
 
 
 def _convert_to_inventory_unit(amount, from_unit, inventory_item):
@@ -67,8 +90,9 @@ def project_line_item_usage(sold_variation_id, quantity):
     inventory_items = load_inventory_item_map()
     normalized_quantity = _normalize_quantity(quantity)
     projected_usage = []
+    expanded_ingredients = _expand_ingredients(recipe.get("ingredients", []))
 
-    for ingredient in recipe.get("ingredients", []):
+    for ingredient in expanded_ingredients:
         inventory_key = ingredient["inventory_key"]
         inventory_item = inventory_items.get(inventory_key)
         if not inventory_item:
