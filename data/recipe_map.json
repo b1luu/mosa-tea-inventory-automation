@@ -120,6 +120,18 @@
         }
       ]
     },
+    "WDJUOLPURFXN7OYF57TQG4D6": {
+      "drink_key": "four_seasons_brewed_tea",
+      "drink_name": "Four Seasons Brewed Tea",
+      "ingredients": [
+        {
+          "inventory_key": "4s",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed 4s volume per drink."
+        }
+      ]
+    },
     "K2BRYES3XMNHC7WC4XQQ6DHV": {
       "drink_key": "roasted_buckwheat_barley_milk_tea",
       "drink_name": "Roasted Buckwheat Barley Milk Tea",
