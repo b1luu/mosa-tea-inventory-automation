@@ -188,6 +188,15 @@
           "tea_base_key": "four_seasons_roasted_buckwheat_barley"
         }
       ]
+    },
+    "W5F3TM6WNOY5ZFX2GQCY3XXU": {
+      "drink_key": "roasted_buckwheat_four_seasons",
+      "drink_name": "Roasted Buckwheat Four Seasons Tea",
+      "ingredients": [
+        {
+          "tea_base_key": "four_seasons_roasted_buckwheat_barley"
+        }
+      ]
     }
   }
 }
