@@ -108,6 +108,18 @@
         }
       ]
     },
+    "K2BRYES3XMNHC7WC4XQQ6DHV": {
+      "drink_key": "roasted_buckwheat_barley_milk_tea",
+      "drink_name": "Roasted Buckwheat Barley Milk Tea",
+      "ingredients": [
+        {
+          "tea_base_key": "roasted_buckwheat_barley",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Use 300 ml of the roasted buckwheat and barley tea base."
+        }
+      ]
+    },
     "DX2LRA7T4EFSSFH6POETDJHY": {
       "drink_key": "matcha_latte",
       "drink_name": "Matcha Latte",

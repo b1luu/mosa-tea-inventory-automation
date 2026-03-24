@@ -48,7 +48,43 @@ def _expand_ingredients(recipe_ingredients):
         if not tea_base:
             raise ValueError(f"No tea base mapping found for key '{tea_base_key}'.")
 
-        expanded_ingredients.extend(tea_base.get("ingredients", []))
+        tea_base_ingredients = tea_base.get("ingredients", [])
+        requested_amount = ingredient.get("amount")
+        requested_unit = ingredient.get("unit")
+
+        if requested_amount is None:
+            expanded_ingredients.extend(tea_base_ingredients)
+            continue
+
+        if not requested_unit:
+            raise ValueError(
+                f"Tea base '{tea_base_key}' amount was provided without a unit."
+            )
+
+        base_units = {base_ingredient["unit"] for base_ingredient in tea_base_ingredients}
+        if len(base_units) != 1 or requested_unit not in base_units:
+            raise ValueError(
+                f"Tea base '{tea_base_key}' cannot be scaled with unit '{requested_unit}'."
+            )
+
+        base_total_amount = sum(
+            Decimal(str(base_ingredient["amount"]))
+            for base_ingredient in tea_base_ingredients
+        )
+        if base_total_amount == 0:
+            raise ValueError(f"Tea base '{tea_base_key}' has zero total amount.")
+
+        scale_factor = Decimal(str(requested_amount)) / base_total_amount
+
+        for base_ingredient in tea_base_ingredients:
+            expanded_ingredients.append(
+                {
+                    **base_ingredient,
+                    "amount": float(
+                        Decimal(str(base_ingredient["amount"])) * scale_factor
+                    ),
+                }
+            )
 
     return expanded_ingredients
 
