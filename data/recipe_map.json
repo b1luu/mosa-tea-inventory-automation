@@ -16,6 +16,22 @@
         }
       ]
     },
+    "genmai_green_au_lait": {
+      "ingredients": [
+        {
+          "inventory_key": "genmai",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Derived tea base component for au lait drinks."
+        },
+        {
+          "inventory_key": "green_tea",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Derived tea base component for au lait drinks."
+        }
+      ]
+    },
     "roasted_buckwheat_barley": {
       "ingredients": [
         {
@@ -141,6 +157,42 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ]
+    },
+    "REPLACE_WITH_PISTACHIO_MIST_VARIATION_ID": {
+      "drink_key": "pistachio_mist",
+      "drink_name": "Pistachio Mist",
+      "ingredients": [
+        {
+          "tea_base_key": "genmai_green"
+        }
+      ]
+    },
+    "REPLACE_WITH_GENMAI_GREEN_MILK_TEA_VARIATION_ID": {
+      "drink_key": "genmai_green_milk_tea",
+      "drink_name": "Genmai Green Milk Tea",
+      "ingredients": [
+        {
+          "tea_base_key": "genmai_green"
+        }
+      ]
+    },
+    "REPLACE_WITH_GENMAI_GREEN_BREWED_TEA_VARIATION_ID": {
+      "drink_key": "genmai_green_brewed_tea",
+      "drink_name": "Genmai Green Brewed Tea",
+      "ingredients": [
+        {
+          "tea_base_key": "genmai_green"
+        }
+      ]
+    },
+    "REPLACE_WITH_GENMAI_GREEN_AU_LAIT_VARIATION_ID": {
+      "drink_key": "genmai_green_au_lait",
+      "drink_name": "Genmai Green Au Lait",
+      "ingredients": [
+        {
+          "tea_base_key": "genmai_green_au_lait"
         }
       ]
     }
