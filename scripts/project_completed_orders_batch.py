@@ -8,6 +8,10 @@ from app.order_inventory_projection import (
     combine_projected_usage,
     project_line_item_usage,
 )
+from app.processed_orders_state import (
+    load_processed_order_ids,
+    mark_orders_processed,
+)
 
 
 def _extract_line_items(order):
@@ -38,10 +42,12 @@ def main():
         return 1
 
     client = create_square_client()
+    already_processed_order_ids = load_processed_order_ids()
     processed_orders = []
     skipped_orders = []
     skipped_line_items = []
     projected_line_items = []
+    newly_processed_order_ids = []
 
     for order_id in sys.argv[1:]:
         try:
@@ -75,6 +81,16 @@ def main():
             )
             continue
 
+        if order.id in already_processed_order_ids:
+            skipped_orders.append(
+                {
+                    "order_id": order.id,
+                    "state": order.state,
+                    "reason": "Order already processed",
+                }
+            )
+            continue
+
         extracted_line_items = _extract_line_items(order)
         processed_orders.append(
             {
@@ -83,6 +99,7 @@ def main():
                 "line_item_count": len(extracted_line_items),
             }
         )
+        newly_processed_order_ids.append(order.id)
 
         for line_item in extracted_line_items:
             try:
@@ -101,6 +118,8 @@ def main():
                 )
 
     combined_usage = combine_projected_usage(projected_line_items)
+    if newly_processed_order_ids:
+        mark_orders_processed(newly_processed_order_ids)
 
     print("processed_orders:")
     print(json.dumps(processed_orders, indent=2))
