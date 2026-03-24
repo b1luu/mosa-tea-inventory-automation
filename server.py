@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from fastapi import FastAPI, Request, Response
 from app.catalog_change_search import (
@@ -17,6 +18,10 @@ from app.config import (
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
+
+
+def _parse_rfc3339(timestamp):
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
 
 @app.post("/webhook/square")
@@ -92,15 +97,17 @@ async def square_webhook(request: Request):
             print("tracked variation details:")
             print(json.dumps(tracked_variation_details, indent=2))
 
-        catalog_version = payload.get("data", {}).get("object", {}).get(
-            "catalog_version", {}
-        )
-        webhook_updated_at = catalog_version.get("updated_at")
         latest_object_updated_at = get_latest_updated_at(changed_objects)
-        checkpoint_updated_at = latest_object_updated_at or webhook_updated_at
 
-        if checkpoint_updated_at:
-            update_last_synced_at(checkpoint_updated_at)
-            print(f"updated checkpoint to: {checkpoint_updated_at}")
+        if not latest_object_updated_at:
+            print("checkpoint unchanged: no changed objects found")
+            return {"ok": True}
+
+        if _parse_rfc3339(latest_object_updated_at) <= _parse_rfc3339(last_synced_at):
+            print("checkpoint unchanged: latest changed object is not newer")
+            return {"ok": True}
+
+        update_last_synced_at(latest_object_updated_at)
+        print(f"updated checkpoint to: {latest_object_updated_at}")
 
     return {"ok": True}
