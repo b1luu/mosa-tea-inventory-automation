@@ -16,22 +16,6 @@
         }
       ]
     },
-    "genmai_green_au_lait": {
-      "ingredients": [
-        {
-          "inventory_key": "genmai",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Derived tea base component for au lait drinks."
-        },
-        {
-          "inventory_key": "green_tea",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Derived tea base component for au lait drinks."
-        }
-      ]
-    },
     "roasted_buckwheat_barley": {
       "ingredients": [
         {
@@ -192,7 +176,16 @@
       "drink_name": "Genmai Green Au Lait",
       "ingredients": [
         {
-          "tea_base_key": "genmai_green_au_lait"
+          "inventory_key": "genmai",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Genmai portion for Genmai Green Au Lait."
+        },
+        {
+          "inventory_key": "green_tea",
+          "amount": 100,
+          "unit": "ml",
+          "notes": "Green tea portion for Genmai Green Au Lait."
         }
       ]
     }
