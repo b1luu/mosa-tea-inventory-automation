@@ -168,6 +168,18 @@
         }
       ]
     },
+    "2GVQJKC2SVP7ALXQ4EXODBJJ": {
+      "drink_key": "black_tea_brewed_tea",
+      "drink_name": "Black Tea",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "CYCWISFBGJBMVQJT327EKXKA": {
       "drink_key": "mango_matcha_latte",
       "drink_name": "Mango Matcha Latte",
