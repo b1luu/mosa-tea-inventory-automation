@@ -12,6 +12,18 @@
         }
       ]
     },
+    "BU4ESSWPHPWD5HVHDJAAXNHT": {
+      "drink_key": "tie_guan_yin_milk_tea",
+      "drink_name": "Tie Guan Yin Milk Tea",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "UT2LQ5DFYMM3TJDOGVGSJ542":{
       "drink_key": "four_seasons_milk_tea",
       "drink_name": "Four Seasons Milk Tea",
