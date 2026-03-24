@@ -144,7 +144,7 @@
         }
       ]
     },
-    "REPLACE_WITH_PISTACHIO_MIST_VARIATION_ID": {
+    "FYZX4EUOH6P37MKZ6TZNYW3I": {
       "drink_key": "pistachio_mist",
       "drink_name": "Pistachio Mist",
       "ingredients": [
@@ -153,7 +153,7 @@
         }
       ]
     },
-    "REPLACE_WITH_GENMAI_GREEN_MILK_TEA_VARIATION_ID": {
+    "MFEUN6CYRHERVYYWV7H7WWVZ": {
       "drink_key": "genmai_green_milk_tea",
       "drink_name": "Genmai Green Milk Tea",
       "ingredients": [
@@ -162,7 +162,7 @@
         }
       ]
     },
-    "REPLACE_WITH_GENMAI_GREEN_BREWED_TEA_VARIATION_ID": {
+    "SA4SIBUCOLBU3XQ3BZPYXXP4": {
       "drink_key": "genmai_green_brewed_tea",
       "drink_name": "Genmai Green Brewed Tea",
       "ingredients": [
@@ -171,21 +171,12 @@
         }
       ]
     },
-    "REPLACE_WITH_GENMAI_GREEN_AU_LAIT_VARIATION_ID": {
+    "VXCZ6EMJHEJN5QYCQ3EYHPFT": {
       "drink_key": "genmai_green_au_lait",
       "drink_name": "Genmai Green Au Lait",
       "ingredients": [
         {
-          "inventory_key": "genmai",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Genmai portion for Genmai Green Au Lait."
-        },
-        {
-          "inventory_key": "green_tea",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Green tea portion for Genmai Green Au Lait."
+          "tea_base_key": "genmai_green"
         }
       ]
     }
