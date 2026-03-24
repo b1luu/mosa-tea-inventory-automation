@@ -52,28 +52,6 @@
       "ingredients": [
         {
           "inventory_key": "4s",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Derived tea base component."
-        },
-        {
-          "inventory_key": "buckwheat",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Derived tea base component."
-        },
-        {
-          "inventory_key": "barley",
-          "amount": 100,
-          "unit": "ml",
-          "notes": "Derived tea base component."
-        }
-      ]
-    },
-    "four_seasons_roasted_buckwheat_barley": {
-      "ingredients": [
-        {
-          "inventory_key": "4s",
           "amount": 225,
           "unit": "ml",
           "notes": "75% of a 300 ml tea base."
