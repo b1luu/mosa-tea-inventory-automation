@@ -179,6 +179,15 @@
           "tea_base_key": "genmai_green"
         }
       ]
+    },
+    "IPAOWQYVBTMVYEWOQQAYXI7J": {
+      "drink_key": "grapefruit_bloom",
+      "drink_name": "Grapefruit Bloom",
+      "ingredients": [
+        {
+          "tea_base_key": "four_seasons_roasted_buckwheat_barley"
+        }
+      ]
     }
   }
 }
