@@ -156,6 +156,18 @@
         }
       ]
     },
+    "EN3MUM4GFV7IMYIUH2QMIUSM": {
+      "drink_key": "roasted_buckwheat_barley_au_lait",
+      "drink_name": "Roasted Buckwheat Barley Au Lait",
+      "ingredients": [
+        {
+          "tea_base_key": "roasted_buckwheat_barley",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Use 200 ml of the roasted buckwheat and barley tea base."
+        }
+      ]
+    },
     "DX2LRA7T4EFSSFH6POETDJHY": {
       "drink_key": "matcha_latte",
       "drink_name": "Matcha Latte",
