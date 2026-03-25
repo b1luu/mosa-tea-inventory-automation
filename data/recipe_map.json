@@ -86,7 +86,7 @@
     },
     "BU4ESSWPHPWD5HVHDJAAXNHT": {
       "drink_key": "tie_guan_yin_milk_tea",
-      "drink_name": "Tie Guan Yin Milk Tea",
+      "drink_name": "Tie Guan Yin Oolong Milk Tea",
       "ingredients": [
         {
           "inventory_key": "tgy",
@@ -98,7 +98,7 @@
     },
     "5QYGSH5A7D3EOYGTBZMVEC7D": {
       "drink_key": "tie_guan_yin_milk_tea_with_osmanthus_honey",
-      "drink_name": "Tie Guan Yin Milk Tea with Osmanthus Honey",
+      "drink_name": "Tie Guan Yin Oolong with Osmanthus Honey Milk Tea",
       "ingredients": [
         {
           "inventory_key": "tgy",
@@ -110,7 +110,7 @@
     },
     "72KIPS2KHWEK6RAT452MAB2P": {
       "drink_key": "tie_guan_yin_brewed_tea",
-      "drink_name": "Tie Guan Yin Brewed Tea",
+      "drink_name": "Tie Guan Yin Oolong Tea",
       "ingredients": [
         {
           "inventory_key": "tgy",
@@ -158,7 +158,7 @@
     },
     "WDJUOLPURFXN7OYF57TQG4D6": {
       "drink_key": "four_seasons_brewed_tea",
-      "drink_name": "Four Seasons Brewed Tea",
+      "drink_name": "Four Seasons Tea",
       "ingredients": [
         {
           "inventory_key": "4s",
@@ -170,7 +170,7 @@
     },
     "K2BRYES3XMNHC7WC4XQQ6DHV": {
       "drink_key": "roasted_buckwheat_barley_milk_tea",
-      "drink_name": "Roasted Buckwheat Barley Milk Tea",
+      "drink_name": "Roasted Buckwheat and Barley Milk Tea",
       "ingredients": [
         {
           "tea_base_key": "roasted_buckwheat_barley",
@@ -194,7 +194,7 @@
     },
     "7TBAWV3PPUHTQQ75HKMSZQZR": {
       "drink_key": "roasted_buckwheat_barley_brewed_tea",
-      "drink_name": "Roasted Buckwheat Barley Brewed Tea",
+      "drink_name": "Roasted Buckwheat Barley Tea",
       "ingredients": [
         {
           "tea_base_key": "roasted_buckwheat_barley",
@@ -242,7 +242,7 @@
     },
     "2GVQJKC2SVP7ALXQ4EXODBJJ": {
       "drink_key": "black_tea_brewed_tea",
-      "drink_name": "Black Tea",
+      "drink_name": "Signature Black Tea",
       "ingredients": [
         {
           "inventory_key": "black_tea",
@@ -314,7 +314,7 @@
     },
     "RJU3MBQFNVHFUUDMTAXDQ43P": {
       "drink_key": "genmai_matcha_with_matcha_jelly",
-      "drink_name": "Genmai Matcha with Matcha Jelly",
+      "drink_name": "Genmai Matcha w/ Matcha Jelly",
       "ingredients": [
         {
           "inventory_key": "matcha",
@@ -408,7 +408,7 @@
     },
     "SA4SIBUCOLBU3XQ3BZPYXXP4": {
       "drink_key": "genmai_green_brewed_tea",
-      "drink_name": "Genmai Green Brewed Tea",
+      "drink_name": "Genmai Green Tea",
       "ingredients": [
         {
           "tea_base_key": "genmai_green"
@@ -444,7 +444,7 @@
     },
     "75VND7AVP4WBXIAK5D3OYG6C": {
       "drink_key": "fresh_fruit_tea",
-      "drink_name": "Fresh Fruit Tea",
+      "drink_name": "Freshfruit Tea",
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
