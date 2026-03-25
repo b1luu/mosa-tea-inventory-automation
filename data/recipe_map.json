@@ -120,6 +120,18 @@
         }
       ]
     },
+    "4PPGTR4WKW5LI2Q5VL2RWG62": {
+      "drink_key": "tie_guan_yin_osmanthus_honey_brewed_tea",
+      "drink_name": "Tie Guan Yin Oolong Tea with Osmanthus Honey",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "NRVPY6OAHI42VTZEMYHTDQ4N": {
       "drink_key": "brown_sugar_mist",
       "drink_name": "Brown Sugar Mist",
@@ -177,6 +189,18 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Use 200 ml of the roasted buckwheat and barley tea base."
+        }
+      ]
+    },
+    "7TBAWV3PPUHTQQ75HKMSZQZR": {
+      "drink_key": "roasted_buckwheat_barley_brewed_tea",
+      "drink_name": "Roasted Buckwheat Barley Brewed Tea",
+      "ingredients": [
+        {
+          "tea_base_key": "roasted_buckwheat_barley",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Use 300 ml of the roasted buckwheat and barley tea base."
         }
       ]
     },
