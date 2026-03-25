@@ -204,6 +204,18 @@
         }
       ]
     },
+    "AQCPLG5NND3HT5SE3NLHNVXD": {
+      "drink_key": "signature_black_milk_tea",
+      "drink_name": "Signature Black Milk Tea",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "CYCWISFBGJBMVQJT327EKXKA": {
       "drink_key": "mango_matcha_latte",
       "drink_name": "Mango Matcha Latte",
