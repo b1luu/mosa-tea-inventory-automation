@@ -30,8 +30,10 @@ def summarize_modifier_list(catalog_object):
         "modifiers": [
             {
                 "id": modifier.id,
-                "name": modifier.name,
-                "ordinal": modifier.ordinal,
+                "name": modifier.modifier_data.name if modifier.modifier_data else None,
+                "ordinal": (
+                    modifier.modifier_data.ordinal if modifier.modifier_data else None
+                ),
             }
             for modifier in (modifier_list_data.modifiers or [])
         ] if modifier_list_data else [],
