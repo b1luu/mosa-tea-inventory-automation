@@ -17,8 +17,40 @@ def summarize_order(order):
     }
 
 
+def _parse_args(argv):
+    state_filter = "COMPLETED"
+    limit = 20
+    all_pages = False
+
+    for arg in argv:
+        upper_arg = arg.upper()
+        if upper_arg in {"OPEN", "COMPLETED", "CANCELED", "DRAFT"}:
+            state_filter = upper_arg
+            continue
+
+        if arg == "--all":
+            all_pages = True
+            continue
+
+        if arg.startswith("--limit="):
+            limit = int(arg.split("=", 1)[1])
+            continue
+
+        raise ValueError(
+            "Usage: ./.venv/bin/python -m scripts.search_orders "
+            "[STATE] [--limit=N] [--all]"
+        )
+
+    return state_filter, limit, all_pages
+
+
 def main():
-    state_filter = sys.argv[1].upper() if len(sys.argv) > 1 else "COMPLETED"
+    try:
+        state_filter, limit, all_pages = _parse_args(sys.argv[1:])
+    except ValueError as error:
+        print(error)
+        return 1
+
     client = create_square_client()
 
     try:
@@ -32,26 +64,50 @@ def main():
             print("No locations found for this merchant.")
             return 1
 
-        response = client.orders.search(
-            location_ids=location_ids,
-            query={
-                "filter": {
-                    "state_filter": {
-                        "states": [state_filter]
-                    }
+        orders = []
+        cursor = None
+
+        while True:
+            response = client.orders.search(
+                location_ids=location_ids,
+                cursor=cursor,
+                query={
+                    "filter": {
+                        "state_filter": {
+                            "states": [state_filter]
+                        }
+                    },
+                    "sort": {
+                        "sort_field": "UPDATED_AT",
+                        "sort_order": "DESC",
+                    },
                 },
-                "sort": {
-                    "sort_field": "UPDATED_AT",
-                    "sort_order": "DESC",
-                },
-            },
-            limit=20,
-        )
+                limit=limit,
+            )
+            orders.extend(response.orders or [])
+            cursor = response.cursor
+
+            if not all_pages or not cursor:
+                break
     except ApiError as error:
         print(f"Square API error: {error}")
         return 1
 
-    orders = response.orders or []
+    print("search_summary:")
+    print(
+        json.dumps(
+            {
+                "state": state_filter,
+                "limit_per_page": limit,
+                "all_pages": all_pages,
+                "returned_order_count": len(orders),
+                "has_more": bool(cursor),
+                "next_cursor": cursor,
+            },
+            indent=2,
+        )
+    )
+    print("orders:")
     print(json.dumps([summarize_order(order) for order in orders], indent=2))
     return 0
 
