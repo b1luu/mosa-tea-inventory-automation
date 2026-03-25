@@ -14,6 +14,14 @@ from app.processed_orders_state import (
 )
 
 
+def _serialize_response_model(response):
+    if hasattr(response, "model_dump"):
+        return response.model_dump(mode="json")
+    if hasattr(response, "dict"):
+        return response.dict()
+    return str(response)
+
+
 def _usage():
     return (
         "Usage: ./.venv/bin/python -m scripts.apply_inventory_adjustments "
@@ -217,7 +225,7 @@ def main():
     if apply_changes and changes:
         try:
             response = client.inventory.batch_create_changes(**request_body)
-            api_result = response.to_json()
+            api_result = _serialize_response_model(response)
             mark_orders_processed([order["order_id"] for order in projected_orders])
         except ApiError as error:
             api_result = {"error": f"Square API error: {error}"}
