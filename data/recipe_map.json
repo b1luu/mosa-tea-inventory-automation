@@ -96,6 +96,18 @@
         }
       ]
     },
+    "5QYGSH5A7D3EOYGTBZMVEC7D": {
+      "drink_key": "tie_guan_yin_milk_tea_with_osmanthus_honey",
+      "drink_name": "Tie Guan Yin Milk Tea with Osmanthus Honey",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "72KIPS2KHWEK6RAT452MAB2P": {
       "drink_key": "tie_guan_yin_brewed_tea",
       "drink_name": "Tie Guan Yin Brewed Tea",
