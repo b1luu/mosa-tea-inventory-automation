@@ -293,6 +293,58 @@
           "tea_base_key": "four_seasons_roasted_buckwheat_barley"
         }
       ]
+    },
+    "75VND7AVP4WBXIAK5D3OYG6C": {
+      "drink_key": "fresh_fruit_tea",
+      "drink_name": "Fresh Fruit Tea",
+      "modifier_overrides": {
+        "76GJNMZXVLFOXRDRE23MR3FF": {
+          "ingredients": [
+            {
+              "inventory_key": "4s",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Four Seasons Tea."
+            }
+          ]
+        },
+        "Z3ZW4GLVWIAMBC4XI447XH2V": {
+          "ingredients": [
+            {
+              "inventory_key": "green_tea",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Jasmine Green Tea."
+            }
+          ]
+        }
+      }
+    },
+    "QFNOAWWK3VZXJTZJAU4JRCFO": {
+      "drink_key": "fresh_strawberry_tea",
+      "drink_name": "Fresh Strawberry Tea",
+      "modifier_overrides": {
+        "76GJNMZXVLFOXRDRE23MR3FF": {
+          "ingredients": [
+            {
+              "inventory_key": "4s",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Four Seasons Tea."
+            }
+          ]
+        },
+        "Z3ZW4GLVWIAMBC4XI447XH2V": {
+          "ingredients": [
+            {
+              "inventory_key": "green_tea",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Jasmine Green Tea."
+            }
+          ]
+        }
+      }
     }
   }
 }

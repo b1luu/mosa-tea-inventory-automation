@@ -34,6 +34,27 @@ def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
 
+def _resolve_recipe_ingredients(recipe, modifier_ids):
+    base_ingredients = list(recipe.get("ingredients", []))
+    modifier_overrides = recipe.get("modifier_overrides", {})
+
+    if not modifier_overrides:
+        return base_ingredients
+
+    modifier_ids = modifier_ids or []
+    for modifier_id in modifier_ids:
+        override = modifier_overrides.get(modifier_id)
+        if override:
+            return base_ingredients + list(override.get("ingredients", []))
+
+    if base_ingredients:
+        return base_ingredients
+
+    raise ValueError(
+        f"No matching modifier override found for recipe '{recipe.get('drink_key')}'."
+    )
+
+
 def _expand_ingredients(recipe_ingredients):
     tea_bases = get_tea_base_map()
     expanded_ingredients = []
@@ -116,7 +137,7 @@ def _convert_to_inventory_unit(amount, from_unit, inventory_item):
     )
 
 
-def project_line_item_usage(sold_variation_id, quantity):
+def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     recipe = get_recipe_for_sold_variation(sold_variation_id)
     if not recipe:
         raise ValueError(
@@ -126,7 +147,8 @@ def project_line_item_usage(sold_variation_id, quantity):
     inventory_items = load_inventory_item_map()
     normalized_quantity = _normalize_quantity(quantity)
     projected_usage = []
-    expanded_ingredients = _expand_ingredients(recipe.get("ingredients", []))
+    resolved_ingredients = _resolve_recipe_ingredients(recipe, modifier_ids)
+    expanded_ingredients = _expand_ingredients(resolved_ingredients)
 
     for ingredient in expanded_ingredients:
         inventory_key = ingredient["inventory_key"]
@@ -160,6 +182,7 @@ def project_line_item_usage(sold_variation_id, quantity):
 
     return {
         "sold_variation_id": sold_variation_id,
+        "modifier_ids": modifier_ids or [],
         "drink_key": recipe.get("drink_key"),
         "drink_name": recipe.get("drink_name"),
         "usage": projected_usage,

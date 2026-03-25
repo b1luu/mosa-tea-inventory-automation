@@ -22,6 +22,11 @@ def _extract_projectable_line_items(order):
                 "sold_variation_id": line_item.catalog_object_id,
                 "quantity": line_item.quantity,
                 "name": line_item.name,
+                "modifier_ids": [
+                    modifier.catalog_object_id
+                    for modifier in (line_item.modifiers or [])
+                    if modifier.catalog_object_id
+                ],
             }
         )
 
@@ -56,6 +61,7 @@ def main():
             project_line_item_usage(
                 line_item["sold_variation_id"],
                 line_item["quantity"],
+                line_item["modifier_ids"],
             )
             for line_item in projectable_line_items
         ]
