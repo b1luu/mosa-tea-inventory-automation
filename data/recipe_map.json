@@ -264,6 +264,46 @@
         }
       ]
     },
+    "RJU3MBQFNVHFUUDMTAXDQ43P": {
+      "drink_key": "genmai_matcha_with_matcha_jelly",
+      "drink_name": "Genmai Matcha with Matcha Jelly",
+      "ingredients": [
+        {
+          "inventory_key": "matcha",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ],
+      "modifier_overrides": {
+        "IQSH74JXSLK2GGAUH4HQVP4X": {
+          "ingredients": [
+            {
+              "inventory_key": "genmai",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Genmai."
+            }
+          ]
+        },
+        "VP6AQIBJJOMA5KNBGKJTAHNU": {
+          "ingredients": [
+            {
+              "inventory_key": "genmai",
+              "amount": 100,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Jasmine Green Tea & Genmai."
+            },
+            {
+              "inventory_key": "green_tea",
+              "amount": 100,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Jasmine Green Tea & Genmai."
+            }
+          ]
+        }
+      }
+    },
     "YBWRTRH3ZE2OHQ5PL3V662WE": {
       "drink_key": "tie_guan_yin_au_lait_with_osmanthus_honey",
       "drink_name": "Tie Guan Yin Au Lait with Osmanthus Honey",
