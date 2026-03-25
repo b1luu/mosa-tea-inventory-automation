@@ -126,7 +126,7 @@ def main():
 
     client = create_square_client()
     already_processed_order_ids = load_processed_order_ids()
-    processed_orders = []
+    projected_orders = []
     skipped_orders = []
     skipped_line_items = []
     projected_line_items = []
@@ -174,7 +174,7 @@ def main():
             continue
 
         extracted_line_items = _extract_line_items(order)
-        processed_orders.append(
+        projected_orders.append(
             {
                 "order_id": order.id,
                 "location_id": order.location_id,
@@ -219,7 +219,7 @@ def main():
         try:
             response = client.inventory.batch_create_changes(**request_body)
             api_result = response.to_json()
-            mark_orders_processed([order["order_id"] for order in processed_orders])
+            mark_orders_processed([order["order_id"] for order in projected_orders])
         except ApiError as error:
             api_result = {"error": f"Square API error: {error}"}
     elif apply_changes:
@@ -227,8 +227,8 @@ def main():
 
     print("mode:")
     print(json.dumps({"apply": apply_changes}, indent=2))
-    print("processed_orders:")
-    print(json.dumps(processed_orders, indent=2))
+    print("projected_orders:")
+    print(json.dumps(projected_orders, indent=2))
     print("skipped_orders:")
     print(json.dumps(skipped_orders, indent=2))
     print("skipped_line_items:")
