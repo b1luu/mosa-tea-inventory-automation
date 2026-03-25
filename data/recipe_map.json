@@ -240,6 +240,18 @@
         }
       ]
     },
+    "YHYT7XWXSTTUUYZLV4XJVOAB": {
+      "drink_key": "taiwanese_retro",
+      "drink_name": "Taiwanese Retro",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "OVRXSRTC3OETYH5GZOAN4UKH": {
       "drink_key": "signature_black_au_lait",
       "drink_name": "Signature Black Au Lait",
