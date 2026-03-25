@@ -120,6 +120,18 @@
         }
       ]
     },
+    "NRVPY6OAHI42VTZEMYHTDQ4N": {
+      "drink_key": "brown_sugar_mist",
+      "drink_name": "Brown Sugar Mist",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "UT2LQ5DFYMM3TJDOGVGSJ542": {
       "drink_key": "four_seasons_milk_tea",
       "drink_name": "Four Seasons Milk Tea",
