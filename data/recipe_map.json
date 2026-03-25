@@ -228,6 +228,18 @@
         }
       ]
     },
+    "OVRXSRTC3OETYH5GZOAN4UKH": {
+      "drink_key": "signature_black_au_lait",
+      "drink_name": "Signature Black Au Lait",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "CYCWISFBGJBMVQJT327EKXKA": {
       "drink_key": "mango_matcha_latte",
       "drink_name": "Mango Matcha Latte",
@@ -249,6 +261,42 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ]
+    },
+    "YBWRTRH3ZE2OHQ5PL3V662WE": {
+      "drink_key": "tie_guan_yin_au_lait_with_osmanthus_honey",
+      "drink_name": "Tie Guan Yin Au Lait with Osmanthus Honey",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
+    "YU6LD7JKK46GF6NC5XH3PXR5": {
+      "drink_key": "tie_guan_yin_au_lait",
+      "drink_name": "Tie Guan Yin Au Lait",
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
+    "PWOPJQGW3GQHLEYIBUNOEAZD": {
+      "drink_key": "four_seasons_au_lait",
+      "drink_name": "Four Seasons Au Lait",
+      "ingredients": [
+        {
+          "inventory_key": "4s",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Brewed 4s volume per drink."
         }
       ]
     },
