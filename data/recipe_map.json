@@ -204,6 +204,18 @@
         }
       ]
     },
+    "3CIY22QYNOUQSCFPS6OEV77W": {
+      "drink_key": "strawberry_matcha_latte",
+      "drink_name": "Strawberry Matcha Latte",
+      "ingredients": [
+        {
+          "inventory_key": "matcha",
+          "amount": 200,
+          "unit": "ml",
+          "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        }
+      ]
+    },
     "FYZX4EUOH6P37MKZ6TZNYW3I": {
       "drink_key": "pistachio_mist",
       "drink_name": "Pistachio Mist",
