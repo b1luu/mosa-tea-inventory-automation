@@ -168,6 +168,18 @@
         }
       ]
     },
+    "Z7FNN52NHCZ7LEGUSD3GUIVX": {
+      "drink_key": "hot_spice_mango_tea_cider",
+      "drink_name": "Hot Spice Mango Tea Cider",
+      "ingredients": [
+        {
+          "inventory_key": "black_tea",
+          "amount": 300,
+          "unit": "ml",
+          "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        }
+      ]
+    },
     "2GVQJKC2SVP7ALXQ4EXODBJJ": {
       "drink_key": "black_tea_brewed_tea",
       "drink_name": "Black Tea",
