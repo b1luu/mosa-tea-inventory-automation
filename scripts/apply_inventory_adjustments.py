@@ -106,9 +106,9 @@ def _build_adjustment_changes(combined_usage, occurred_at):
                     "catalog_object_id": usage["square_variation_id"],
                     "catalog_object_type": "ITEM_VARIATION",
                     "from_state": "IN_STOCK",
-                    "to_state": "IN_STOCK",
+                    "to_state": "WASTE",
                     "location_id": usage["location_id"],
-                    "quantity": str(-quantity),
+                    "quantity": str(quantity),
                     "occurred_at": occurred_at,
                 },
             }
