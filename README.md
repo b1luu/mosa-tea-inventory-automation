@@ -47,24 +47,34 @@ This is no longer centered on Square `sold_out` propagation.
 - Sandbox inventory adjustments now work through the Inventory API using positive quantities and `IN_STOCK -> WASTE`.
 - Local processed-order tracking prevents accidental reprocessing of the same completed order.
 
-## Current Files
-- [data/recipe_map.json](/Users/brandon/mini/data/recipe_map.json)
+## Project Structure
+- `data/recipe_map.json`
   - sold variation to recipe mapping
   - tea base definitions
   - modifier-aware overrides for configurable drinks
-- [data/inventory_item_map.json](/Users/brandon/mini/data/inventory_item_map.json)
+- `data/inventory_item_map.json`
   - internal supply variation IDs
   - yield conversions
-- [app/order_inventory_projection.py](/Users/brandon/mini/app/order_inventory_projection.py)
+- `app/order_inventory_projection.py`
   - recipe resolution and inventory projection
-- [app/processed_orders_state.py](/Users/brandon/mini/app/processed_orders_state.py)
+- `app/processed_orders_state.py`
   - local idempotency ledger
-- [scripts/search_orders.py](/Users/brandon/mini/scripts/search_orders.py)
+- `scripts/search_orders.py`
   - search recent completed orders
-- [scripts/inspect_order.py](/Users/brandon/mini/scripts/inspect_order.py)
+- `scripts/inspect_order.py`
   - inspect one order's shape
-- [scripts/apply_inventory_adjustments.py](/Users/brandon/mini/scripts/apply_inventory_adjustments.py)
+- `scripts/apply_inventory_adjustments.py`
   - dry-run or apply inventory adjustments
+
+## Running It
+- Search recent completed orders:
+  - `./.venv/bin/python -m scripts.search_orders`
+- Inspect a specific order:
+  - `./.venv/bin/python -m scripts.inspect_order ORDER_ID`
+- Dry-run inventory adjustments for a trusted completed order:
+  - `./.venv/bin/python -m scripts.apply_inventory_adjustments ORDER_ID`
+- Apply Sandbox inventory adjustments:
+  - `./.venv/bin/python -m scripts.apply_inventory_adjustments --apply ORDER_ID`
 
 ## Current Limitations
 - The mapping files are Sandbox-only right now.
