@@ -105,6 +105,46 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["matcha"], 8.75)
         self.assertEqual(combined_by_key["boba"], 100.0)
 
+    def test_four_seasons_au_lait_fixture_adds_milk(self):
+        order_fixture = load_fixture("completed_four_seasons_au_lait.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "four_seasons_au_lait")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertAlmostEqual(combined_by_key["4s"], 5.333333333333333)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+
+    def test_signature_black_milk_tea_fixture_adds_creamer(self):
+        order_fixture = load_fixture("completed_signature_black_milk_tea.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "signature_black_milk_tea")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["black_tea"], 7.0)
+        self.assertEqual(combined_by_key["non_dairy_creamer"], 37.0)
+
+    def test_combined_au_lait_and_milk_tea_fixture_rolls_up(self):
+        order_fixture = load_fixture("completed_au_lait_and_milk_tea.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 2)
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertAlmostEqual(combined_by_key["4s"], 5.333333333333333)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertEqual(combined_by_key["black_tea"], 7.0)
+        self.assertEqual(combined_by_key["non_dairy_creamer"], 37.0)
+
     def test_modifier_aware_fresh_fruit_tea_missing_modifier_raises(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_missing_modifier.json")
 

@@ -115,6 +115,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -127,6 +133,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -175,6 +187,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed 4s volume per drink."
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -199,6 +217,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Use 300 ml of the roasted buckwheat and barley tea base."
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -211,6 +235,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Use 200 ml of the roasted buckwheat and barley tea base."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
@@ -283,6 +313,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -295,6 +331,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Brewed black tea volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
@@ -383,6 +425,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
@@ -395,6 +443,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
@@ -407,6 +461,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Brewed 4s volume per drink."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
@@ -425,6 +485,12 @@
       "ingredients": [
         {
           "tea_base_key": "genmai_green"
+        },
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
         }
       ]
     },
@@ -443,6 +509,12 @@
       "ingredients": [
         {
           "tea_base_key": "genmai_green"
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
         }
       ]
     },
