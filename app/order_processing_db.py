@@ -33,8 +33,21 @@ def is_order_applied(order_id):
     return bool(row and row[0] == PROCESSING_STATE_APPLIED)
 
 
-def mark_order_applied(order_id):
-    applied_at = datetime.now(UTC).isoformat()
+def get_order_processing_state(order_id):
+    with sqlite3.connect(DB_FILE) as connection:
+        row = connection.execute(
+            "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
+            (order_id,),
+        ).fetchone()
+    return row[0] if row else None
+
+
+def set_order_processing_state(order_id, processing_state):
+    applied_at = (
+        datetime.now(UTC).isoformat()
+        if processing_state == PROCESSING_STATE_APPLIED
+        else None
+    )
     with sqlite3.connect(DB_FILE) as connection:
         connection.execute(
             """
@@ -44,5 +57,9 @@ def mark_order_applied(order_id):
                 processing_state = excluded.processing_state,
                 applied_at = excluded.applied_at
             """,
-            (order_id, PROCESSING_STATE_APPLIED, applied_at),
+            (order_id, processing_state, applied_at),
         )
+
+
+def mark_order_applied(order_id):
+    set_order_processing_state(order_id, PROCESSING_STATE_APPLIED)
