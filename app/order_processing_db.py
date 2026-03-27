@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, UTC
 from pathlib import Path
 
 
@@ -26,3 +27,18 @@ def is_order_applied(order_id):
             (order_id,),
         ).fetchone()
     return bool(row and row[0] == "applied")
+
+
+def mark_order_applied(order_id):
+    applied_at = datetime.now(UTC).isoformat()
+    with sqlite3.connect(DB_FILE) as connection:
+        connection.execute(
+            """
+            INSERT INTO order_processing (square_order_id, processing_state, applied_at)
+            VALUES (?, 'applied', ?)
+            ON CONFLICT(square_order_id) DO UPDATE SET
+                processing_state = 'applied',
+                applied_at = excluded.applied_at
+            """,
+            (order_id, applied_at),
+        )

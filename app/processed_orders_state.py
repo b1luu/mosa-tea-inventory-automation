@@ -1,31 +1,18 @@
-import json
-from pathlib import Path
+import sqlite3
 
-
-STATE_FILE = Path("data/processed_orders.json")
-
-
-def _ensure_state_dir():
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-
-def _write_state(processed_order_ids):
-    _ensure_state_dir()
-    STATE_FILE.write_text(
-        json.dumps({"processed_order_ids": sorted(processed_order_ids)}, indent=2) + "\n",
-        encoding="utf-8",
-    )
+from app.order_processing_db import DB_FILE, ensure_db, mark_order_applied
 
 
 def load_processed_order_ids():
-    if not STATE_FILE.exists():
-        return set()
-
-    state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
-    return set(state.get("processed_order_ids", []))
+    ensure_db()
+    with sqlite3.connect(DB_FILE) as connection:
+        rows = connection.execute(
+            "SELECT square_order_id FROM order_processing WHERE processing_state = 'applied'"
+        ).fetchall()
+    return {row[0] for row in rows}
 
 
 def mark_orders_processed(order_ids):
-    processed_order_ids = load_processed_order_ids()
-    processed_order_ids.update(order_ids)
-    _write_state(processed_order_ids)
+    ensure_db()
+    for order_id in order_ids:
+        mark_order_applied(order_id)
