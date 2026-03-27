@@ -8,6 +8,7 @@ from square.core.api_error import ApiError
 
 from app.client import create_square_client
 from app.order_inventory_projection import project_line_item_usage
+from app.order_processing_db import PROCESSING_STATE_BLOCKED, set_order_processing_state
 from app.processed_orders_state import (
     load_processed_order_ids,
     mark_orders_processed,
@@ -267,6 +268,11 @@ def main():
 
     api_result = None
     if apply_changes and skipped_line_items:
+        for order in projected_orders:
+            set_order_processing_state(
+                order["order_id"],
+                PROCESSING_STATE_BLOCKED,
+            )
         api_result = {
             "error": (
                 "Refusing to apply inventory changes because one or more line items "
