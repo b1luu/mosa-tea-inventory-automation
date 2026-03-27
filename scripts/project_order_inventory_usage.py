@@ -12,9 +12,23 @@ from app.order_inventory_projection import (
 
 def _extract_projectable_line_items(order):
     projectable_items = []
+    skipped_items = []
 
     for line_item in order.line_items or []:
         if not line_item.catalog_object_id:
+            skipped_items.append(
+                {
+                    "sold_variation_id": None,
+                    "quantity": line_item.quantity,
+                    "name": line_item.name,
+                    "modifier_ids": [
+                        modifier.catalog_object_id
+                        for modifier in (line_item.modifiers or [])
+                        if modifier.catalog_object_id
+                    ],
+                    "reason": "Line item has no catalog_object_id and cannot be projected.",
+                }
+            )
             continue
 
         projectable_items.append(
@@ -30,7 +44,7 @@ def _extract_projectable_line_items(order):
             }
         )
 
-    return projectable_items
+    return projectable_items, skipped_items
 
 
 def main():
@@ -54,7 +68,9 @@ def main():
         print(f"Order not found: {order_id}")
         return 1
 
-    projectable_line_items = _extract_projectable_line_items(response.order)
+    projectable_line_items, skipped_line_items = _extract_projectable_line_items(
+        response.order
+    )
 
     try:
         projected_line_items = [
@@ -81,6 +97,8 @@ def main():
             indent=2,
         )
     )
+    print("skipped_line_items:")
+    print(json.dumps(skipped_line_items, indent=2))
     print("projected_line_items:")
     print(json.dumps(projected_line_items, indent=2))
     print("combined_usage:")

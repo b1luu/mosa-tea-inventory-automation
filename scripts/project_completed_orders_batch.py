@@ -16,9 +16,24 @@ from app.processed_orders_state import (
 
 def _extract_line_items(order):
     extracted = []
+    skipped = []
 
     for line_item in order.line_items or []:
         if not line_item.catalog_object_id:
+            skipped.append(
+                {
+                    "order_id": order.id,
+                    "sold_variation_id": None,
+                    "quantity": line_item.quantity,
+                    "name": line_item.name,
+                    "modifier_ids": [
+                        modifier.catalog_object_id
+                        for modifier in (line_item.modifiers or [])
+                        if modifier.catalog_object_id
+                    ],
+                    "reason": "Line item has no catalog_object_id and cannot be projected.",
+                }
+            )
             continue
 
         extracted.append(
@@ -35,7 +50,7 @@ def _extract_line_items(order):
             }
         )
 
-    return extracted
+    return extracted, skipped
 
 
 def main():
@@ -96,7 +111,8 @@ def main():
             )
             continue
 
-        extracted_line_items = _extract_line_items(order)
+        extracted_line_items, skipped_extracted_line_items = _extract_line_items(order)
+        skipped_line_items.extend(skipped_extracted_line_items)
         processed_orders.append(
             {
                 "order_id": order.id,
