@@ -4,6 +4,10 @@ from pathlib import Path
 
 
 DB_FILE = Path("data/order_processing.db")
+PROCESSING_STATE_PENDING = "pending"
+PROCESSING_STATE_BLOCKED = "blocked"
+PROCESSING_STATE_FAILED = "failed"
+PROCESSING_STATE_APPLIED = "applied"
 
 
 def ensure_db():
@@ -26,7 +30,7 @@ def is_order_applied(order_id):
             "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
             (order_id,),
         ).fetchone()
-    return bool(row and row[0] == "applied")
+    return bool(row and row[0] == PROCESSING_STATE_APPLIED)
 
 
 def mark_order_applied(order_id):
@@ -35,10 +39,10 @@ def mark_order_applied(order_id):
         connection.execute(
             """
             INSERT INTO order_processing (square_order_id, processing_state, applied_at)
-            VALUES (?, 'applied', ?)
+            VALUES (?, ?, ?)
             ON CONFLICT(square_order_id) DO UPDATE SET
-                processing_state = 'applied',
+                processing_state = excluded.processing_state,
                 applied_at = excluded.applied_at
             """,
-            (order_id, applied_at),
+            (order_id, PROCESSING_STATE_APPLIED, applied_at),
         )
