@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 
-DB_FILE = Path("data/order_processing.sqlite3")
+DB_FILE = Path("data/order_processing.db")
 
 
 def ensure_db():
@@ -17,3 +17,12 @@ def ensure_db():
             )
             """
         )
+
+
+def is_order_applied(order_id):
+    with sqlite3.connect(DB_FILE) as connection:
+        row = connection.execute(
+            "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
+            (order_id,),
+        ).fetchone()
+    return bool(row and row[0] == "applied")
