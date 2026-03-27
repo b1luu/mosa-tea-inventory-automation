@@ -21,6 +21,7 @@ def _parse_args(argv):
     state_filter = "COMPLETED"
     limit = 20
     all_pages = False
+    order_id_filter = None
 
     for arg in argv:
         upper_arg = arg.upper()
@@ -36,17 +37,21 @@ def _parse_args(argv):
             limit = int(arg.split("=", 1)[1])
             continue
 
+        if arg.startswith("--order-id="):
+            order_id_filter = arg.split("=", 1)[1]
+            continue
+
         raise ValueError(
             "Usage: ./.venv/bin/python -m scripts.search_orders "
-            "[STATE] [--limit=N] [--all]"
+            "[STATE] [--limit=N] [--all] [--order-id=ORDER_ID]"
         )
 
-    return state_filter, limit, all_pages
+    return state_filter, limit, all_pages, order_id_filter
 
 
 def main():
     try:
-        state_filter, limit, all_pages = _parse_args(sys.argv[1:])
+        state_filter, limit, all_pages, order_id_filter = _parse_args(sys.argv[1:])
     except ValueError as error:
         print(error)
         return 1
@@ -93,6 +98,9 @@ def main():
         print(f"Square API error: {error}")
         return 1
 
+    if order_id_filter:
+        orders = [order for order in orders if order.id == order_id_filter]
+
     print("search_summary:")
     print(
         json.dumps(
@@ -100,6 +108,7 @@ def main():
                 "state": state_filter,
                 "limit_per_page": limit,
                 "all_pages": all_pages,
+                "order_id_filter": order_id_filter,
                 "returned_order_count": len(orders),
                 "has_more": bool(cursor),
                 "next_cursor": cursor,
