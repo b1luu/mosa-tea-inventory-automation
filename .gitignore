@@ -8,4 +8,5 @@ __pycache__/
 *.pyc
 
 data/catalog_sync_state.json
+data/order_processing.sqlite3
 data/processed_orders.json
