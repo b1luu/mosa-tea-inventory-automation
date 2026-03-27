@@ -249,7 +249,14 @@ def main():
     }
 
     api_result = None
-    if apply_changes and changes:
+    if apply_changes and skipped_line_items:
+        api_result = {
+            "error": (
+                "Refusing to apply inventory changes because one or more line items "
+                "were skipped during projection."
+            )
+        }
+    elif apply_changes and changes:
         try:
             response = client.inventory.batch_create_changes(**request_body)
             api_result = _serialize_response_model(response)
