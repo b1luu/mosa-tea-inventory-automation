@@ -30,6 +30,11 @@ def get_tea_base_map():
     return recipe_map.get("tea_bases", {})
 
 
+def get_modifier_additions_map():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("modifier_additions", {})
+
+
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
@@ -110,6 +115,18 @@ def _expand_ingredients(recipe_ingredients):
     return expanded_ingredients
 
 
+def _resolve_modifier_additions(modifier_ids):
+    modifier_additions = get_modifier_additions_map()
+    resolved_additions = []
+
+    for modifier_id in modifier_ids or []:
+        addition = modifier_additions.get(modifier_id)
+        if addition:
+            resolved_additions.extend(addition.get("ingredients", []))
+
+    return resolved_additions
+
+
 def _convert_to_inventory_unit(amount, from_unit, inventory_item):
     inventory_unit = inventory_item["unit"]
     normalized_amount = Decimal(str(amount))
@@ -148,7 +165,10 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     normalized_quantity = _normalize_quantity(quantity)
     projected_usage = []
     resolved_ingredients = _resolve_recipe_ingredients(recipe, modifier_ids)
-    expanded_ingredients = _expand_ingredients(resolved_ingredients)
+    modifier_additions = _resolve_modifier_additions(modifier_ids)
+    expanded_ingredients = _expand_ingredients(
+        resolved_ingredients + modifier_additions
+    )
 
     for ingredient in expanded_ingredients:
         inventory_key = ingredient["inventory_key"]

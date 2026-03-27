@@ -71,6 +71,28 @@
       ]
     }
   },
+  "modifier_additions": {
+    "UIFT45SSDNEZBUDPKFGF6VES": {
+      "ingredients": [
+        {
+          "inventory_key": "boba",
+          "amount": 100,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Boba."
+        }
+      ]
+    },
+    "7W5K26H2FYRHGEBDODC3V65X": {
+      "ingredients": [
+        {
+          "inventory_key": "boba",
+          "amount": 100,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Boba."
+        }
+      ]
+    }
+  },
   "sold_variation_recipes": {
     "B526AZ22TDNVJGUAE4HRXJKS": {
       "drink_key": "tgy_special",

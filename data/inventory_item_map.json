@@ -65,6 +65,13 @@
       },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
     },
+    "boba": {
+      "square_variation_id": "CVTORPM7SO6H5BLFDROJ5DLA",
+      "name": "Boba",
+      "unit": "g",
+      "category": "INV - Toppings",
+      "notes": "Internal inventory ledger item for boba. One topping selection consumes 100 g."
+    },
     "barley": {
       "square_variation_id": "ZFRNV5R7R3IQWKLMNECVSK4R",
       "name": "Barley",
