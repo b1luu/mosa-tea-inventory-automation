@@ -19,7 +19,7 @@ def _load_scenarios():
 def _usage():
     return (
         "Usage: ./.venv/bin/python -m testing.create_live_test_order "
-        "[--list] <scenario_name>"
+        "[--list] [--pay] <scenario_name>"
     )
 
 
@@ -28,12 +28,17 @@ def _parse_args(argv):
         raise ValueError(_usage())
 
     if argv == ["--list"]:
-        return True, None
+        return True, False, None
+
+    pay_order = False
+    if "--pay" in argv:
+        pay_order = True
+        argv = [arg for arg in argv if arg != "--pay"]
 
     if len(argv) != 1:
         raise ValueError(_usage())
 
-    return False, argv[0]
+    return False, pay_order, argv[0]
 
 
 def _build_order_payload(location_id, scenario_name, scenario):
@@ -66,7 +71,7 @@ def _build_order_payload(location_id, scenario_name, scenario):
 
 def main():
     try:
-        list_only, scenario_name = _parse_args(sys.argv[1:])
+        list_only, pay_order, scenario_name = _parse_args(sys.argv[1:])
     except ValueError as error:
         print(error)
         return 1
@@ -111,12 +116,43 @@ def main():
         print("Order creation did not return an order.")
         return 1
 
+    payment_summary = None
+    if pay_order:
+        total_money = getattr(response.order, "total_money", None)
+        if not total_money or total_money.amount is None:
+            print("Created order did not return total_money; cannot create payment.")
+            return 1
+
+        try:
+            payment_response = client.payments.create(
+                source_id="cnon:card-nonce-ok",
+                idempotency_key=str(uuid.uuid4()),
+                order_id=response.order.id,
+                location_id=location_id,
+                amount_money={
+                    "amount": total_money.amount,
+                    "currency": total_money.currency,
+                },
+            )
+            refreshed_order = client.orders.get(order_id=response.order.id)
+            payment_summary = {
+                "payment_id": payment_response.payment.id if payment_response.payment else None,
+                "payment_status": payment_response.payment.status if payment_response.payment else None,
+                "refreshed_order_state": refreshed_order.order.state if refreshed_order.order else None,
+            }
+        except ApiError as error:
+            print(f"Square API error: {error}")
+            return 1
+
     print("scenario:")
-    print(json.dumps({"name": scenario_name}, indent=2))
+    print(json.dumps({"name": scenario_name, "pay": pay_order}, indent=2))
     print("order_payload:")
     print(json.dumps(order_payload, indent=2))
     print("created_order:")
     print(json.dumps(summarize_order(response.order), indent=2))
+    if payment_summary is not None:
+        print("payment_summary:")
+        print(json.dumps(payment_summary, indent=2))
     return 0
 
 
