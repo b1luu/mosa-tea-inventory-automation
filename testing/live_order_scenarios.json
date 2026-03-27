@@ -1,0 +1,63 @@
+{
+  "location_id": "LB1MECVA7EZ8Z",
+  "scenarios": {
+    "matcha_latte_boba": {
+      "description": "Single Matcha Latte with Boba topping.",
+      "line_items": [
+        {
+          "catalog_object_id": "DX2LRA7T4EFSSFH6POETDJHY",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "fresh_fruit_tea_four_seasons": {
+      "description": "Freshfruit Tea with Four Seasons Tea selected as the tea base.",
+      "line_items": [
+        {
+          "catalog_object_id": "75VND7AVP4WBXIAK5D3OYG6C",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "76GJNMZXVLFOXRDRE23MR3FF",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "fresh_fruit_tea_green": {
+      "description": "Freshfruit Tea with Jasmine Green Tea selected as the tea base.",
+      "line_items": [
+        {
+          "catalog_object_id": "75VND7AVP4WBXIAK5D3OYG6C",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "Z3ZW4GLVWIAMBC4XI447XH2V",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "grapefruit_bloom_and_matcha": {
+      "description": "One Grapefruit Bloom and two Matcha Lattes.",
+      "line_items": [
+        {
+          "catalog_object_id": "IPAOWQYVBTMVYEWOQQAYXI7J",
+          "quantity": "1"
+        },
+        {
+          "catalog_object_id": "DX2LRA7T4EFSSFH6POETDJHY",
+          "quantity": "2"
+        }
+      ]
+    }
+  }
+}
