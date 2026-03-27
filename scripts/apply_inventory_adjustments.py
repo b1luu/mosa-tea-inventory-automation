@@ -8,7 +8,12 @@ from square.core.api_error import ApiError
 
 from app.client import create_square_client
 from app.order_inventory_projection import project_line_item_usage
-from app.order_processing_db import PROCESSING_STATE_BLOCKED, set_order_processing_state
+from app.order_processing_db import (
+    PROCESSING_STATE_BLOCKED,
+    mark_order_failed,
+    mark_order_pending,
+    set_order_processing_state,
+)
 from app.processed_orders_state import (
     load_processed_order_ids,
     mark_orders_processed,
@@ -280,11 +285,15 @@ def main():
             )
         }
     elif apply_changes and changes:
+        for order in projected_orders:
+            mark_order_pending(order["order_id"])
         try:
             response = client.inventory.batch_create_changes(**request_body)
             api_result = _serialize_response_model(response)
             mark_orders_processed([order["order_id"] for order in projected_orders])
         except ApiError as error:
+            for order in projected_orders:
+                mark_order_failed(order["order_id"])
             api_result = {"error": f"Square API error: {error}"}
     elif apply_changes:
         api_result = {"message": "No inventory changes to apply."}

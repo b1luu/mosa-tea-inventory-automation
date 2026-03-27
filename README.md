@@ -58,7 +58,9 @@ This is no longer centered on Square `sold_out` propagation.
 - `app/order_inventory_projection.py`
   - recipe resolution and inventory projection
 - `app/processed_orders_state.py`
-  - local idempotency ledger
+  - compatibility layer over the SQLite order-processing ledger
+- `app/order_processing_db.py`
+  - SQLite-backed order-processing state helpers
 - `scripts/search_orders.py`
   - search recent completed orders
 - `scripts/inspect_order.py`
@@ -90,6 +92,18 @@ This is no longer centered on Square `sold_out` propagation.
   - `to_state: "WASTE"`
 - Using negative quantities for adjustments is invalid in Square.
 - Internal ingredient items are treated as consumed stock, not directly sold catalog items.
+
+## Processing States
+- `pending`
+  - a completed Square order has entered the processing workflow, but inventory has not been successfully adjusted yet
+- `blocked`
+  - a completed order should not be auto-applied because projection was incomplete or unsafe
+- `failed`
+  - a completed order was attempted, but processing or inventory apply failed
+- `applied`
+  - the inventory adjustment succeeded
+
+Square order state and app processing state are separate concepts. The app only processes inventory for Square orders that are already `COMPLETED`.
 
 ## Next Steps
 - Add a trusted-date-window search flow so recent completed orders can be processed without hand-picking every order ID.
