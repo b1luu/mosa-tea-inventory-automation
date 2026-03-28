@@ -476,6 +476,12 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Standard milk usage per matcha latte."
+        },
+        {
+          "inventory_key": "frozen_mango",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Standard frozen mango usage per drink."
         }
       ]
     },
@@ -494,6 +500,12 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Standard milk usage per matcha latte."
+        },
+        {
+          "inventory_key": "frozen_strawberry",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Standard frozen strawberry usage per drink."
         }
       ]
     },
@@ -702,6 +714,14 @@
         "full_amount": 54,
         "unit": "g"
       },
+      "ingredients": [
+        {
+          "inventory_key": "frozen_strawberry",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Standard frozen strawberry usage per drink."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -801,6 +821,12 @@
           "amount": 35,
           "unit": "g",
           "notes": "Standard mango syrup usage per fresh mango tea."
+        },
+        {
+          "inventory_key": "frozen_mango",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Standard frozen mango usage per drink."
         }
       ],
       "modifier_overrides": {

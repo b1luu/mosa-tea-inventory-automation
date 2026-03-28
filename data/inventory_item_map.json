@@ -110,6 +110,26 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for mango syrup."
     },
+    "frozen_mango": {
+      "square_variation_id": "752YPSPEVSL34NNXAE5SIKER",
+      "name": "Frozen Mango",
+      "unit": "g",
+      "stock_unit": "box",
+      "stock_unit_size": 2267.96185,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Fruit",
+      "notes": "Internal inventory ledger item for frozen mango."
+    },
+    "frozen_strawberry": {
+      "square_variation_id": "DFTD6J7NHATN6QAPBTDOIL3Z",
+      "name": "Frozen Strawberry",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 2721.55422,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Fruit",
+      "notes": "Internal inventory ledger item for frozen strawberry."
+    },
     "osmanthus_honey": {
       "square_variation_id": "G2ECIVTMKE4Z5TTM35Y4EQDV",
       "name": "Osmanthus Honey",

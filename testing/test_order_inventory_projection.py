@@ -124,7 +124,23 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
         self.assertEqual(combined_by_key["mango_syrup"], 35.0)
+        self.assertEqual(combined_by_key["frozen_mango"], 30.0)
         self.assertEqual(combined_by_key["sugar_syrup"], 27.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+
+    def test_strawberry_matcha_latte_fixture_adds_frozen_strawberry(self):
+        order_fixture = load_fixture("completed_strawberry_matcha_latte.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "strawberry_matcha_latte")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertEqual(combined_by_key["frozen_strawberry"], 30.0)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_additive_boba_modifier_fixture(self):
