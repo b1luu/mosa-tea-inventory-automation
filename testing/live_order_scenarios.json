@@ -11,6 +11,10 @@
             {
               "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES",
               "quantity": "1"
+            },
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
             }
           ]
         }
@@ -25,6 +29,10 @@
           "modifiers": [
             {
               "catalog_object_id": "76GJNMZXVLFOXRDRE23MR3FF",
+              "quantity": "1"
+            },
+            {
+              "catalog_object_id": "EHC2F422OXEQBMVP5AF3ABWW",
               "quantity": "1"
             }
           ]
@@ -41,6 +49,10 @@
             {
               "catalog_object_id": "Z3ZW4GLVWIAMBC4XI447XH2V",
               "quantity": "1"
+            },
+            {
+              "catalog_object_id": "MSBCTUUEB2HSJ6JIAZ6PWX44",
+              "quantity": "1"
             }
           ]
         }
@@ -51,11 +63,23 @@
       "line_items": [
         {
           "catalog_object_id": "IPAOWQYVBTMVYEWOQQAYXI7J",
-          "quantity": "1"
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
         },
         {
           "catalog_object_id": "DX2LRA7T4EFSSFH6POETDJHY",
-          "quantity": "2"
+          "quantity": "2",
+          "modifiers": [
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
         }
       ]
     },
@@ -64,7 +88,13 @@
       "line_items": [
         {
           "catalog_object_id": "PWOPJQGW3GQHLEYIBUNOEAZD",
-          "quantity": "1"
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
         }
       ]
     },
@@ -73,7 +103,13 @@
       "line_items": [
         {
           "catalog_object_id": "AQCPLG5NND3HT5SE3NLHNVXD",
-          "quantity": "1"
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
         }
       ]
     }

@@ -17,6 +17,12 @@
           "name": "Boba",
           "quantity": "1",
           "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES"
+        },
+        {
+          "uid": "fixture-modifier-boba-sugar",
+          "name": "No Sugar",
+          "quantity": "1",
+          "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO"
         }
       ]
     }

@@ -15,6 +15,12 @@
           "name": "Tie Guan Yin Oolong Jelly",
           "quantity": "1",
           "catalog_object_id": "MEAKOBKUZMU6PVM3OVPDYMJ2"
+        },
+        {
+          "uid": "fixture-modifier-2",
+          "name": "No Sugar",
+          "quantity": "1",
+          "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO"
         }
       ]
     }

@@ -40,6 +40,11 @@ def get_sugar_modifier_multipliers():
     return recipe_map.get("sugar_modifier_multipliers", {})
 
 
+def get_default_sugar_config():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("default_sugar_config")
+
+
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
@@ -133,7 +138,7 @@ def _resolve_modifier_additions(modifier_ids):
 
 
 def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
-    sugar_config = recipe.get("sugar_config")
+    sugar_config = recipe.get("sugar_config", get_default_sugar_config())
     if not sugar_config:
         return []
 
@@ -142,6 +147,9 @@ def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
         multiplier = sugar_modifier_multipliers.get(modifier_id)
         if multiplier is None:
             continue
+
+        if Decimal(str(multiplier)) == 0:
+            return []
 
         return [
             {

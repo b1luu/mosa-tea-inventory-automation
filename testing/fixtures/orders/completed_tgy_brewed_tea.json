@@ -11,7 +11,14 @@
       "quantity": "1",
       "catalog_object_id": "72KIPS2KHWEK6RAT452MAB2P",
       "variation_name": "",
-      "modifiers": []
+      "modifiers": [
+        {
+          "uid": "fixture-modifier-tgy-sugar",
+          "name": "No Sugar",
+          "quantity": "1",
+          "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO"
+        }
+      ]
     }
   ]
 }

@@ -9,7 +9,14 @@
       "quantity": "1",
       "catalog_object_id": "4PPGTR4WKW5LI2Q5VL2RWG62",
       "variation_name": "",
-      "modifiers": []
+      "modifiers": [
+        {
+          "uid": "fixture-modifier-osmanthus-sugar",
+          "name": "No Sugar",
+          "quantity": "1",
+          "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO"
+        }
+      ]
     }
   ]
 }

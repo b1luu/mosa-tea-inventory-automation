@@ -15,6 +15,12 @@
           "name": "Brown Sugar Hún-Kué (Tapioca Jelly)",
           "quantity": "1",
           "catalog_object_id": "HD5IAR2GT4I4G4L64CQ7LJ6H"
+        },
+        {
+          "uid": "fixture-modifier-2",
+          "name": "No Sugar",
+          "quantity": "1",
+          "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO"
         }
       ]
     }
