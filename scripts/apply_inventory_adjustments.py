@@ -154,6 +154,7 @@ def _build_adjustment_changes(order_ids, combined_usage, occurred_at):
         quantity = Decimal(str(usage["total_amount"]))
         if quantity <= 0:
             continue
+        quantity = quantity.quantize(Decimal("0.00001"))
 
         changes.append(
             {
