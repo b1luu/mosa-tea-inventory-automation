@@ -14,7 +14,7 @@ from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
 )
-from app.order_processing_db import mark_order_pending
+from app.order_processing_db import get_order_processing_state, mark_order_pending
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
@@ -69,7 +69,16 @@ async def square_webhook(request: Request):
 
     if event_type in {"order.created", "order.updated"}:
         apply_exit_code = None
-        if order_state == "COMPLETED" and order_id:
+        current_processing_state = (
+            get_order_processing_state(order_id) if order_id else None
+        )
+        should_start_processing = (
+            order_state == "COMPLETED"
+            and order_id is not None
+            and current_processing_state is None
+        )
+
+        if should_start_processing:
             mark_order_pending(order_id)
             apply_result = subprocess.run(
                 [
@@ -95,7 +104,8 @@ async def square_webhook(request: Request):
                     "location_id": location_id,
                     "updated_at": updated_at,
                     "version": version,
-                    "marked_pending": bool(order_state == "COMPLETED" and order_id),
+                    "current_processing_state": current_processing_state,
+                    "marked_pending": should_start_processing,
                     "apply_exit_code": apply_exit_code,
                 },
                 indent=2,
