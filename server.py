@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from datetime import datetime
 
 from fastapi import FastAPI, Request, Response
@@ -66,8 +68,22 @@ async def square_webhook(request: Request):
     version = order_event_data.get("version")
 
     if event_type in {"order.created", "order.updated"}:
+        apply_exit_code = None
         if order_state == "COMPLETED" and order_id:
             mark_order_pending(order_id)
+            apply_result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "scripts.apply_inventory_adjustments",
+                    "--apply",
+                    order_id,
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            apply_exit_code = apply_result.returncode
 
         print("order_webhook:")
         print(
@@ -80,6 +96,7 @@ async def square_webhook(request: Request):
                     "updated_at": updated_at,
                     "version": version,
                     "marked_pending": bool(order_state == "COMPLETED" and order_id),
+                    "apply_exit_code": apply_exit_code,
                 },
                 indent=2,
             )
