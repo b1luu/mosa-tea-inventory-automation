@@ -160,6 +160,16 @@
       "category": "INV - Toppings",
       "notes": "Internal inventory ledger item for Tie Guan Yin Oolong Jelly powder."
     },
+    "matcha_jelly_matcha": {
+      "square_variation_id": "7QZVOBCT7X3NFO5AP2OTQWRC",
+      "name": "Matcha (Jelly)",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 340,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Toppings",
+      "notes": "Internal inventory ledger item for the matcha powder used only in matcha jelly."
+    },
     "powdered_sugar": {
       "square_variation_id": "XGB4E2IJMBFSXB5OQPEJW32J",
       "name": "Powdered Sugar",

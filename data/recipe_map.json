@@ -162,6 +162,28 @@
         }
       ]
     },
+    "AB2HPG7C7F2V3DXPPXCEBNH4": {
+      "ingredients": [
+        {
+          "inventory_key": "matcha_jelly_matcha",
+          "amount": 1.6260162601626016,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 12.195121951219512,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
+        },
+        {
+          "inventory_key": "tj_powder",
+          "amount": 4.878048780487805,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
+        }
+      ]
+    },
     "G2IKLVV2HGABCPEHQNAEUHQZ": {
       "ingredients": [
         {
@@ -280,7 +302,8 @@
     "recipes_with_built_in_toppings": [
       "tgy_special",
       "taiwanese_retro",
-      "grapefruit_bloom"
+      "grapefruit_bloom",
+      "genmai_matcha_with_matcha_jelly"
     ],
     "cold_cup_lid": {
       "inventory_key": "cold_cup_lid",
@@ -682,6 +705,24 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        },
+        {
+          "inventory_key": "matcha_jelly_matcha",
+          "amount": 1.6260162601626016,
+          "unit": "g",
+          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 12.195121951219512,
+          "unit": "g",
+          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
+        },
+        {
+          "inventory_key": "tj_powder",
+          "amount": 4.878048780487805,
+          "unit": "g",
+          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
         }
       ],
       "modifier_overrides": {
