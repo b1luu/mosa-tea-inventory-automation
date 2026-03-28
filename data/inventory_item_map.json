@@ -120,6 +120,36 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for osmanthus honey."
     },
+    "hk_powder": {
+      "square_variation_id": "VFWW5OIALE7OFWRK6EWO2LZM",
+      "name": "HK Powder",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Toppings",
+      "notes": "Internal inventory ledger item for Hun Kue powder."
+    },
+    "powdered_sugar": {
+      "square_variation_id": "XGB4E2IJMBFSXB5OQPEJW32J",
+      "name": "Powdered Sugar",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 20000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Sweetener",
+      "notes": "Internal inventory ledger item for powdered sugar."
+    },
+    "brown_sugar": {
+      "square_variation_id": "YEXINHOOOPEJFAQ7GTPQHEQP",
+      "name": "Brown Sugar",
+      "unit": "g",
+      "stock_unit": "container",
+      "stock_unit_size": 25000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Sweetener",
+      "notes": "Internal inventory ledger item used for brown sugar syrup input."
+    },
     "milk": {
       "square_variation_id": "4CLJVUZQCIVAEU4F7APU6QGX",
       "name": "Milk",

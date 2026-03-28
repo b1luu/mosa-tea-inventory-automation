@@ -111,6 +111,28 @@
           "notes": "Selected Toppings modifier: Lychee Jelly."
         }
       ]
+    },
+    "HD5IAR2GT4I4G4L64CQ7LJ6H": {
+      "ingredients": [
+        {
+          "inventory_key": "hk_powder",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Brown Sugar Hun Kue derived from a 35-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 3.4285714285714284,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Brown Sugar Hun Kue derived from a 35-serving batch."
+        },
+        {
+          "inventory_key": "brown_sugar",
+          "amount": 3.4285714285714284,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Brown Sugar Hun Kue derived from a 35-serving batch."
+        }
+      ]
     }
   },
   "sold_variation_recipes": {
