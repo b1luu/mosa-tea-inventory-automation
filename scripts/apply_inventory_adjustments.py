@@ -14,6 +14,7 @@ from app.order_processing_db import (
     mark_order_pending,
     set_order_processing_state,
 )
+from app.inventory_stock_units import summarize_combined_usage_in_display_units
 from app.processed_orders_state import (
     load_processed_order_ids,
     mark_orders_processed,
@@ -262,6 +263,7 @@ def main():
                 )
 
     combined_usage = _combine_usage_by_location(projected_line_items)
+    display_usage = summarize_combined_usage_in_display_units(combined_usage)
     occurred_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     projected_order_ids = [order["order_id"] for order in projected_orders]
     changes = _build_adjustment_changes(projected_order_ids, combined_usage, occurred_at)
@@ -310,6 +312,8 @@ def main():
     print(json.dumps(projected_line_items, indent=2))
     print("combined_usage:")
     print(json.dumps(combined_usage, indent=2))
+    print("display_usage:")
+    print(json.dumps(display_usage, indent=2))
     print("inventory_request:")
     print(json.dumps(request_body, indent=2))
 
