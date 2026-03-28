@@ -112,6 +112,44 @@
           ]
         }
       ]
+    },
+    "tie_guan_yin_au_lait_boba": {
+      "description": "Single Tie Guan Yin Au Lait with Boba topping.",
+      "line_items": [
+        {
+          "catalog_object_id": "YU6LD7JKK46GF6NC5XH3PXR5",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES",
+              "quantity": "1"
+            },
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "tie_guan_yin_osmanthus_au_lait_boba": {
+      "description": "Single Tie Guan Yin Au Lait with Osmanthus Honey and Boba topping.",
+      "line_items": [
+        {
+          "catalog_object_id": "YBWRTRH3ZE2OHQ5PL3V662WE",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES",
+              "quantity": "1"
+            },
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
     }
   }
 }
