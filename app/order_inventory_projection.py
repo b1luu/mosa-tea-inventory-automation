@@ -68,6 +68,14 @@ def get_default_packaging_config():
     return recipe_map.get("default_packaging_config")
 
 
+def _is_hot_sold_variation(sold_variation_id):
+    packaging_config = get_default_packaging_config()
+    if not packaging_config:
+        return False
+
+    return sold_variation_id in set(packaging_config.get("hot_sold_variation_ids", []))
+
+
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
@@ -191,12 +199,35 @@ def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
     )
 
 
-def _resolve_default_packaging_ingredient():
+def _validate_hot_modifier_compatibility(sold_variation_id, modifier_ids):
+    if not _is_hot_sold_variation(sold_variation_id):
+        return
+
+    packaging_config = get_default_packaging_config()
+    allowed_modifier_ids = set(
+        packaging_config.get("hot_allowed_topping_modifier_ids", [])
+    )
+    restricted_modifier_ids = set(packaging_config.get("topping_modifier_ids", [])) | set(
+        packaging_config.get("cream_foam_modifier_ids", [])
+    )
+
+    for modifier_id in modifier_ids or []:
+        if modifier_id in restricted_modifier_ids and modifier_id not in allowed_modifier_ids:
+            raise ValueError(
+                f"Modifier '{modifier_id}' is not supported for hot drink '{sold_variation_id}'."
+            )
+
+
+def _resolve_default_packaging_ingredient(sold_variation_id):
     packaging_config = get_default_packaging_config()
     if not packaging_config:
         return []
 
-    cup_config = packaging_config["cup"]
+    cup_config = (
+        packaging_config["hot_cup"]
+        if _is_hot_sold_variation(sold_variation_id)
+        else packaging_config["cup"]
+    )
 
     return [
         {
@@ -211,6 +242,9 @@ def _resolve_default_packaging_ingredient():
 def _resolve_straw_ingredient(recipe, modifier_ids):
     packaging_config = get_default_packaging_config()
     if not packaging_config:
+        return []
+
+    if _is_hot_sold_variation(recipe["sold_variation_id"]):
         return []
 
     topping_modifier_ids = set(packaging_config.get("topping_modifier_ids", []))
@@ -237,10 +271,21 @@ def _resolve_straw_ingredient(recipe, modifier_ids):
     ]
 
 
-def _resolve_lid_ingredient(modifier_ids):
+def _resolve_lid_ingredient(sold_variation_id, modifier_ids):
     packaging_config = get_default_packaging_config()
     if not packaging_config:
         return []
+
+    if _is_hot_sold_variation(sold_variation_id):
+        lid_config = packaging_config["hot_lid"]
+        return [
+            {
+                "inventory_key": lid_config["inventory_key"],
+                "amount": lid_config["amount"],
+                "unit": lid_config["unit"],
+                "notes": "Hot lid packaging consumption for hot drink projections.",
+            }
+        ]
 
     cream_foam_modifier_ids = set(packaging_config.get("cream_foam_modifier_ids", []))
     has_cream_foam = any(
@@ -294,15 +339,20 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
             f"No recipe mapping found for sold variation '{sold_variation_id}'."
         )
 
+    _validate_hot_modifier_compatibility(sold_variation_id, modifier_ids)
+
     inventory_items = load_inventory_item_map()
     normalized_quantity = _normalize_quantity(quantity)
     projected_usage = []
+    recipe = {**recipe, "sold_variation_id": sold_variation_id}
     resolved_ingredients = _resolve_recipe_ingredients(recipe, modifier_ids)
     modifier_additions = _resolve_modifier_additions(modifier_ids)
     scaled_sugar_ingredients = _resolve_scaled_sugar_ingredient(recipe, modifier_ids)
-    default_packaging_ingredients = _resolve_default_packaging_ingredient()
+    default_packaging_ingredients = _resolve_default_packaging_ingredient(
+        sold_variation_id
+    )
     straw_ingredients = _resolve_straw_ingredient(recipe, modifier_ids)
-    lid_ingredients = _resolve_lid_ingredient(modifier_ids)
+    lid_ingredients = _resolve_lid_ingredient(sold_variation_id, modifier_ids)
     expanded_ingredients = _expand_ingredients(
         resolved_ingredients
         + modifier_additions

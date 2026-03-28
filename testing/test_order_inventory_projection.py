@@ -51,7 +51,12 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+        self.assertEqual(combined_by_key["hot_cup"], 1.0)
+        self.assertEqual(combined_by_key["hot_lid"], 1.0)
+        self.assertNotIn("u600_cup", combined_by_key)
+        self.assertNotIn("small_straw", combined_by_key)
+        self.assertNotIn("big_straw", combined_by_key)
+        self.assertNotIn("cold_cup_lid", combined_by_key)
 
     def test_hot_matcha_latte_alias_matches_cold_recipe(self):
         projected = project_line_item_usage(
@@ -66,7 +71,42 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["matcha"], 8.75)
         self.assertEqual(combined_by_key["milk"], 150.0)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+        self.assertEqual(combined_by_key["hot_cup"], 1.0)
+        self.assertEqual(combined_by_key["hot_lid"], 1.0)
+        self.assertNotIn("u600_cup", combined_by_key)
+        self.assertNotIn("small_straw", combined_by_key)
+        self.assertNotIn("big_straw", combined_by_key)
+        self.assertNotIn("cold_cup_lid", combined_by_key)
+
+    def test_hot_matcha_latte_allows_boba_without_straw(self):
+        projected = project_line_item_usage(
+            "J23B26YNDV2WAAJIKDXKD3YR",
+            "1",
+            ["IDFKCCIPYGFA67OPJMJ3SQVO", "UIFT45SSDNEZBUDPKFGF6VES"],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertEqual(combined_by_key["boba"], 100.0)
+        self.assertEqual(combined_by_key["hot_cup"], 1.0)
+        self.assertEqual(combined_by_key["hot_lid"], 1.0)
+        self.assertNotIn("small_straw", combined_by_key)
+        self.assertNotIn("big_straw", combined_by_key)
+        self.assertNotIn("cold_cup_lid", combined_by_key)
+
+    def test_hot_matcha_latte_rejects_tea_jelly(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "not supported for hot drink",
+        ):
+            project_line_item_usage(
+                "J23B26YNDV2WAAJIKDXKD3YR",
+                "1",
+                ["IDFKCCIPYGFA67OPJMJ3SQVO", "MEAKOBKUZMU6PVM3OVPDYMJ2"],
+            )
 
     def test_real_completed_grapefruit_bloom_and_matcha_fixture(self):
         order_fixture = load_fixture("completed_grapefruit_bloom_matcha.json")
