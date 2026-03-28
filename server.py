@@ -55,6 +55,18 @@ async def square_webhook(request: Request):
     event_type = _get_event_type(payload)
     order_id = _get_order_id_from_payload(payload)
 
+    if event_type in {"order.created", "order.updated"}:
+        print("order_webhook:")
+        print(
+            json.dumps(
+                {
+                    "event_type": event_type,
+                    "order_id": order_id,
+                },
+                indent=2,
+            )
+        )
+
     print("event_type:")
     print(event_type)
     print("order_id:")
