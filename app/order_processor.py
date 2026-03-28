@@ -28,12 +28,22 @@ def _serialize_response_model(response):
     return str(response)
 
 
-def _build_request_idempotency_key(order_ids):
+def _build_request_idempotency_key(order_ids, combined_usage):
     joined_order_ids = "|".join(sorted(order_ids))
+    usage_signature = "|".join(
+        sorted(
+            (
+                f"{usage['location_id']}:"
+                f"{usage['square_variation_id']}:"
+                f"{Decimal(str(usage['total_amount'])).quantize(Decimal('0.00001'))}"
+            )
+            for usage in combined_usage
+        )
+    )
     return str(
         uuid.uuid5(
             uuid.NAMESPACE_URL,
-            f"inventory-adjustments:{joined_order_ids}",
+            f"inventory-adjustments:{joined_order_ids}:{usage_signature}",
         )
     )
 
@@ -245,7 +255,10 @@ def process_orders(order_ids, apply_changes=False):
     projected_order_ids = [order["order_id"] for order in projected_orders]
     changes = _build_adjustment_changes(projected_order_ids, combined_usage, occurred_at)
     request_body = {
-        "idempotency_key": _build_request_idempotency_key(projected_order_ids),
+        "idempotency_key": _build_request_idempotency_key(
+            projected_order_ids,
+            combined_usage,
+        ),
         "changes": changes,
         "ignore_unchanged_counts": True,
     }
