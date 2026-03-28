@@ -20,6 +20,14 @@ app = FastAPI()
 def _parse_rfc3339(timestamp):
     return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
+def _get_event_type(payload):
+    return payload.get("type", "")
+
+def _get_order_id_from_payload(payload):
+    data = payload.get("data", {})
+    object_data = data.get("object", {})
+    order_data = object_data.get("order_created") or object_data.get("order_updated") or {}
+    return order_data.get("order_id")
 
 @app.post("/webhook/square")
 async def square_webhook(request: Request):
@@ -43,6 +51,14 @@ async def square_webhook(request: Request):
     payload = json.loads(request_body)
     headers = dict(request.headers)
     pretty_body = json.dumps(payload, indent=2)
+
+    event_type = _get_event_type(payload)
+    order_id = _get_order_id_from_payload(payload)
+
+    print("event_type:")
+    print(event_type)
+    print("order_id:")
+    print(order_id)
 
     print(headers)
     print(pretty_body)
