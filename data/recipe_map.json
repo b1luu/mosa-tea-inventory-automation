@@ -253,6 +253,11 @@
       "amount": 1,
       "unit": "cup"
     },
+    "hot_cup": {
+      "inventory_key": "hot_cup",
+      "amount": 1,
+      "unit": "cup"
+    },
     "small_straw": {
       "inventory_key": "small_straw",
       "amount": 1,
@@ -282,9 +287,41 @@
       "amount": 1,
       "unit": "lid"
     },
+    "hot_lid": {
+      "inventory_key": "hot_lid",
+      "amount": 1,
+      "unit": "lid"
+    },
     "cream_foam_modifier_ids": [
       "G2IKLVV2HGABCPEHQNAEUHQZ",
       "G56XRZ7WHJ7XMA6OOXDCIEWW"
+    ],
+    "hot_allowed_topping_modifier_ids": [
+      "UIFT45SSDNEZBUDPKFGF6VES",
+      "7W5K26H2FYRHGEBDODC3V65X",
+      "LVFSXC7PNLAZAFNKBRXUSOI7",
+      "6UYQEPDUVWLZEMR5HZHR73TY"
+    ],
+    "hot_sold_variation_ids": [
+      "3IUNOTOZ23VKQF3CT3FZGQJO",
+      "KBA6LSBZUFPV3O2QP2LD7FPI",
+      "HWDEB3422IYXRP4WV47TY7IF",
+      "2NHO2FXDWTJSZIGU5ZCXTS6T",
+      "7VVQ526562N3Z3GTKROKFNFI",
+      "DSU5CV4X365YAPIZTLCKJ5TH",
+      "J23B26YNDV2WAAJIKDXKD3YR",
+      "W5OZ3N4RCU3WO7CEL7FQ7KNH",
+      "WH5ZLKHGHG3MJ5B3QM2KD23B",
+      "GBS2JYH7YIFDVMWL4CVS3MFF",
+      "X2PJTAY45YI2UCSUG2CEXWTO",
+      "XLWAAW46HMU4PZRUALKDDV3G",
+      "LVX3VUS2O4XOP6WR63VTO2WK",
+      "EZ77LLZT4T3W6JMWFPZKRNPS",
+      "PF3JSGPSK2QSRWPDSJDNX5PJ",
+      "2FARBPJVB7OGMWUFLJUO63QJ",
+      "UE3LLFVD7P6AATRKRBYZCZ5D",
+      "JNMEIPGCJLSLJVD7BNPZWE7R",
+      "UCXQBKF6EKHTD5CT2MLACMO5"
     ]
   },
   "sold_variation_recipes": {
