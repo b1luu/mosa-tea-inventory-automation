@@ -17,6 +17,12 @@
           "name": "Four Seasons Tea",
           "quantity": "1",
           "catalog_object_id": "76GJNMZXVLFOXRDRE23MR3FF"
+        },
+        {
+          "uid": "fixture-modifier-2",
+          "name": "25% Sugar",
+          "quantity": "1",
+          "catalog_object_id": "EHC2F422OXEQBMVP5AF3ABWW"
         }
       ]
     }

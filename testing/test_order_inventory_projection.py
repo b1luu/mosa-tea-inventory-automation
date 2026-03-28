@@ -93,7 +93,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
-        self.assertEqual(len(combined_by_key), 1)
+        self.assertEqual(combined_by_key["sugar_syrup"], 13.5)
 
     def test_modifier_aware_fresh_fruit_tea_green_fixture(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_green.json")
@@ -106,7 +106,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["green_tea"], 8.0)
-        self.assertEqual(len(combined_by_key), 1)
+        self.assertEqual(combined_by_key["sugar_syrup"], 54.0)
 
     def test_fresh_mango_tea_fixture_adds_mango_syrup(self):
         order_fixture = load_fixture("completed_fresh_mango_tea_four_seasons.json")
@@ -120,6 +120,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
         self.assertEqual(combined_by_key["mango_syrup"], 35.0)
+        self.assertEqual(combined_by_key["sugar_syrup"], 27.0)
 
     def test_additive_boba_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_boba.json")
@@ -228,6 +229,15 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             "No matching modifier override found for recipe 'fresh_fruit_tea'",
+        ):
+            project_fixture_order(order_fixture)
+
+    def test_modifier_aware_fresh_fruit_tea_missing_sugar_raises(self):
+        order_fixture = load_fixture("completed_fresh_fruit_tea_missing_sugar.json")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "No matching sugar modifier found for recipe 'fresh_fruit_tea'",
         ):
             project_fixture_order(order_fixture)
 

@@ -35,6 +35,11 @@ def get_modifier_additions_map():
     return recipe_map.get("modifier_additions", {})
 
 
+def get_sugar_modifier_multipliers():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("sugar_modifier_multipliers", {})
+
+
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
@@ -127,6 +132,34 @@ def _resolve_modifier_additions(modifier_ids):
     return resolved_additions
 
 
+def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
+    sugar_config = recipe.get("sugar_config")
+    if not sugar_config:
+        return []
+
+    sugar_modifier_multipliers = get_sugar_modifier_multipliers()
+    for modifier_id in modifier_ids or []:
+        multiplier = sugar_modifier_multipliers.get(modifier_id)
+        if multiplier is None:
+            continue
+
+        return [
+            {
+                "inventory_key": sugar_config["inventory_key"],
+                "amount": float(
+                    Decimal(str(sugar_config["full_amount"]))
+                    * Decimal(str(multiplier))
+                ),
+                "unit": sugar_config["unit"],
+                "notes": f"Selected Sugar Level modifier: {modifier_id}.",
+            }
+        ]
+
+    raise ValueError(
+        f"No matching sugar modifier found for recipe '{recipe.get('drink_key')}'."
+    )
+
+
 def _convert_to_inventory_unit(amount, from_unit, inventory_item):
     inventory_unit = inventory_item["unit"]
     normalized_amount = Decimal(str(amount))
@@ -166,8 +199,9 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     projected_usage = []
     resolved_ingredients = _resolve_recipe_ingredients(recipe, modifier_ids)
     modifier_additions = _resolve_modifier_additions(modifier_ids)
+    scaled_sugar_ingredients = _resolve_scaled_sugar_ingredient(recipe, modifier_ids)
     expanded_ingredients = _expand_ingredients(
-        resolved_ingredients + modifier_additions
+        resolved_ingredients + modifier_additions + scaled_sugar_ingredients
     )
 
     for ingredient in expanded_ingredients:

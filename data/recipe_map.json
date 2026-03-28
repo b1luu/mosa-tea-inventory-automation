@@ -163,6 +163,17 @@
       ]
     }
   },
+  "sugar_modifier_multipliers": {
+    "IDFKCCIPYGFA67OPJMJ3SQVO": 0.0,
+    "NVT23ZGHPCB32GHQB5JL5VUU": 0.25,
+    "M3GNVPQ44FH575OGMUPSPLDD": 0.5,
+    "AZ6D2FGNSWBWCKPPG7FVBRWZ": 0.75,
+    "VEDNAO6LH5WQET6TQTJGSPOB": 1.0,
+    "EHC2F422OXEQBMVP5AF3ABWW": 0.25,
+    "HBLOG26AKQNVOTYJJT3YFAMR": 0.5,
+    "BHWIDHGY2Z5HBG4AQCQE3RH3": 0.75,
+    "MSBCTUUEB2HSJ6JIAZ6PWX44": 1.0
+  },
   "sold_variation_recipes": {
     "B526AZ22TDNVJGUAE4HRXJKS": {
       "drink_key": "tgy_special",
@@ -645,6 +656,11 @@
     "75VND7AVP4WBXIAK5D3OYG6C": {
       "drink_key": "fresh_fruit_tea",
       "drink_name": "Freshfruit Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -671,6 +687,11 @@
     "QFNOAWWK3VZXJTZJAU4JRCFO": {
       "drink_key": "fresh_strawberry_tea",
       "drink_name": "Fresh Strawberry Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -697,6 +718,11 @@
     "GWLUEE5JMJLJITJRR42G6GHV": {
       "drink_key": "fresh_grapefruit_tea",
       "drink_name": "Fresh Grapefruit Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -723,6 +749,11 @@
     "GL4SND76TJYPY6RBUU32N4HF": {
       "drink_key": "fresh_lemon_tea",
       "drink_name": "Fresh Lemon Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -749,6 +780,11 @@
     "ZHKPXHX6LYJE4ULT4VTUSAQG": {
       "drink_key": "fresh_mango_tea",
       "drink_name": "Fresh Mango Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "ingredients": [
         {
           "inventory_key": "mango_syrup",
@@ -783,6 +819,11 @@
     "KESNSNPZO3QYTJHW4STNDJNR": {
       "drink_key": "fresh_orange_tea",
       "drink_name": "Fresh Orange Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -809,6 +850,11 @@
     "EN2VSTOAJGNMPKU5LMXF3MR6": {
       "drink_key": "fresh_apple_tea",
       "drink_name": "Fresh Apple Tea",
+      "sugar_config": {
+        "inventory_key": "sugar_syrup",
+        "full_amount": 54,
+        "unit": "g"
+      },
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
