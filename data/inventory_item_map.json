@@ -145,10 +145,20 @@
       "name": "Brown Sugar",
       "unit": "g",
       "stock_unit": "container",
+      "stock_unit_size": 2500,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Sweetener",
+      "notes": "Internal inventory ledger item for brown sugar syrup."
+    },
+    "sugar_syrup": {
+      "square_variation_id": "XLLAY7WGXHFAZJXT37W5HZFT",
+      "name": "Sugar Syrup",
+      "unit": "g",
+      "stock_unit": "container",
       "stock_unit_size": 25000,
       "stock_unit_size_unit": "g",
       "category": "INV - Sweetener",
-      "notes": "Internal inventory ledger item used for brown sugar syrup input."
+      "notes": "Internal inventory ledger item for sugar syrup."
     },
     "milk": {
       "square_variation_id": "4CLJVUZQCIVAEU4F7APU6QGX",
