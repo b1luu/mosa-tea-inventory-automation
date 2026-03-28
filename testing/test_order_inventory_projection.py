@@ -66,6 +66,22 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["tgy"], 8.0)
         self.assertEqual(len(combined_by_key), 1)
 
+    def test_tgy_osmanthus_honey_brewed_tea_fixture(self):
+        order_fixture = load_fixture("completed_tgy_osmanthus_honey_brewed_tea.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(
+            projected_line_items[0]["drink_key"],
+            "tie_guan_yin_osmanthus_honey_brewed_tea",
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["tgy"], 8.0)
+        self.assertEqual(combined_by_key["osmanthus_honey"], 35.0)
+
     def test_modifier_aware_fresh_fruit_tea_fixture(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_four_seasons.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)

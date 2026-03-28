@@ -159,6 +159,12 @@
           "amount": 37,
           "unit": "g",
           "notes": "Standard non-dairy creamer usage per milk tea."
+        },
+        {
+          "inventory_key": "osmanthus_honey",
+          "amount": 35,
+          "unit": "g",
+          "notes": "Standard osmanthus honey usage per drink."
         }
       ]
     },
@@ -183,6 +189,12 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "osmanthus_honey",
+          "amount": 35,
+          "unit": "g",
+          "notes": "Standard osmanthus honey usage per drink."
         }
       ]
     },
@@ -469,6 +481,12 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Standard milk usage per Au Lait."
+        },
+        {
+          "inventory_key": "osmanthus_honey",
+          "amount": 35,
+          "unit": "g",
+          "notes": "Standard osmanthus honey usage per drink."
         }
       ]
     },
