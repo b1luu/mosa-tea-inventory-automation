@@ -107,6 +107,16 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for mango syrup."
     },
+    "osmanthus_honey": {
+      "square_variation_id": "G2ECIVTMKE4Z5TTM35Y4EQDV",
+      "name": "Osmanthus Honey",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 5000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for osmanthus honey."
+    },
     "milk": {
       "square_variation_id": "4CLJVUZQCIVAEU4F7APU6QGX",
       "name": "Milk",
