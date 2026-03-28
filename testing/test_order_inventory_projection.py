@@ -165,6 +165,23 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["powdered_sugar"], 3.4285714285714284)
         self.assertAlmostEqual(combined_by_key["brown_sugar"], 3.4285714285714284)
 
+    def test_additive_tea_jelly_modifier_fixture(self):
+        order_fixture = load_fixture("completed_matcha_latte_tea_jelly.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "matcha_latte")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertAlmostEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertAlmostEqual(combined_by_key["tgy"], 2.3255813953488373)
+        self.assertAlmostEqual(combined_by_key["tj_powder"], 5.813953488372093)
+        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 3.488372093023256)
+        self.assertAlmostEqual(combined_by_key["sugar_syrup"], 3.488372093023256)
+
     def test_four_seasons_au_lait_fixture_adds_milk(self):
         order_fixture = load_fixture("completed_four_seasons_au_lait.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)

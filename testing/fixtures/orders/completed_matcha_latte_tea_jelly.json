@@ -1,0 +1,22 @@
+{
+  "id": "fixture-matcha-latte-tea-jelly",
+  "location_id": "LB1MECVA7EZ8Z",
+  "state": "COMPLETED",
+  "line_items": [
+    {
+      "uid": "fixture-line-item-1",
+      "name": "Matcha Latte 抹茶拿鐵",
+      "quantity": "1",
+      "catalog_object_id": "DX2LRA7T4EFSSFH6POETDJHY",
+      "variation_name": "",
+      "modifiers": [
+        {
+          "uid": "fixture-modifier-1",
+          "name": "Tie Guan Yin Oolong Jelly",
+          "quantity": "1",
+          "catalog_object_id": "MEAKOBKUZMU6PVM3OVPDYMJ2"
+        }
+      ]
+    }
+  ]
+}

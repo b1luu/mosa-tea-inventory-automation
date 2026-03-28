@@ -133,6 +133,34 @@
           "notes": "Selected Toppings modifier: Brown Sugar Hun Kue derived from a 35-serving batch."
         }
       ]
+    },
+    "MEAKOBKUZMU6PVM3OVPDYMJ2": {
+      "ingredients": [
+        {
+          "inventory_key": "tgy",
+          "amount": 87.20930232558139,
+          "unit": "ml",
+          "notes": "Selected Toppings modifier: Tie Guan Yin Oolong Jelly derived from a 34.4-serving batch."
+        },
+        {
+          "inventory_key": "tj_powder",
+          "amount": 5.813953488372093,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Tie Guan Yin Oolong Jelly derived from a 34.4-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 3.488372093023256,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Tie Guan Yin Oolong Jelly derived from a 34.4-serving batch."
+        },
+        {
+          "inventory_key": "sugar_syrup",
+          "amount": 3.488372093023256,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Tie Guan Yin Oolong Jelly derived from a 34.4-serving batch."
+        }
+      ]
     }
   },
   "sold_variation_recipes": {
