@@ -91,6 +91,9 @@
       "square_variation_id": "4CLJVUZQCIVAEU4F7APU6QGX",
       "name": "Milk",
       "unit": "ml",
+      "stock_unit": "carton",
+      "stock_unit_size": 3780,
+      "stock_unit_size_unit": "ml",
       "category": "INV - Dairy",
       "notes": "Internal inventory ledger item for Au Lait milk consumption."
     },
@@ -98,6 +101,9 @@
       "square_variation_id": "AYC7DO3IZ6CGZ4OENAIAIBIJ",
       "name": "Non-Dairy Creamer",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "g",
       "category": "INV - Dairy",
       "notes": "Internal inventory ledger item for milk tea creamer consumption."
     },
