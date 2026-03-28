@@ -58,6 +58,24 @@
           "quantity": "2"
         }
       ]
+    },
+    "four_seasons_au_lait": {
+      "description": "Single Four Seasons Au Lait.",
+      "line_items": [
+        {
+          "catalog_object_id": "PWOPJQGW3GQHLEYIBUNOEAZD",
+          "quantity": "1"
+        }
+      ]
+    },
+    "signature_black_milk_tea": {
+      "description": "Single Signature Black Milk Tea.",
+      "line_items": [
+        {
+          "catalog_object_id": "AQCPLG5NND3HT5SE3NLHNVXD",
+          "quantity": "1"
+        }
+      ]
     }
   }
 }
