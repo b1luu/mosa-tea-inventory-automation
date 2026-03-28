@@ -103,6 +103,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
         self.assertEqual(combined_by_key["boba"], 100.0)
 
     def test_four_seasons_au_lait_fixture_adds_milk(self):

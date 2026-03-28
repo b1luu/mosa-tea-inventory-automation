@@ -265,6 +265,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per matcha latte."
         }
       ]
     },
@@ -361,6 +367,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per matcha latte."
         }
       ]
     },
@@ -373,6 +385,12 @@
           "amount": 200,
           "unit": "ml",
           "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per matcha latte."
         }
       ]
     },
