@@ -134,6 +134,9 @@
       "square_variation_id": "W5VMLRKCKZKXG4IYYMVBRIJK",
       "name": "TJ Powder",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "g",
       "category": "INV - Toppings",
       "notes": "Internal inventory ledger item for Tie Guan Yin Oolong Jelly powder."
     },
