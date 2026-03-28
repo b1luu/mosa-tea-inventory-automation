@@ -14,7 +14,11 @@ from app.order_processing_db import (
     mark_order_pending,
     set_order_processing_state,
 )
-from app.inventory_stock_units import summarize_combined_usage_in_display_units
+from app.inventory_stock_units import (
+    convert_inventory_amount_to_stock_unit,
+    has_stock_unit_mapping,
+    summarize_combined_usage_in_display_units,
+)
 from app.processed_orders_state import (
     load_processed_order_ids,
     mark_orders_processed,
@@ -152,6 +156,12 @@ def _build_adjustment_changes(order_ids, combined_usage, occurred_at):
 
     for usage in combined_usage:
         quantity = Decimal(str(usage["total_amount"]))
+        if has_stock_unit_mapping(usage["inventory_key"]):
+            converted = convert_inventory_amount_to_stock_unit(
+                usage["inventory_key"],
+                usage["total_amount"],
+            )
+            quantity = Decimal(str(converted["stock_unit_amount"]))
         if quantity <= 0:
             continue
         quantity = quantity.quantize(Decimal("0.00001"))
