@@ -20,6 +20,9 @@
       "square_variation_id": "45IPVSWXHIMM3P535VAEPQFM",
       "name": "4S",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 600,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 160,
@@ -46,6 +49,9 @@
       "square_variation_id": "UUNXKESV2Y62F6DIAJ737KOO",
       "name": "Black Tea",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 600,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 140,
@@ -59,6 +65,9 @@
       "square_variation_id": "E6TQACDI2C2DJZLEN4TYFDXV",
       "name": "Buckwheat",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 600,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 120,
@@ -93,6 +102,9 @@
       "square_variation_id": "ZFRNV5R7R3IQWKLMNECVSK4R",
       "name": "Barley",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 6000,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 240,
@@ -106,6 +118,9 @@
       "square_variation_id": "XHJKFYHJOIHPZK33SCOHEQOM",
       "name": "Green Tea",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 600,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 160,
@@ -119,6 +134,9 @@
       "square_variation_id": "FG6AKC4JPSHJ2AOR3FULQOQM",
       "name": "Genmai",
       "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 600,
+      "stock_unit_size_unit": "g",
       "category": "INV - Tea",
       "yield_conversion": {
         "input_amount": 120,
