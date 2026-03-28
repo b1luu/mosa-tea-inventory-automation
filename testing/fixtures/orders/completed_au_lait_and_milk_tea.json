@@ -1,0 +1,25 @@
+{
+  "id": "fixture-au-lait-and-milk-tea",
+  "location_id": "LB1MECVA7EZ8Z",
+  "state": "COMPLETED",
+  "created_at": "2026-03-27T00:00:00Z",
+  "updated_at": "2026-03-27T00:00:02Z",
+  "line_items": [
+    {
+      "uid": "fixture-line-item-combo-au-lait",
+      "name": "Four Seasons Au Lait",
+      "quantity": "1",
+      "catalog_object_id": "PWOPJQGW3GQHLEYIBUNOEAZD",
+      "variation_name": "",
+      "modifiers": []
+    },
+    {
+      "uid": "fixture-line-item-combo-milk-tea",
+      "name": "Signature Black Milk Tea",
+      "quantity": "1",
+      "catalog_object_id": "AQCPLG5NND3HT5SE3NLHNVXD",
+      "variation_name": "",
+      "modifiers": []
+    }
+  ]
+}
