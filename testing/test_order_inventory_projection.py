@@ -39,6 +39,35 @@ def project_fixture_order(order_fixture):
 
 
 class OrderInventoryProjectionTests(unittest.TestCase):
+    def test_hot_four_seasons_tea_alias_matches_cold_recipe(self):
+        projected = project_line_item_usage(
+            "3IUNOTOZ23VKQF3CT3FZGQJO",
+            "1",
+            ["IDFKCCIPYGFA67OPJMJ3SQVO"],
+        )
+
+        self.assertEqual(projected["drink_key"], "four_seasons_brewed_tea")
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["4s"], 8.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+
+    def test_hot_matcha_latte_alias_matches_cold_recipe(self):
+        projected = project_line_item_usage(
+            "J23B26YNDV2WAAJIKDXKD3YR",
+            "1",
+            ["IDFKCCIPYGFA67OPJMJ3SQVO"],
+        )
+
+        self.assertEqual(projected["drink_key"], "matcha_latte")
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+
     def test_real_completed_grapefruit_bloom_and_matcha_fixture(self):
         order_fixture = load_fixture("completed_grapefruit_bloom_matcha.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)

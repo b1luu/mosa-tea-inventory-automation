@@ -20,9 +20,27 @@ def load_recipe_map():
     return _load_json(RECIPE_MAP_FILE)
 
 
-def get_recipe_for_sold_variation(sold_variation_id):
+def get_recipe_for_sold_variation(sold_variation_id, _seen=None):
     recipe_map = load_recipe_map()
-    return recipe_map.get("sold_variation_recipes", {}).get(sold_variation_id)
+    sold_variation_recipes = recipe_map.get("sold_variation_recipes", {})
+    recipe = sold_variation_recipes.get(sold_variation_id)
+    if not recipe:
+        return None
+
+    same_as_sold_variation_id = recipe.get("same_as_sold_variation_id")
+    if not same_as_sold_variation_id:
+        return recipe
+
+    _seen = _seen or set()
+    if sold_variation_id in _seen:
+        raise ValueError(
+            f"Circular same_as_sold_variation_id mapping found for '{sold_variation_id}'."
+        )
+
+    return get_recipe_for_sold_variation(
+        same_as_sold_variation_id,
+        _seen | {sold_variation_id},
+    )
 
 
 def get_tea_base_map():
