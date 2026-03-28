@@ -278,6 +278,27 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
 
+    def test_pistachio_foam_modifier_fixture(self):
+        order_fixture = load_fixture("completed_matcha_latte_pistachio_foam.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "matcha_latte")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 189.28571428571428)
+        self.assertAlmostEqual(combined_by_key["heavy_cream"], 8.571428571428571)
+        self.assertAlmostEqual(
+            combined_by_key["cream_foam_powder"], 8.571428571428571
+        )
+        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 5.357142857142857)
+        self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+        self.assertEqual(combined_by_key["small_straw"], 1.0)
+
     def test_four_seasons_au_lait_fixture_adds_milk(self):
         order_fixture = load_fixture("completed_four_seasons_au_lait.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)

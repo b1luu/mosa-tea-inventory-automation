@@ -195,6 +195,40 @@
           "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
         }
       ]
+    },
+    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
+      "ingredients": [
+        {
+          "inventory_key": "milk",
+          "amount": 39.285714285714285,
+          "unit": "ml",
+          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "heavy_cream",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "cream_foam_powder",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 5.357142857142857,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "pistachio",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
+        }
+      ]
     }
   },
   "sugar_modifier_multipliers": {

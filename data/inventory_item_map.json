@@ -230,6 +230,16 @@
       "category": "INV - Dairy",
       "notes": "Internal inventory ledger item for cream foam recipes."
     },
+    "pistachio": {
+      "square_variation_id": "4F4NTG7FT3L2DJLRYGBGLPR6",
+      "name": "Pistachio",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Nuts",
+      "notes": "Internal inventory ledger item for pistachio paste input. Assumes 1:1 conversion from pistachio paste to raw pistachio."
+    },
     "barley": {
       "square_variation_id": "ZFRNV5R7R3IQWKLMNECVSK4R",
       "name": "Barley",
