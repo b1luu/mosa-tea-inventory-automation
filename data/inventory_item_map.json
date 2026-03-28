@@ -87,6 +87,16 @@
       "category": "INV - Toppings",
       "notes": "Internal inventory ledger item for boba. One topping selection consumes 100 g."
     },
+    "lychee_jelly": {
+      "square_variation_id": "RGUQJPBZBPR7MQN7HBMGAEI4",
+      "name": "Lychee Jelly",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Toppings",
+      "notes": "Internal inventory ledger item for lychee jelly. One topping selection consumes 100 g."
+    },
     "mango_syrup": {
       "square_variation_id": "FGTVUOCNF3UAQX26H56JM5U6",
       "name": "Mango Syrup",

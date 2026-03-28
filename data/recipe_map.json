@@ -91,6 +91,26 @@
           "notes": "Selected Toppings modifier: Boba."
         }
       ]
+    },
+    "LVFSXC7PNLAZAFNKBRXUSOI7": {
+      "ingredients": [
+        {
+          "inventory_key": "lychee_jelly",
+          "amount": 100,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Lychee Jelly."
+        }
+      ]
+    },
+    "6UYQEPDUVWLZEMR5HZHR73TY": {
+      "ingredients": [
+        {
+          "inventory_key": "lychee_jelly",
+          "amount": 100,
+          "unit": "g",
+          "notes": "Selected Toppings modifier: Lychee Jelly."
+        }
+      ]
     }
   },
   "sold_variation_recipes": {
