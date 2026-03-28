@@ -29,8 +29,8 @@ class InventoryStockUnitTests(unittest.TestCase):
         )
         self.assertEqual(summarized[0]["display_unit"], "bag")
         self.assertEqual(summarized[0]["display_amount"], 1.0)
-        self.assertEqual(summarized[1]["display_unit"], "ml")
-        self.assertEqual(summarized[1]["display_amount"], 150)
+        self.assertEqual(summarized[1]["display_unit"], "carton")
+        self.assertAlmostEqual(summarized[1]["display_amount"], 150 / 3780)
 
 
 if __name__ == "__main__":
