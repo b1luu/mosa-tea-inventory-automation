@@ -277,6 +277,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["brown_sugar"], 2.642857142857143)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
+        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
 
     def test_pistachio_foam_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_pistachio_foam.json")
@@ -298,6 +299,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
+        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
 
     def test_four_seasons_au_lait_fixture_adds_milk(self):
         order_fixture = load_fixture("completed_four_seasons_au_lait.json")

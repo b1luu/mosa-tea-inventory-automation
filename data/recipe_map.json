@@ -276,6 +276,15 @@
       "tgy_special",
       "taiwanese_retro",
       "grapefruit_bloom"
+    ],
+    "cold_cup_lid": {
+      "inventory_key": "cold_cup_lid",
+      "amount": 1,
+      "unit": "lid"
+    },
+    "cream_foam_modifier_ids": [
+      "G2IKLVV2HGABCPEHQNAEUHQZ",
+      "G56XRZ7WHJ7XMA6OOXDCIEWW"
     ]
   },
   "sold_variation_recipes": {

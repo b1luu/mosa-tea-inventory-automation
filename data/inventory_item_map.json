@@ -317,6 +317,16 @@
       "stock_unit_size_unit": "straw",
       "category": "INV - Packaging",
       "notes": "Straw for drinks with toppings or built-in inclusions."
+    },
+    "cold_cup_lid": {
+      "square_variation_id": "E6LDP3TADQ6X2NM7YAT4PMXR",
+      "name": "Cold Cup Lid",
+      "unit": "lid",
+      "stock_unit": "box",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "lid",
+      "category": "INV - Packaging",
+      "notes": "Cold cup lid used for drinks with cream foam modifiers."
     }
   }
 }

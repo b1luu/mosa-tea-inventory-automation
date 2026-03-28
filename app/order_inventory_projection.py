@@ -219,6 +219,29 @@ def _resolve_straw_ingredient(recipe, modifier_ids):
     ]
 
 
+def _resolve_lid_ingredient(modifier_ids):
+    packaging_config = get_default_packaging_config()
+    if not packaging_config:
+        return []
+
+    cream_foam_modifier_ids = set(packaging_config.get("cream_foam_modifier_ids", []))
+    has_cream_foam = any(
+        modifier_id in cream_foam_modifier_ids for modifier_id in (modifier_ids or [])
+    )
+    if not has_cream_foam:
+        return []
+
+    lid_config = packaging_config["cold_cup_lid"]
+    return [
+        {
+            "inventory_key": lid_config["inventory_key"],
+            "amount": lid_config["amount"],
+            "unit": lid_config["unit"],
+            "notes": "Cold cup lid packaging consumption for drinks with cream foam.",
+        }
+    ]
+
+
 def _convert_to_inventory_unit(amount, from_unit, inventory_item):
     inventory_unit = inventory_item["unit"]
     normalized_amount = Decimal(str(amount))
@@ -261,12 +284,14 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     scaled_sugar_ingredients = _resolve_scaled_sugar_ingredient(recipe, modifier_ids)
     default_packaging_ingredients = _resolve_default_packaging_ingredient()
     straw_ingredients = _resolve_straw_ingredient(recipe, modifier_ids)
+    lid_ingredients = _resolve_lid_ingredient(modifier_ids)
     expanded_ingredients = _expand_ingredients(
         resolved_ingredients
         + modifier_additions
         + scaled_sugar_ingredients
         + default_packaging_ingredients
         + straw_ingredients
+        + lid_ingredients
     )
 
     for ingredient in expanded_ingredients:
