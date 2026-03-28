@@ -42,6 +42,30 @@ def get_order_processing_state(order_id):
     return row[0] if row else None
 
 
+def list_order_processing_rows(processing_state=None):
+    query = (
+        "SELECT square_order_id, processing_state, applied_at "
+        "FROM order_processing"
+    )
+    params = ()
+    if processing_state:
+        query += " WHERE processing_state = ?"
+        params = (processing_state,)
+    query += " ORDER BY rowid DESC"
+
+    with sqlite3.connect(DB_FILE) as connection:
+        rows = connection.execute(query, params).fetchall()
+
+    return [
+        {
+            "square_order_id": row[0],
+            "processing_state": row[1],
+            "applied_at": row[2],
+        }
+        for row in rows
+    ]
+
+
 def set_order_processing_state(order_id, processing_state):
     applied_at = (
         datetime.now(UTC).isoformat()
