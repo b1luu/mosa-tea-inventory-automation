@@ -309,7 +309,7 @@
       "notes": "Default cold cup packaging for current Sandbox drink projections."
     },
     "hot_cup": {
-      "square_variation_id": "REPLACE_WITH_HOT_CUP_VARIATION_ID",
+      "square_variation_id": "RC47EPMXSKVPRSM4OO5GOQYZ",
       "name": "Hot Cup",
       "unit": "cup",
       "stock_unit": "roll",
@@ -339,7 +339,7 @@
       "notes": "Straw for drinks with toppings or built-in inclusions."
     },
     "hot_lid": {
-      "square_variation_id": "REPLACE_WITH_HOT_LID_VARIATION_ID",
+      "square_variation_id": "HMSFQIGMVWI4VOMTKRPM4FRK",
       "name": "Hot Lid",
       "unit": "lid",
       "stock_unit": "roll",
