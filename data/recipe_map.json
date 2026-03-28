@@ -161,6 +161,40 @@
           "notes": "Selected Toppings modifier: Tie Guan Yin Oolong Jelly derived from a 34.4-serving batch."
         }
       ]
+    },
+    "G2IKLVV2HGABCPEHQNAEUHQZ": {
+      "ingredients": [
+        {
+          "inventory_key": "milk",
+          "amount": 35.714285714285715,
+          "unit": "ml",
+          "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "heavy_cream",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "cream_foam_powder",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 2.642857142857143,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "brown_sugar",
+          "amount": 2.642857142857143,
+          "unit": "g",
+          "notes": "Selected Cream Foam modifier: Brown Sugar Cream Foam derived from a 14-serving batch."
+        }
+      ]
     }
   },
   "sugar_modifier_multipliers": {

@@ -210,6 +210,26 @@
       "category": "INV - Dairy",
       "notes": "Internal inventory ledger item for milk tea creamer consumption."
     },
+    "heavy_cream": {
+      "square_variation_id": "PVBCZR2YGPI5XUAAPVETGVO2",
+      "name": "Heavy Cream",
+      "unit": "g",
+      "stock_unit": "carton",
+      "stock_unit_size": 950,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Dairy",
+      "notes": "Internal inventory ledger item for cream foam recipes."
+    },
+    "cream_foam_powder": {
+      "square_variation_id": "P3FGGHWQM6F42GIPQSY5TBB2",
+      "name": "Cream Foam Powder",
+      "unit": "g",
+      "stock_unit": "bag",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Dairy",
+      "notes": "Internal inventory ledger item for cream foam recipes."
+    },
     "barley": {
       "square_variation_id": "ZFRNV5R7R3IQWKLMNECVSK4R",
       "name": "Barley",
