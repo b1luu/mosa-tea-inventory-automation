@@ -45,6 +45,11 @@ def get_default_sugar_config():
     return recipe_map.get("default_sugar_config")
 
 
+def get_default_packaging_config():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("default_packaging_config")
+
+
 def _normalize_quantity(quantity):
     return Decimal(str(quantity))
 
@@ -168,6 +173,21 @@ def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
     )
 
 
+def _resolve_default_packaging_ingredient():
+    packaging_config = get_default_packaging_config()
+    if not packaging_config:
+        return []
+
+    return [
+        {
+            "inventory_key": packaging_config["inventory_key"],
+            "amount": packaging_config["amount"],
+            "unit": packaging_config["unit"],
+            "notes": "Default packaging consumption for current Sandbox projections.",
+        }
+    ]
+
+
 def _convert_to_inventory_unit(amount, from_unit, inventory_item):
     inventory_unit = inventory_item["unit"]
     normalized_amount = Decimal(str(amount))
@@ -208,8 +228,12 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     resolved_ingredients = _resolve_recipe_ingredients(recipe, modifier_ids)
     modifier_additions = _resolve_modifier_additions(modifier_ids)
     scaled_sugar_ingredients = _resolve_scaled_sugar_ingredient(recipe, modifier_ids)
+    default_packaging_ingredients = _resolve_default_packaging_ingredient()
     expanded_ingredients = _expand_ingredients(
-        resolved_ingredients + modifier_additions + scaled_sugar_ingredients
+        resolved_ingredients
+        + modifier_additions
+        + scaled_sugar_ingredients
+        + default_packaging_ingredients
     )
 
     for ingredient in expanded_ingredients:

@@ -179,6 +179,11 @@
     "full_amount": 54,
     "unit": "g"
   },
+  "default_packaging_config": {
+    "inventory_key": "u600_cup",
+    "amount": 1,
+    "unit": "cup"
+  },
   "sold_variation_recipes": {
     "B526AZ22TDNVJGUAE4HRXJKS": {
       "drink_key": "tgy_special",

@@ -52,6 +52,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["buckwheat"], 0.75)
         self.assertEqual(combined_by_key["barley"], 1.5)
         self.assertEqual(combined_by_key["matcha"], 17.5)
+        self.assertEqual(combined_by_key["u600_cup"], 3.0)
 
     def test_simple_tgy_brewed_tea_fixture(self):
         order_fixture = load_fixture("completed_tgy_brewed_tea.json")
@@ -64,7 +65,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["tgy"], 8.0)
-        self.assertEqual(len(combined_by_key), 1)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_tgy_osmanthus_honey_brewed_tea_fixture(self):
         order_fixture = load_fixture("completed_tgy_osmanthus_honey_brewed_tea.json")
@@ -81,6 +82,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["tgy"], 8.0)
         self.assertEqual(combined_by_key["osmanthus_honey"], 35.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_modifier_aware_fresh_fruit_tea_fixture(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_four_seasons.json")
@@ -94,6 +96,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
         self.assertEqual(combined_by_key["sugar_syrup"], 13.5)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_modifier_aware_fresh_fruit_tea_green_fixture(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_green.json")
@@ -107,6 +110,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["green_tea"], 8.0)
         self.assertEqual(combined_by_key["sugar_syrup"], 54.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_fresh_mango_tea_fixture_adds_mango_syrup(self):
         order_fixture = load_fixture("completed_fresh_mango_tea_four_seasons.json")
@@ -121,6 +125,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["4s"], 8.0)
         self.assertEqual(combined_by_key["mango_syrup"], 35.0)
         self.assertEqual(combined_by_key["sugar_syrup"], 27.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_additive_boba_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_boba.json")
@@ -135,6 +140,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["matcha"], 8.75)
         self.assertEqual(combined_by_key["milk"], 150.0)
         self.assertEqual(combined_by_key["boba"], 100.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_additive_lychee_jelly_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_lychee_jelly.json")
@@ -149,6 +155,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["matcha"], 8.75)
         self.assertEqual(combined_by_key["milk"], 150.0)
         self.assertEqual(combined_by_key["lychee_jelly"], 100.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_additive_hun_kue_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_hun_kue.json")
@@ -165,6 +172,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["hk_powder"], 8.571428571428571)
         self.assertAlmostEqual(combined_by_key["powdered_sugar"], 3.4285714285714284)
         self.assertAlmostEqual(combined_by_key["brown_sugar"], 3.4285714285714284)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_additive_tea_jelly_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_tea_jelly.json")
@@ -182,6 +190,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["tj_powder"], 5.813953488372093)
         self.assertAlmostEqual(combined_by_key["powdered_sugar"], 3.488372093023256)
         self.assertAlmostEqual(combined_by_key["sugar_syrup"], 3.488372093023256)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_four_seasons_au_lait_fixture_adds_milk(self):
         order_fixture = load_fixture("completed_four_seasons_au_lait.json")
@@ -195,6 +204,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertAlmostEqual(combined_by_key["4s"], 5.333333333333333)
         self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_signature_black_milk_tea_fixture_adds_creamer(self):
         order_fixture = load_fixture("completed_signature_black_milk_tea.json")
@@ -208,6 +218,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         }
         self.assertEqual(combined_by_key["black_tea"], 7.0)
         self.assertEqual(combined_by_key["non_dairy_creamer"], 37.0)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
 
     def test_combined_au_lait_and_milk_tea_fixture_rolls_up(self):
         order_fixture = load_fixture("completed_au_lait_and_milk_tea.json")
@@ -222,6 +233,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["milk"], 150.0)
         self.assertEqual(combined_by_key["black_tea"], 7.0)
         self.assertEqual(combined_by_key["non_dairy_creamer"], 37.0)
+        self.assertEqual(combined_by_key["u600_cup"], 2.0)
 
     def test_modifier_aware_fresh_fruit_tea_missing_modifier_raises(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_missing_modifier.json")

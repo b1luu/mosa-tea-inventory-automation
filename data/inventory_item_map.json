@@ -237,6 +237,16 @@
         "output_unit": "ml"
       },
       "notes": "Internal inventory ledger item. Fill in the Square variation ID and brew ratio after creating the supply item."
+    },
+    "u600_cup": {
+      "square_variation_id": "RFKMPO65RYX5APBVM3CPEV5W",
+      "name": "U600 Cup",
+      "unit": "cup",
+      "stock_unit": "box",
+      "stock_unit_size": 1000,
+      "stock_unit_size_unit": "cup",
+      "category": "INV - Packaging",
+      "notes": "Default cold cup packaging for current Sandbox drink projections."
     }
   }
 }
