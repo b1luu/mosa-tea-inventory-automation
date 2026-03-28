@@ -1,6 +1,4 @@
 import json
-import subprocess
-import sys
 from datetime import datetime
 
 from fastapi import FastAPI, Request, Response
@@ -14,7 +12,8 @@ from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
 )
-from app.order_processing_db import get_order_processing_state, mark_order_pending
+from app.order_processing_db import get_order_processing_state
+from app.order_processor import process_orders
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
@@ -68,7 +67,6 @@ async def square_webhook(request: Request):
     version = order_event_data.get("version")
 
     if event_type in {"order.created", "order.updated"}:
-        apply_exit_code = None
         current_processing_state = (
             get_order_processing_state(order_id) if order_id else None
         )
@@ -79,20 +77,11 @@ async def square_webhook(request: Request):
         )
 
         if should_start_processing:
-            mark_order_pending(order_id)
-            apply_result = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "scripts.apply_inventory_adjustments",
-                    "--apply",
-                    order_id,
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            apply_exit_code = apply_result.returncode
+            process_orders([order_id], apply_changes=True)
+
+        processing_state_after = (
+            get_order_processing_state(order_id) if order_id else None
+        )
 
         print("order_webhook:")
         print(
@@ -106,7 +95,7 @@ async def square_webhook(request: Request):
                     "version": version,
                     "current_processing_state": current_processing_state,
                     "marked_pending": should_start_processing,
-                    "apply_exit_code": apply_exit_code,
+                    "processing_state_after": processing_state_after,
                 },
                 indent=2,
             )

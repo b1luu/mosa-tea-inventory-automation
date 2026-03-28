@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.apply_inventory_adjustments import _build_adjustment_changes
+from app.order_processor import _build_adjustment_changes
 
 
 class ApplyInventoryAdjustmentsTests(unittest.TestCase):
