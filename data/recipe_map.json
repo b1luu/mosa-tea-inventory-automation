@@ -180,9 +180,35 @@
     "unit": "g"
   },
   "default_packaging_config": {
-    "inventory_key": "u600_cup",
-    "amount": 1,
-    "unit": "cup"
+    "cup": {
+      "inventory_key": "u600_cup",
+      "amount": 1,
+      "unit": "cup"
+    },
+    "small_straw": {
+      "inventory_key": "small_straw",
+      "amount": 1,
+      "unit": "straw"
+    },
+    "big_straw": {
+      "inventory_key": "big_straw",
+      "amount": 1,
+      "unit": "straw"
+    },
+    "topping_modifier_ids": [
+      "UIFT45SSDNEZBUDPKFGF6VES",
+      "7W5K26H2FYRHGEBDODC3V65X",
+      "LVFSXC7PNLAZAFNKBRXUSOI7",
+      "6UYQEPDUVWLZEMR5HZHR73TY",
+      "MEAKOBKUZMU6PVM3OVPDYMJ2",
+      "HD5IAR2GT4I4G4L64CQ7LJ6H",
+      "AB2HPG7C7F2V3DXPPXCEBNH4"
+    ],
+    "recipes_with_built_in_toppings": [
+      "tgy_special",
+      "taiwanese_retro",
+      "grapefruit_bloom"
+    ]
   },
   "sold_variation_recipes": {
     "B526AZ22TDNVJGUAE4HRXJKS": {
@@ -194,6 +220,24 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "hk_powder",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "TGY Special includes Brown Sugar Hun Kue by default."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 3.4285714285714284,
+          "unit": "g",
+          "notes": "TGY Special includes Brown Sugar Hun Kue by default."
+        },
+        {
+          "inventory_key": "brown_sugar",
+          "amount": 3.4285714285714284,
+          "unit": "g",
+          "notes": "TGY Special includes Brown Sugar Hun Kue by default."
         }
       ]
     },
@@ -446,6 +490,12 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Standard milk usage per Au Lait."
+        },
+        {
+          "inventory_key": "boba",
+          "amount": 100,
+          "unit": "g",
+          "notes": "Taiwanese Retro includes boba by default."
         }
       ]
     },
@@ -663,6 +713,30 @@
       "ingredients": [
         {
           "tea_base_key": "four_seasons_roasted_buckwheat_barley"
+        },
+        {
+          "inventory_key": "tgy",
+          "amount": 87.20930232558139,
+          "unit": "ml",
+          "notes": "Grapefruit Bloom includes Tie Guan Yin Oolong Jelly by default."
+        },
+        {
+          "inventory_key": "tj_powder",
+          "amount": 5.813953488372093,
+          "unit": "g",
+          "notes": "Grapefruit Bloom includes Tie Guan Yin Oolong Jelly by default."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 3.488372093023256,
+          "unit": "g",
+          "notes": "Grapefruit Bloom includes Tie Guan Yin Oolong Jelly by default."
+        },
+        {
+          "inventory_key": "sugar_syrup",
+          "amount": 3.488372093023256,
+          "unit": "g",
+          "notes": "Grapefruit Bloom includes Tie Guan Yin Oolong Jelly by default."
         }
       ]
     },

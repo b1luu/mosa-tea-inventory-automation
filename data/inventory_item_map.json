@@ -267,6 +267,26 @@
       "stock_unit_size_unit": "cup",
       "category": "INV - Packaging",
       "notes": "Default cold cup packaging for current Sandbox drink projections."
+    },
+    "small_straw": {
+      "square_variation_id": "A2I2PSB3FMDPJXCUPVITQSMJ",
+      "name": "Small Straw",
+      "unit": "straw",
+      "stock_unit": "box",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "straw",
+      "category": "INV - Packaging",
+      "notes": "Default straw for drinks without toppings."
+    },
+    "big_straw": {
+      "square_variation_id": "NJZAOW4UF4CL5KRZBE32JHGH",
+      "name": "Big Straw",
+      "unit": "straw",
+      "stock_unit": "box",
+      "stock_unit_size": 2250,
+      "stock_unit_size_unit": "straw",
+      "category": "INV - Packaging",
+      "notes": "Straw for drinks with toppings or built-in inclusions."
     }
   }
 }

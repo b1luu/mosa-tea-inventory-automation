@@ -178,12 +178,43 @@ def _resolve_default_packaging_ingredient():
     if not packaging_config:
         return []
 
+    cup_config = packaging_config["cup"]
+
     return [
         {
-            "inventory_key": packaging_config["inventory_key"],
-            "amount": packaging_config["amount"],
-            "unit": packaging_config["unit"],
-            "notes": "Default packaging consumption for current Sandbox projections.",
+            "inventory_key": cup_config["inventory_key"],
+            "amount": cup_config["amount"],
+            "unit": cup_config["unit"],
+            "notes": "Default cup packaging consumption for current Sandbox projections.",
+        }
+    ]
+
+
+def _resolve_straw_ingredient(recipe, modifier_ids):
+    packaging_config = get_default_packaging_config()
+    if not packaging_config:
+        return []
+
+    topping_modifier_ids = set(packaging_config.get("topping_modifier_ids", []))
+    built_in_topping_recipes = set(
+        packaging_config.get("recipes_with_built_in_toppings", [])
+    )
+    has_topping_modifier = any(
+        modifier_id in topping_modifier_ids for modifier_id in (modifier_ids or [])
+    )
+    has_built_in_topping = recipe.get("drink_key") in built_in_topping_recipes
+
+    straw_config = (
+        packaging_config["big_straw"]
+        if has_topping_modifier or has_built_in_topping
+        else packaging_config["small_straw"]
+    )
+    return [
+        {
+            "inventory_key": straw_config["inventory_key"],
+            "amount": straw_config["amount"],
+            "unit": straw_config["unit"],
+            "notes": "Default straw packaging consumption for current Sandbox projections.",
         }
     ]
 
@@ -229,11 +260,13 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     modifier_additions = _resolve_modifier_additions(modifier_ids)
     scaled_sugar_ingredients = _resolve_scaled_sugar_ingredient(recipe, modifier_ids)
     default_packaging_ingredients = _resolve_default_packaging_ingredient()
+    straw_ingredients = _resolve_straw_ingredient(recipe, modifier_ids)
     expanded_ingredients = _expand_ingredients(
         resolved_ingredients
         + modifier_additions
         + scaled_sugar_ingredients
         + default_packaging_ingredients
+        + straw_ingredients
     )
 
     for ingredient in expanded_ingredients:
