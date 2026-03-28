@@ -298,6 +298,16 @@
       "category": "INV - Packaging",
       "notes": "Default cold cup packaging for current Sandbox drink projections."
     },
+    "hot_cup": {
+      "square_variation_id": "REPLACE_WITH_HOT_CUP_VARIATION_ID",
+      "name": "Hot Cup",
+      "unit": "cup",
+      "stock_unit": "roll",
+      "stock_unit_size": 20,
+      "stock_unit_size_unit": "cup",
+      "category": "INV - Packaging",
+      "notes": "Default hot cup packaging for hot drink projections."
+    },
     "small_straw": {
       "square_variation_id": "A2I2PSB3FMDPJXCUPVITQSMJ",
       "name": "Small Straw",
@@ -317,6 +327,16 @@
       "stock_unit_size_unit": "straw",
       "category": "INV - Packaging",
       "notes": "Straw for drinks with toppings or built-in inclusions."
+    },
+    "hot_lid": {
+      "square_variation_id": "REPLACE_WITH_HOT_LID_VARIATION_ID",
+      "name": "Hot Lid",
+      "unit": "lid",
+      "stock_unit": "roll",
+      "stock_unit_size": 10,
+      "stock_unit_size_unit": "lid",
+      "category": "INV - Packaging",
+      "notes": "Default hot lid packaging for hot drink projections."
     },
     "cold_cup_lid": {
       "square_variation_id": "E6LDP3TADQ6X2NM7YAT4PMXR",
