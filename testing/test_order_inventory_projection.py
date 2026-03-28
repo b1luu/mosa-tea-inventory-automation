@@ -108,6 +108,48 @@ class OrderInventoryProjectionTests(unittest.TestCase):
                 ["IDFKCCIPYGFA67OPJMJ3SQVO", "MEAKOBKUZMU6PVM3OVPDYMJ2"],
             )
 
+    def test_matcha_latte_matcha_jelly_modifier_fixture(self):
+        projected = project_line_item_usage(
+            "DX2LRA7T4EFSSFH6POETDJHY",
+            "1",
+            ["IDFKCCIPYGFA67OPJMJ3SQVO", "AB2HPG7C7F2V3DXPPXCEBNH4"],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["matcha"], 8.75)
+        self.assertEqual(combined_by_key["milk"], 150.0)
+        self.assertAlmostEqual(
+            combined_by_key["matcha_jelly_matcha"], 1.6260162601626016
+        )
+        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 12.195121951219512)
+        self.assertAlmostEqual(combined_by_key["tj_powder"], 4.878048780487805)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+        self.assertEqual(combined_by_key["big_straw"], 1.0)
+
+    def test_genmai_matcha_with_matcha_jelly_fixture(self):
+        order_fixture = load_fixture("completed_genmai_matcha_with_matcha_jelly.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(
+            projected_line_items[0]["drink_key"], "genmai_matcha_with_matcha_jelly"
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["matcha"], 6.5625)
+        self.assertEqual(combined_by_key["genmai"], 5.0)
+        self.assertAlmostEqual(
+            combined_by_key["matcha_jelly_matcha"], 1.6260162601626016
+        )
+        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 12.195121951219512)
+        self.assertAlmostEqual(combined_by_key["tj_powder"], 4.878048780487805)
+        self.assertEqual(combined_by_key["u600_cup"], 1.0)
+        self.assertEqual(combined_by_key["big_straw"], 1.0)
+
     def test_real_completed_grapefruit_bloom_and_matcha_fixture(self):
         order_fixture = load_fixture("completed_grapefruit_bloom_matcha.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)
