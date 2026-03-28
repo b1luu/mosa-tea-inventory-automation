@@ -6,6 +6,7 @@ import uuid
 from square.core.api_error import ApiError
 
 from app.client import create_square_client
+from app.order_processing_db import get_order_processing_state
 from scripts.inspect_order import summarize_order
 from testing.create_live_test_order import _build_order_payload, _load_scenarios
 
@@ -54,6 +55,7 @@ def main():
         command.append("--apply")
     command.append(refreshed_order.id)
     apply_result = subprocess.run(command, capture_output=True, text=True, check=False)
+    processing_state = get_order_processing_state(refreshed_order.id)
 
     print("scenario:")
     print(json.dumps({"name": scenario_name, "apply": apply_changes}, indent=2))
@@ -68,6 +70,18 @@ def main():
     if apply_result.stderr.strip():
         print("apply_stderr:")
         print(apply_result.stderr.strip())
+    print(
+        "summary:",
+        json.dumps(
+            {
+                "scenario": scenario_name,
+                "mode": "apply" if apply_changes else "dry-run",
+                "order_id": refreshed_order.id,
+                "processing_state": processing_state,
+                "apply_exit_code": apply_result.returncode,
+            }
+        ),
+    )
     return apply_result.returncode
 
 
