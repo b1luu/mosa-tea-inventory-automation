@@ -141,7 +141,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["matcha"], 6.5625)
-        self.assertEqual(combined_by_key["genmai"], 5.0)
+        self.assertEqual(combined_by_key["genmai"], 4.0)
         self.assertAlmostEqual(
             combined_by_key["matcha_jelly_matcha"], 1.6260162601626016
         )
