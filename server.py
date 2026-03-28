@@ -20,14 +20,21 @@ app = FastAPI()
 def _parse_rfc3339(timestamp):
     return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
+
 def _get_event_type(payload):
     return payload.get("type", "")
 
-def _get_order_id_from_payload(payload):
+
+def _get_order_event_data(payload):
     data = payload.get("data", {})
     object_data = data.get("object", {})
-    order_data = object_data.get("order_created") or object_data.get("order_updated") or {}
+    return object_data.get("order_created") or object_data.get("order_updated") or {}
+
+
+def _get_order_id_from_payload(payload):
+    order_data = _get_order_event_data(payload)
     return order_data.get("order_id")
+
 
 @app.post("/webhook/square")
 async def square_webhook(request: Request):
@@ -49,11 +56,13 @@ async def square_webhook(request: Request):
         )
 
     payload = json.loads(request_body)
-    headers = dict(request.headers)
-    pretty_body = json.dumps(payload, indent=2)
-
     event_type = _get_event_type(payload)
+    order_event_data = _get_order_event_data(payload)
     order_id = _get_order_id_from_payload(payload)
+    order_state = order_event_data.get("state")
+    location_id = order_event_data.get("location_id")
+    updated_at = order_event_data.get("updated_at")
+    version = order_event_data.get("version")
 
     if event_type in {"order.created", "order.updated"}:
         print("order_webhook:")
@@ -62,29 +71,35 @@ async def square_webhook(request: Request):
                 {
                     "event_type": event_type,
                     "order_id": order_id,
+                    "state": order_state,
+                    "location_id": location_id,
+                    "updated_at": updated_at,
+                    "version": version,
                 },
                 indent=2,
             )
         )
-
-    print("event_type:")
-    print(event_type)
-    print("order_id:")
-    print(order_id)
-
-    print(headers)
-    print(pretty_body)
+        return {"ok": True}
 
     if payload.get("type") == "catalog.version.updated":
         last_synced_at = get_or_create_last_synced_at()
-        print(f"last_synced_at: {last_synced_at}")
+        print("catalog_webhook:")
+        print(
+            json.dumps(
+                {
+                    "event_type": event_type,
+                    "last_synced_at": last_synced_at,
+                },
+                indent=2,
+            )
+        )
 
         changed_objects = search_changed_catalog_objects(last_synced_at)
         changed_summaries = [
             summarize_changed_object(catalog_object)
             for catalog_object in changed_objects
         ]
-        print("changed_objects:")
+        print("catalog_changes:")
         print(json.dumps(changed_summaries, indent=2))
 
         latest_object_updated_at = get_latest_updated_at(changed_objects)
