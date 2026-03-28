@@ -92,6 +92,19 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["green_tea"], 8.0)
         self.assertEqual(len(combined_by_key), 1)
 
+    def test_fresh_mango_tea_fixture_adds_mango_syrup(self):
+        order_fixture = load_fixture("completed_fresh_mango_tea_four_seasons.json")
+        projected_line_items, combined_usage = project_fixture_order(order_fixture)
+
+        self.assertEqual(len(projected_line_items), 1)
+        self.assertEqual(projected_line_items[0]["drink_key"], "fresh_mango_tea")
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
+        }
+        self.assertEqual(combined_by_key["4s"], 8.0)
+        self.assertEqual(combined_by_key["mango_syrup"], 35.0)
+
     def test_additive_boba_modifier_fixture(self):
         order_fixture = load_fixture("completed_matcha_latte_boba.json")
         projected_line_items, combined_usage = project_fixture_order(order_fixture)

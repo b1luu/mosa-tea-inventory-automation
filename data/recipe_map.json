@@ -661,6 +661,14 @@
     "ZHKPXHX6LYJE4ULT4VTUSAQG": {
       "drink_key": "fresh_mango_tea",
       "drink_name": "Fresh Mango Tea",
+      "ingredients": [
+        {
+          "inventory_key": "mango_syrup",
+          "amount": 35,
+          "unit": "g",
+          "notes": "Standard mango syrup usage per fresh mango tea."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
