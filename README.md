@@ -357,14 +357,14 @@ The current packaging model covers:
 
 ## Why This Is Worth Showing
 
-This is not just a POS integration or a CRUD wrapper around Square APIs.
+This project grew beyond a simple API integration and became a small operations system.
 
-It is a systems project that combines:
+It combines:
 - event-driven processing
-- configuration-driven domain modeling
+- configuration-driven recipe modeling
 - stateful idempotent workflow design
 - inventory-unit and stock-unit conversions
 - internal operator tooling
 - live external API integration
 
-For a small-team operations tool, that is real engineering surface area.
+For an internship project built around a real menu and workflow, that felt like meaningful engineering scope.
