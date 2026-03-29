@@ -18,6 +18,7 @@ from app.order_processing_db import get_order_processing_state
 from app.order_processor import process_orders
 from app.webhook_event_db import (
     EVENT_STATUS_ENQUEUED,
+    EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
     EVENT_STATUS_PROCESSED,
     has_webhook_event,
@@ -68,9 +69,14 @@ def _record_square_webhook_event(payload, order_event_data, status):
 
 
 def _process_order_webhook_event(order_id, event_id=None):
-    process_orders([order_id], apply_changes=True)
-    if event_id:
-        set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+    try:
+        process_orders([order_id], apply_changes=True)
+        if event_id:
+            set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+    except Exception:
+        if event_id:
+            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
+        raise
 
 
 @app.post("/webhook/square")
