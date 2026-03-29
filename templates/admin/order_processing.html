@@ -91,12 +91,12 @@
       const response = await fetch("/admin/api/order-processing");
       allRows = await response.json();
       const meta = document.getElementById("meta");
-      meta.textContent = `Auto-refreshing every 3 seconds. Rows: ${allRows.length}. Updated: ${new Date().toLocaleTimeString()}`;
+      meta.textContent = `Auto-refreshing every 30 seconds. Rows: ${allRows.length}. Updated: ${new Date().toLocaleTimeString()}`;
       renderFilters(allRows);
       renderRows();
     }
     refresh();
-    setInterval(refresh, 3000);
+    setInterval(refresh, 30000);
   </script>
 </body>
 </html>
