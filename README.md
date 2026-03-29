@@ -1,220 +1,370 @@
 # Mosa Tea Inventory Automation
 
-This project was built for Mosa Tea as part of an internship and models a Sandbox-first inventory intelligence system for a drink menu built on Square.
+Built for Mosa Tea during an internship, this project turns completed Square drink orders into ingredient and packaging inventory depletion.
 
-The current goal is:
-- map sold drink variation IDs to recipe usage
-- convert recipe usage into inventory depletion
-- project ingredient, topping, foam, sweetener, fruit, and packaging usage from completed orders
-- apply Sandbox inventory adjustments to internal stock-tracked supply items
-- model inventory in human-readable stock units such as bags, cartons, bottles, boxes, and containers
+It sits between Square Orders and Square Inventory and answers a practical operations problem: a POS can tell you what was sold, but not what raw materials and packaging were actually consumed.
 
-This is no longer centered on Square `sold_out` propagation.
+## Why This Exists
 
-## Environment
-Create a local `.env` file from `.env.example` and fill in your own Square Sandbox credentials and webhook values.
+Drink menus are not one-to-one with inventory.
 
-Required variables:
+A single sold item can imply:
+- brewed tea usage derived from dry leaves
+- modifier-driven add-ons like boba or lychee jelly
+- batch-derived components like tea jelly, Hun Kue, and cream foams
+- sugar-level scaling
+- packaging consumption such as cups, lids, and straws
+
+This project models that gap and automates the translation from a completed order into inventory adjustments.
+
+## What It Does
+
+- Receives Square order webhooks
+- Verifies webhook signatures
+- Gates processing to completed orders
+- Resolves sold drink variation IDs into recipe definitions
+- Expands toppings, foam modifiers, built-in inclusions, and sugar rules
+- Converts recipe units into inventory units and then stock/SKU units
+- Applies Square Inventory adjustments against internal supply items
+- Tracks processing state in SQLite
+- Exposes a lightweight admin console for monitoring and replay
+
+## Architecture
+
+```text
+                   Square Sandbox
+          +-------------------------------+
+          | Orders API | Inventory API    |
+          | Webhooks   | Catalog / Items  |
+          +-------------------------------+
+                    |            ^
+                    v            |
+          POST /webhook/square   |
+                    |            |
+                    v            |
+         +---------------------------+
+         | FastAPI server            |
+         | server.py                 |
+         | - webhook verification    |
+         | - order gating            |
+         | - admin routes + static   |
+         +---------------------------+
+                    |
+                    v
+         +---------------------------+
+         | Shared processing layer   |
+         | app/order_processor.py    |
+         | - fetch orders            |
+         | - project usage           |
+         | - build inventory writes  |
+         | - transition DB state     |
+         +---------------------------+
+              |               |
+              v               v
+   +------------------+   +----------------------+
+   | Recipe + item    |   | SQLite order ledger  |
+   | config JSON      |   | data/order_processing|
+   | data/*.json      |   | .db                  |
+   +------------------+   +----------------------+
+              |
+              v
+   +-----------------------------+
+   | Inventory projections       |
+   | - ingredients               |
+   | - toppings                  |
+   | - foam                      |
+   | - packaging                 |
+   +-----------------------------+
+              |
+              v
+   +-----------------------------+
+   | Square inventory adjustment |
+   | IN_STOCK -> WASTE           |
+   +-----------------------------+
+```
+
+## Webhook / Event Flow
+
+```text
+Square sends order.created / order.updated
+                |
+                v
+FastAPI verifies signature
+                |
+                v
+Ignore non-completed orders
+                |
+                v
+If COMPLETED and unseen, start processing
+                |
+                v
+Fetch full order from Square
+                |
+                v
+Project ingredient + packaging usage
+                |
+                v
+Convert into Square stock-unit adjustments
+                |
+                v
+Apply inventory change
+                |
+                v
+Persist final state as applied / blocked / failed
+```
+
+Important operational detail:
+- webhook delivery order is not trusted
+- duplicate completed events are expected
+- the app uses SQLite state to avoid processing the same order repeatedly
+
+## Input / Output Example
+
+### Input
+
+A completed order like:
+
+```json
+{
+  "name": "Tie Guan Yin Au Lait with Osmanthus Honey",
+  "modifiers": ["Boba", "No Sugar"],
+  "state": "COMPLETED"
+}
+```
+
+### Projected Output
+
+The system resolves that into usage roughly like:
+
+```json
+[
+  {"inventory_key": "tgy", "amount": 5.33333, "unit": "g"},
+  {"inventory_key": "milk", "amount": 150.0, "unit": "ml"},
+  {"inventory_key": "boba", "amount": 100.0, "unit": "g"},
+  {"inventory_key": "u600_cup", "amount": 1.0, "unit": "cup"},
+  {"inventory_key": "big_straw", "amount": 1.0, "unit": "straw"}
+]
+```
+
+### Inventory API Write
+
+That is then converted into Square stock units before being sent to the Inventory API:
+
+```json
+[
+  {"catalog_object_id": "DFSCYEJEFN4PTIKTE4YVJWLH", "quantity": "0.00889"},
+  {"catalog_object_id": "4CLJVUZQCIVAEU4F7APU6QGX", "quantity": "0.03968"},
+  {"catalog_object_id": "CVTORPM7SO6H5BLFDROJ5DLA", "quantity": "0.03333"},
+  {"catalog_object_id": "RFKMPO65RYX5APBVM3CPEV5W", "quantity": "0.00100"},
+  {"catalog_object_id": "NJZAOW4UF4CL5KRZBE32JHGH", "quantity": "0.00044"}
+]
+```
+
+That distinction matters:
+- recipe logic works in physical units
+- Square inventory writes must respect the stock unit configured for each internal supply item
+
+## Design Decisions
+
+### 1. Config-driven recipe modeling
+
+Recipes and internal inventory mappings live in JSON rather than hardcoded Python branches.
+
+Why:
+- menu changes are frequent
+- drink logic is mostly data, not control flow
+- operational tweaks should not require code rewrites
+
+Key files:
+- `data/recipe_map.json`
+- `data/inventory_item_map.json`
+
+### 2. Shared processor for webhook and CLI
+
+The project originally leaned on scripts, but the core logic now lives in:
+- `app/order_processor.py`
+
+Why:
+- webhook automation and manual replay should use the same code path
+- duplicate logic between server and scripts is brittle
+- this shape is closer to a deployable service
+
+### 3. SQLite for lightweight workflow state
+
+Processing state is tracked in:
+- `data/order_processing.db`
+
+Why:
+- enough durability for local/internal deployment
+- simpler than introducing Postgres too early
+- gives replay, operator visibility, and duplicate-event protection
+
+### 4. Inventory adjustments use `IN_STOCK -> WASTE`
+
+The system applies positive-quantity Square inventory adjustments from:
+- `IN_STOCK`
+- to `WASTE`
+
+Why:
+- this is the valid Square adjustment model for consumption
+- negative quantity writes were invalid
+
+### 5. Stock-unit conversion happens at the API boundary
+
+Projection math stays in recipe/inventory units until the final write step.
+
+Why:
+- keeps domain math readable
+- preserves precision internally
+- only converts and rounds when the Square API actually needs stock-unit quantities
+
+## Idempotency and State Tracking
+
+This is one of the most important parts of the system.
+
+### Processing states
+
+- `pending`
+  - the order entered the workflow
+- `blocked`
+  - projection was incomplete or unsafe
+- `failed`
+  - processing attempted but did not finish successfully
+- `applied`
+  - inventory adjustment succeeded
+
+### Why state tracking exists
+
+Square webhooks can:
+- arrive out of order
+- retry on failure
+- send multiple `COMPLETED` events for the same order
+
+Without state tracking, the app could apply the same inventory depletion multiple times.
+
+### Current protection model
+
+- only `COMPLETED` orders are eligible
+- webhook processing only starts when the order has no existing processing state
+- replay is explicit and operator-driven
+- inventory request idempotency keys are derived from:
+  - order IDs
+  - actual change-set contents
+
+That design prevents two classes of bugs:
+- accidental duplicate processing from repeated webhook delivery
+- incorrect Square idempotency-key reuse when the request body changes
+
+## Tech Stack
+
+- Python
+- FastAPI
+- Square Python SDK / Square APIs
+- SQLite
+- JSON-based recipe and inventory configuration
+- unittest for local regression coverage
+
+## Repository Structure
+
+- `server.py`
+  - FastAPI app, webhook entrypoint, static mount
+- `app/order_processor.py`
+  - shared end-to-end processing pipeline
+- `app/order_inventory_projection.py`
+  - recipe resolution and usage projection
+- `app/order_processing_db.py`
+  - SQLite processing-state helpers
+- `app/inventory_stock_units.py`
+  - display and stock-unit conversion logic
+- `app/admin_routes.py`
+  - lightweight admin and replay routes
+- `scripts/`
+  - CLI wrappers, inspection tools, replay tooling
+- `testing/`
+  - fixtures, live scenarios, regression tests
+- `data/`
+  - recipe and inventory mappings
+
+## Running Locally
+
+### Environment
+
+Create a local `.env` from `.env.example`:
+
 - `SQUARE_ACCESS_TOKEN`
 - `SQUARE_ENVIRONMENT`
 - `SQUARE_WEBHOOK_SIGNATURE_KEY`
 - `SQUARE_WEBHOOK_NOTIFICATION_URL`
 
-## Current Flow
-```text
-     completed Square order webhook
-                |
-                v
-   webhook verification + order gating
-                |
-                v
-   SQLite processing state entry created
-                |
-                v
-   inspect line items + modifiers
-                |
-                v
-      resolve recipe_map.json
-                |
-                v
- expand tea bases / overrides / modifiers
-                |
-                v
- convert recipe units into inventory units
-                |
-                v
-      combine usage by inventory item
-                |
-                v
- summarize into stock / SKU display units
-                |
-                v
-   build Inventory API adjustments
-                |
-                v
- apply IN_STOCK -> WASTE in Sandbox
-                |
-                v
-   SQLite state ends at applied / blocked / failed
+### Start the app
+
+```bash
+uvicorn server:app --reload --port 8000
 ```
 
-## Proven So Far
-- Completed orders can be retrieved and inspected reliably with the Orders API.
-- Sold drink variation IDs can be mapped to recipes in `data/recipe_map.json`.
-- Internal supply items in Square Item Library can act as the inventory ledger.
-- Brew-yield conversions in `data/inventory_item_map.json` convert brewed tea and matcha usage into dry inventory decrements.
-- Recipe projection now covers:
-  - brewed teas
-  - milk teas
-  - au lait drinks
-  - matcha drinks
-  - fruit drinks
-  - additive toppings
-  - built-in toppings
-  - batch-derived toppings
-  - cream foam modifiers
-  - sugar-level scaling
-  - packaging items
-- Stock/SKU unit metadata is modeled for all current inventory items.
-- Sandbox inventory adjustments now work through the Inventory API using positive quantities and `IN_STOCK -> WASTE`.
-- SQLite-backed order-processing state prevents accidental reprocessing of the same completed order.
-- Order webhook automation now works end to end for completed orders.
-- A lightweight admin console exists for monitoring and replaying order-processing states.
-- Local fixture tests and controlled live Sandbox flows both work.
+### Admin console
 
-## Project Structure
-- `data/recipe_map.json`
-  - sold variation to recipe mapping
-  - tea base definitions
-  - modifier-driven additions
-  - sugar-level multiplier map
-  - default packaging config
-- `data/inventory_item_map.json`
-  - internal supply variation IDs
-  - yield conversions
-  - stock / SKU unit metadata
-- `app/order_inventory_projection.py`
-  - recipe resolution and inventory projection
-- `app/processed_orders_state.py`
-  - compatibility layer over the SQLite order-processing ledger
-- `app/order_processing_db.py`
-  - SQLite-backed order-processing state helpers
-- `app/order_processor.py`
-  - shared processing pipeline used by both webhook and CLI entrypoints
-- `app/admin_routes.py`
-  - lightweight admin and replay routes
-- `app/inventory_stock_units.py`
-  - display conversion from inventory units into stock / SKU units
-- `scripts/search_orders.py`
-  - search recent Square orders
-- `scripts/inspect_order.py`
-  - inspect one order's shape
-- `scripts/apply_inventory_adjustments.py`
-  - thin CLI wrapper around the shared processor
-- `scripts/list_order_processing_states.py`
-  - inspect the SQLite processing ledger
-- `scripts/replay_order.py`
-  - replay one specific order through the processor
-- `scripts/replay_failed_orders.py`
-  - bulk replay failed orders
-- `testing/create_live_test_order.py`
-  - create and optionally pay a live Sandbox order from a named scenario
-- `testing/run_live_inventory_flow.py`
-  - create, pay, and run a full dry-run or apply flow end to end
-- `testing/test_order_inventory_projection.py`
-  - local fixture-based projection tests
+```text
+http://127.0.0.1:8000/admin/order-processing
+```
 
-## Running It
-- Search recent completed orders:
-  - `./.venv/bin/python -m scripts.search_orders`
-- Inspect a specific order:
-  - `./.venv/bin/python -m scripts.inspect_order ORDER_ID`
-- Dry-run inventory adjustments for a trusted completed order:
-  - `./.venv/bin/python -m scripts.apply_inventory_adjustments ORDER_ID`
-- Apply Sandbox inventory adjustments:
-  - `./.venv/bin/python -m scripts.apply_inventory_adjustments --apply ORDER_ID`
-- Run the local webhook/admin server:
-  - `uvicorn server:app --reload --port 8000`
-- View the admin console:
-  - `http://127.0.0.1:8000/admin/order-processing`
-- Inspect the SQLite processing ledger:
-  - `./.venv/bin/python -m scripts.list_order_processing_states`
-- Replay one order:
-  - `./.venv/bin/python -m scripts.replay_order ORDER_ID`
-- Run fixture-based projection tests:
-  - `./.venv/bin/python -m unittest testing.test_order_inventory_projection`
-- Run controlled live Sandbox flow:
-  - `./.venv/bin/python -m testing.run_live_inventory_flow SCENARIO`
-- Run controlled live Sandbox flow and apply inventory:
-  - `./.venv/bin/python -m testing.run_live_inventory_flow --apply SCENARIO`
+### Useful commands
 
-## Inventory Model
-- Recipe logic works in physical units such as `ml`, `g`, `cup`, `straw`, and `lid`.
-- Square inventory can still be displayed in operational stock units such as:
-  - `bag`
-  - `box`
-  - `bottle`
-  - `carton`
-  - `container`
-- The projection pipeline supports:
-  - direct recipe ingredients
-  - modifier-selected recipe branches
-  - fixed additive modifiers
-  - batch-derived modifiers
-  - sugar-level scaling
-  - default packaging rules
-  - conditional packaging rules
+```bash
+./.venv/bin/python -m scripts.search_orders
+./.venv/bin/python -m scripts.inspect_order ORDER_ID
+./.venv/bin/python -m scripts.apply_inventory_adjustments --apply ORDER_ID
+./.venv/bin/python -m scripts.list_order_processing_states
+./.venv/bin/python -m scripts.replay_order ORDER_ID
+./.venv/bin/python -m scripts.replay_failed_orders
+```
 
-## Menu Coverage
-- Current coverage includes cold drinks, hot drinks, and current Sandbox packaging assumptions.
-- Covered ingredient families include:
-  - tea leaves and brewed tea bases
-  - matcha
-  - milk
-  - non-dairy creamer
-  - sugar syrup and sweeteners
-  - fruit syrups
-  - frozen fruit
-  - toppings such as boba, lychee jelly, tea jelly, and Hun Kue
-  - matcha jelly
-  - cream foam modifiers
-  - cups, straws, cold cup lids, hot cups, and hot lids
+### Tests
 
-## Testing
-- The local test suite uses fixture orders under `testing/fixtures/orders`.
-- The live Sandbox test flow creates real orders, pays them, and then runs the projection or apply pipeline.
-- Dry-run mode in the live flow still creates and pays a real Sandbox order; it only skips the inventory apply step.
+```bash
+./.venv/bin/python -m unittest testing.test_apply_inventory_adjustments testing.test_order_inventory_projection testing.test_inventory_stock_units
+```
 
-## Notes On Inventory Adjustments
-- The working adjustment model is:
-  - positive quantity
-  - `from_state: "IN_STOCK"`
-  - `to_state: "WASTE"`
-- Using negative quantities for adjustments is invalid in Square.
-- Internal ingredient items are treated as consumed stock, not directly sold catalog items.
+## Current Coverage
 
-## Processing States
-- `pending`
-  - a completed Square order has entered the processing workflow, but inventory has not been successfully adjusted yet
-- `blocked`
-  - a completed order should not be auto-applied because projection was incomplete or unsafe
-- `failed`
-  - a completed order was attempted, but processing or inventory apply failed
-- `applied`
-  - the inventory adjustment succeeded
+The modeled menu currently includes:
+- cold drinks
+- hot drinks
+- brewed teas
+- au lait and milk tea paths
+- fruit drinks
+- sugar-level scaling
+- additive toppings
+- built-in toppings
+- batch-derived jelly and foam components
+- cold and hot packaging rules
 
-Square order state and app processing state are separate concepts. The app only processes inventory for Square orders that are already `COMPLETED`.
+The current packaging model covers:
+- `u600_cup`
+- `small_straw`
+- `big_straw`
+- `cold_cup_lid`
+- `hot_cup`
+- `hot_lid`
 
-## Current Limitations
-- The mapping files are Sandbox-only right now.
-- Some older Sandbox orders are noisy or unrealistic, so controlled live scenarios are often a better test input than historical order data.
-- The system is still optimized for local/internal operation rather than hosted production deployment.
-- The admin console is intentionally lightweight and currently has no authentication layer; do not expose it publicly as-is.
-- Packaging rules are modeled for the current menu, but future menu expansion will likely require more packaging/config variants.
-- Operational alerting and reconciliation are not implemented yet.
+## Limitations
 
-## Next Steps
-- Add monitoring and alerting for failed or blocked orders.
-- Expand live scenario coverage for more menu combinations.
-- Harden the processing ledger with richer error and attempt metadata.
-- Split Sandbox and Production mappings cleanly when Production access is ready.
+- current mappings are Sandbox-focused
+- the admin console is intentionally lightweight and unauthenticated
+- the system is still optimized for local/internal deployment rather than hosted production
+- alerting and reconciliation are not implemented yet
+- older historical Sandbox orders can be noisy compared with controlled live scenarios
+
+## Why This Is Worth Showing
+
+This is not just a POS integration or a CRUD wrapper around Square APIs.
+
+It is a systems project that combines:
+- event-driven processing
+- configuration-driven domain modeling
+- stateful idempotent workflow design
+- inventory-unit and stock-unit conversions
+- internal operator tooling
+- live external API integration
+
+For a small-team operations tool, that is real engineering surface area.
