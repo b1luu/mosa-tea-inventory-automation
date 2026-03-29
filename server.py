@@ -16,6 +16,14 @@ from app.config import (
 )
 from app.order_processing_db import get_order_processing_state
 from app.order_processor import process_orders
+from app.webhook_event_db import (
+    EVENT_STATUS_ENQUEUED,
+    EVENT_STATUS_IGNORED,
+    EVENT_STATUS_PROCESSED,
+    has_webhook_event,
+    set_webhook_event_status,
+    upsert_webhook_event,
+)
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
@@ -40,6 +48,23 @@ def _get_order_event_data(payload):
 def _get_order_id_from_payload(payload):
     order_data = _get_order_event_data(payload)
     return order_data.get("order_id")
+
+
+def _record_square_webhook_event(payload, order_event_data, status):
+    data = payload.get("data", {})
+    upsert_webhook_event(
+        event_id=payload["event_id"],
+        merchant_id=payload["merchant_id"],
+        event_type=payload["type"],
+        event_created_at=payload.get("created_at"),
+        data_type=data.get("type"),
+        data_id=data.get("id"),
+        order_id=order_event_data.get("order_id"),
+        order_state=order_event_data.get("state"),
+        location_id=order_event_data.get("location_id"),
+        version=order_event_data.get("version"),
+        status=status,
+    )
 
 
 @app.post("/webhook/square")
@@ -69,8 +94,15 @@ async def square_webhook(request: Request):
     location_id = order_event_data.get("location_id")
     updated_at = order_event_data.get("updated_at")
     version = order_event_data.get("version")
+    event_id = payload.get("event_id")
+    duplicate_event = bool(event_id and has_webhook_event(event_id))
 
     if event_type in {"order.created", "order.updated"}:
+        if duplicate_event:
+            print("order_webhook_duplicate:")
+            print(json.dumps({"event_id": event_id, "event_type": event_type}, indent=2))
+            return {"ok": True}
+
         current_processing_state = (
             get_order_processing_state(order_id) if order_id else None
         )
@@ -80,8 +112,17 @@ async def square_webhook(request: Request):
             and current_processing_state is None
         )
 
+        if event_id:
+            _record_square_webhook_event(
+                payload,
+                order_event_data,
+                EVENT_STATUS_ENQUEUED if should_start_processing else EVENT_STATUS_IGNORED,
+            )
+
         if should_start_processing:
             process_orders([order_id], apply_changes=True)
+            if event_id:
+                set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
         processing_state_after = (
             get_order_processing_state(order_id) if order_id else None
@@ -97,6 +138,7 @@ async def square_webhook(request: Request):
                     "location_id": location_id,
                     "updated_at": updated_at,
                     "version": version,
+                    "event_id": event_id,
                     "current_processing_state": current_processing_state,
                     "marked_pending": should_start_processing,
                     "processing_state_after": processing_state_after,
@@ -107,12 +149,21 @@ async def square_webhook(request: Request):
         return {"ok": True}
 
     if payload.get("type") == "catalog.version.updated":
+        if duplicate_event:
+            print("catalog_webhook_duplicate:")
+            print(json.dumps({"event_id": event_id, "event_type": event_type}, indent=2))
+            return {"ok": True}
+
+        if event_id:
+            _record_square_webhook_event(payload, order_event_data, EVENT_STATUS_ENQUEUED)
+
         last_synced_at = get_or_create_last_synced_at()
         print("catalog_webhook:")
         print(
             json.dumps(
                 {
                     "event_type": event_type,
+                    "event_id": event_id,
                     "last_synced_at": last_synced_at,
                 },
                 indent=2,
@@ -139,5 +190,7 @@ async def square_webhook(request: Request):
 
         update_last_synced_at(latest_object_updated_at)
         print(f"updated checkpoint to: {latest_object_updated_at}")
+        if event_id:
+            set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
     return {"ok": True}
