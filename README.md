@@ -1,4 +1,4 @@
-# Mosa Tea Inventory Intelligence
+# Mosa Tea Inventory Automation
 
 This project was built for Mosa Tea as part of an internship and models a Sandbox-first inventory intelligence system for a drink menu built on Square.
 
