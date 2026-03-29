@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import HTMLResponse
 from app.catalog_change_search import (
     get_latest_updated_at,
     search_changed_catalog_objects,
@@ -12,11 +13,130 @@ from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
 )
-from app.order_processing_db import get_order_processing_state
+from app.order_processing_db import get_order_processing_state, list_order_processing_rows
 from app.order_processor import process_orders
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
+
+
+ADMIN_HTML = """
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Processing Admin</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --panel: #fffaf1;
+      --text: #1f1a17;
+      --muted: #74685d;
+      --border: #d9ccbd;
+      --pending: #b7791f;
+      --blocked: #c05621;
+      --failed: #c53030;
+      --applied: #2f855a;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f1eadf 0%%, var(--bg) 100%%);
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+    table {
+      width: 100%%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.95rem;
+    }
+    th {
+      background: #f3eadc;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .state {
+      font-weight: 700;
+    }
+    .pending { color: var(--pending); }
+    .blocked { color: var(--blocked); }
+    .failed { color: var(--failed); }
+    .applied { color: var(--applied); }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Order Processing Admin</h1>
+    <div class="meta" id="meta">Loading...</div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>State</th>
+            <th>Applied At</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+  <script>
+    async function refresh() {
+      const response = await fetch("/admin/api/order-processing");
+      const rows = await response.json();
+      const tbody = document.getElementById("rows");
+      const meta = document.getElementById("meta");
+      meta.textContent = `Auto-refreshing every 3 seconds. Rows: ${rows.length}. Updated: ${new Date().toLocaleTimeString()}`;
+      tbody.innerHTML = rows.map((row) => `
+        <tr>
+          <td><code>${row.square_order_id}</code></td>
+          <td><span class="state ${row.processing_state}">${row.processing_state}</span></td>
+          <td>${row.applied_at ?? ""}</td>
+        </tr>
+      `).join("");
+    }
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>
+"""
 
 
 def _parse_rfc3339(timestamp):
@@ -36,6 +156,16 @@ def _get_order_event_data(payload):
 def _get_order_id_from_payload(payload):
     order_data = _get_order_event_data(payload)
     return order_data.get("order_id")
+
+
+@app.get("/admin/api/order-processing")
+async def admin_order_processing_api():
+    return list_order_processing_rows()
+
+
+@app.get("/admin/order-processing", response_class=HTMLResponse)
+async def admin_order_processing_page():
+    return HTMLResponse(content=ADMIN_HTML)
 
 
 @app.post("/webhook/square")
