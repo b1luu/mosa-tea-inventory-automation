@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 from fastapi import FastAPI, Request, Response
+from fastapi.staticfiles import StaticFiles
 from app.admin_routes import admin_router
 from app.catalog_change_search import (
     get_latest_updated_at,
@@ -18,6 +19,7 @@ from app.order_processor import process_orders
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(admin_router)
 
 

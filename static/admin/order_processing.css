@@ -1,0 +1,133 @@
+:root {
+  --bg: #f6f2ea;
+  --panel: #fffaf1;
+  --text: #1f1a17;
+  --muted: #74685d;
+  --border: #d9ccbd;
+  --pending: #b7791f;
+  --blocked: #c05621;
+  --failed: #c53030;
+  --applied: #2f855a;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f1eadf 0%, var(--bg) 100%);
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+}
+
+.meta {
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-btn {
+  border: 1px solid var(--border);
+  background: #f8efe2;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.filter-btn.active {
+  background: #1f1a17;
+  color: #fffaf1;
+  border-color: #1f1a17;
+}
+
+.status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.95rem;
+}
+
+th {
+  background: #f3eadc;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+.state {
+  font-weight: 700;
+}
+
+.pending { color: var(--pending); }
+.blocked { color: var(--blocked); }
+.failed { color: var(--failed); }
+.applied { color: var(--applied); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.action-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.action-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
