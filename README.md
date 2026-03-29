@@ -10,12 +10,24 @@ The current goal is:
 
 This is no longer centered on Square `sold_out` propagation.
 
+## Environment
+Create a local `.env` file from `.env.example` and fill in your own Square Sandbox credentials and webhook values.
+
+Required variables:
+- `SQUARE_ACCESS_TOKEN`
+- `SQUARE_ENVIRONMENT`
+- `SQUARE_WEBHOOK_SIGNATURE_KEY`
+- `SQUARE_WEBHOOK_NOTIFICATION_URL`
+
 ## Current Flow
 ```text
-      completed Square order
+     completed Square order webhook
                 |
                 v
-        retrieve order by ID
+   webhook verification + order gating
+                |
+                v
+   SQLite processing state entry created
                 |
                 v
    inspect line items + modifiers
@@ -40,6 +52,9 @@ This is no longer centered on Square `sold_out` propagation.
                 |
                 v
  apply IN_STOCK -> WASTE in Sandbox
+                |
+                v
+   SQLite state ends at applied / blocked / failed
 ```
 
 ## Proven So Far
@@ -62,6 +77,8 @@ This is no longer centered on Square `sold_out` propagation.
 - Stock/SKU unit metadata is modeled for all current inventory items.
 - Sandbox inventory adjustments now work through the Inventory API using positive quantities and `IN_STOCK -> WASTE`.
 - SQLite-backed order-processing state prevents accidental reprocessing of the same completed order.
+- Order webhook automation now works end to end for completed orders.
+- A lightweight admin console exists for monitoring and replaying order-processing states.
 - Local fixture tests and controlled live Sandbox flows both work.
 
 ## Project Structure
@@ -81,6 +98,10 @@ This is no longer centered on Square `sold_out` propagation.
   - compatibility layer over the SQLite order-processing ledger
 - `app/order_processing_db.py`
   - SQLite-backed order-processing state helpers
+- `app/order_processor.py`
+  - shared processing pipeline used by both webhook and CLI entrypoints
+- `app/admin_routes.py`
+  - lightweight admin and replay routes
 - `app/inventory_stock_units.py`
   - display conversion from inventory units into stock / SKU units
 - `scripts/search_orders.py`
@@ -88,7 +109,13 @@ This is no longer centered on Square `sold_out` propagation.
 - `scripts/inspect_order.py`
   - inspect one order's shape
 - `scripts/apply_inventory_adjustments.py`
-  - dry-run or apply inventory adjustments
+  - thin CLI wrapper around the shared processor
+- `scripts/list_order_processing_states.py`
+  - inspect the SQLite processing ledger
+- `scripts/replay_order.py`
+  - replay one specific order through the processor
+- `scripts/replay_failed_orders.py`
+  - bulk replay failed orders
 - `testing/create_live_test_order.py`
   - create and optionally pay a live Sandbox order from a named scenario
 - `testing/run_live_inventory_flow.py`
@@ -105,6 +132,14 @@ This is no longer centered on Square `sold_out` propagation.
   - `./.venv/bin/python -m scripts.apply_inventory_adjustments ORDER_ID`
 - Apply Sandbox inventory adjustments:
   - `./.venv/bin/python -m scripts.apply_inventory_adjustments --apply ORDER_ID`
+- Run the local webhook/admin server:
+  - `uvicorn server:app --reload --port 8000`
+- View the admin console:
+  - `http://127.0.0.1:8000/admin/order-processing`
+- Inspect the SQLite processing ledger:
+  - `./.venv/bin/python -m scripts.list_order_processing_states`
+- Replay one order:
+  - `./.venv/bin/python -m scripts.replay_order ORDER_ID`
 - Run fixture-based projection tests:
   - `./.venv/bin/python -m unittest testing.test_order_inventory_projection`
 - Run controlled live Sandbox flow:
@@ -130,7 +165,7 @@ This is no longer centered on Square `sold_out` propagation.
   - conditional packaging rules
 
 ## Menu Coverage
-- Current coverage includes cold drinks and current Sandbox packaging assumptions.
+- Current coverage includes cold drinks, hot drinks, and current Sandbox packaging assumptions.
 - Covered ingredient families include:
   - tea leaves and brewed tea bases
   - matcha
@@ -140,9 +175,9 @@ This is no longer centered on Square `sold_out` propagation.
   - fruit syrups
   - frozen fruit
   - toppings such as boba, lychee jelly, tea jelly, and Hun Kue
+  - matcha jelly
   - cream foam modifiers
-  - cups, straws, and cold cup lids
-- Hot-drink packaging is not modeled yet.
+  - cups, straws, cold cup lids, hot cups, and hot lids
 
 ## Testing
 - The local test suite uses fixture orders under `testing/fixtures/orders`.
@@ -172,15 +207,13 @@ Square order state and app processing state are separate concepts. The app only 
 ## Current Limitations
 - The mapping files are Sandbox-only right now.
 - Some older Sandbox orders are noisy or unrealistic, so controlled live scenarios are often a better test input than historical order data.
-- Webhook infrastructure exists, but the main proven workflow is still controlled-run processing rather than fully automated production ingestion.
-- Packaging is currently modeled with a cold-drink default:
-  - `u600_cup`
-  - conditional straw selection
-  - conditional cold cup lids for cream foam
-- Hot drinks and hot-drink packaging are intentionally out of scope right now.
+- The system is still optimized for local/internal operation rather than hosted production deployment.
+- The admin console is intentionally lightweight and currently has no authentication layer; do not expose it publicly as-is.
+- Packaging rules are modeled for the current menu, but future menu expansion will likely require more packaging/config variants.
+- Operational alerting and reconciliation are not implemented yet.
 
 ## Next Steps
-- Add hot-drink packaging and container rules.
+- Add monitoring and alerting for failed or blocked orders.
 - Expand live scenario coverage for more menu combinations.
-- Harden automation around retries, replay, and webhook-driven processing.
+- Harden the processing ledger with richer error and attempt metadata.
 - Split Sandbox and Production mappings cleanly when Production access is ready.
