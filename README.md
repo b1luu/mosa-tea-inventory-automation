@@ -1,5 +1,6 @@
-## Context
-This project is a Sandbox-first inventory intelligence system for a drink menu built on Square.
+# Mosa Tea Inventory Intelligence
+
+This project was built for Mosa Tea as part of an internship and models a Sandbox-first inventory intelligence system for a drink menu built on Square.
 
 The current goal is:
 - map sold drink variation IDs to recipe usage
