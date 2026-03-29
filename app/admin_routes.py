@@ -1,0 +1,253 @@
+from fastapi import APIRouter
+from fastapi.responses import HTMLResponse
+
+from app.order_processing_db import get_order_processing_state, list_order_processing_rows
+from app.order_processor import process_orders
+
+
+admin_router = APIRouter()
+
+
+ADMIN_HTML = """
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Processing Admin</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --panel: #fffaf1;
+      --text: #1f1a17;
+      --muted: #74685d;
+      --border: #d9ccbd;
+      --pending: #b7791f;
+      --blocked: #c05621;
+      --failed: #c53030;
+      --applied: #2f855a;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f1eadf 0%%, var(--bg) 100%%);
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: #f8efe2;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .filter-btn.active {
+      background: #1f1a17;
+      color: #fffaf1;
+      border-color: #1f1a17;
+    }
+    .status {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+    table {
+      width: 100%%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.95rem;
+    }
+    th {
+      background: #f3eadc;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .state {
+      font-weight: 700;
+    }
+    .pending { color: var(--pending); }
+    .blocked { color: var(--blocked); }
+    .failed { color: var(--failed); }
+    .applied { color: var(--applied); }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+    }
+    .action-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .action-btn:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Order Processing Admin</h1>
+    <div class="meta" id="meta">Loading...</div>
+    <div class="toolbar">
+      <div class="filters" id="filters"></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>State</th>
+            <th>Applied At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+  <script>
+    let allRows = [];
+    let currentFilter = "all";
+
+    function stateCounts(rows) {
+      const counts = { all: rows.length, pending: 0, blocked: 0, failed: 0, applied: 0 };
+      for (const row of rows) {
+        if (counts[row.processing_state] !== undefined) counts[row.processing_state] += 1;
+      }
+      return counts;
+    }
+
+    function renderFilters(rows) {
+      const counts = stateCounts(rows);
+      const filters = ["all", "pending", "blocked", "failed", "applied"];
+      document.getElementById("filters").innerHTML = filters.map((filter) => `
+        <button class="filter-btn ${filter === currentFilter ? "active" : ""}" onclick="setFilter('${filter}')">
+          ${filter} (${counts[filter]})
+        </button>
+      `).join("");
+    }
+
+    function filteredRows() {
+      if (currentFilter === "all") return allRows;
+      return allRows.filter((row) => row.processing_state === currentFilter);
+    }
+
+    async function replayOrder(orderId) {
+      const status = document.getElementById("status");
+      status.textContent = `Replaying ${orderId}...`;
+      const response = await fetch(`/admin/api/replay-order/${orderId}`, { method: "POST" });
+      const result = await response.json();
+      status.textContent = `Replay finished for ${orderId}: ${result.processing_state_after ?? "unknown"}`;
+      await refresh();
+    }
+
+    function renderRows() {
+      const rows = filteredRows();
+      const tbody = document.getElementById("rows");
+      tbody.innerHTML = rows.map((row) => `
+        <tr>
+          <td><code>${row.square_order_id}</code></td>
+          <td><span class="state ${row.processing_state}">${row.processing_state}</span></td>
+          <td>${row.applied_at ?? ""}</td>
+          <td>
+            ${(row.processing_state === "failed" || row.processing_state === "blocked")
+              ? `<button class="action-btn" onclick="replayOrder('${row.square_order_id}')">Replay</button>`
+              : `<button class="action-btn" disabled>No Action</button>`}
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      renderFilters(allRows);
+      renderRows();
+    }
+
+    async function refresh() {
+      const response = await fetch("/admin/api/order-processing");
+      allRows = await response.json();
+      const meta = document.getElementById("meta");
+      meta.textContent = `Auto-refreshing every 3 seconds. Rows: ${allRows.length}. Updated: ${new Date().toLocaleTimeString()}`;
+      renderFilters(allRows);
+      renderRows();
+    }
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>
+"""
+
+
+@admin_router.get("/admin/api/order-processing")
+async def admin_order_processing_api():
+    return list_order_processing_rows()
+
+
+@admin_router.get("/admin/order-processing", response_class=HTMLResponse)
+async def admin_order_processing_page():
+    return HTMLResponse(content=ADMIN_HTML)
+
+
+@admin_router.post("/admin/api/replay-order/{order_id}")
+async def admin_replay_order(order_id: str):
+    current_processing_state = get_order_processing_state(order_id)
+    result = process_orders([order_id], apply_changes=True)
+    processing_state_after = get_order_processing_state(order_id)
+    return {
+        "order_id": order_id,
+        "current_processing_state": current_processing_state,
+        "processing_state_after": processing_state_after,
+        "inventory_response": result["inventory_response"],
+        "skipped_orders": result["skipped_orders"],
+        "skipped_line_items": result["skipped_line_items"],
+    }
