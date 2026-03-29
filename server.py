@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from fastapi import FastAPI, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from app.admin_routes import admin_router
 from app.catalog_change_search import (
@@ -67,8 +67,14 @@ def _record_square_webhook_event(payload, order_event_data, status):
     )
 
 
+def _process_order_webhook_event(order_id, event_id=None):
+    process_orders([order_id], apply_changes=True)
+    if event_id:
+        set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+
+
 @app.post("/webhook/square")
-async def square_webhook(request: Request):
+async def square_webhook(request: Request, background_tasks: BackgroundTasks):
     signature_header = request.headers.get("x-square-hmacsha256-signature", "")
     request_body = (await request.body()).decode("utf-8")
 
@@ -120,9 +126,7 @@ async def square_webhook(request: Request):
             )
 
         if should_start_processing:
-            process_orders([order_id], apply_changes=True)
-            if event_id:
-                set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+            background_tasks.add_task(_process_order_webhook_event, order_id, event_id)
 
         processing_state_after = (
             get_order_processing_state(order_id) if order_id else None
