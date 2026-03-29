@@ -84,16 +84,12 @@ def _resolve_recipe_ingredients(recipe, modifier_ids):
     base_ingredients = list(recipe.get("ingredients", []))
     modifier_overrides = recipe.get("modifier_overrides", {})
 
-    if not modifier_overrides:
-        return base_ingredients
-
-    modifier_ids = modifier_ids or []
-    for modifier_id in modifier_ids:
+    for modifier_id in modifier_ids or []:
         override = modifier_overrides.get(modifier_id)
         if override:
             return base_ingredients + list(override.get("ingredients", []))
 
-    if base_ingredients:
+    if base_ingredients or not modifier_overrides:
         return base_ingredients
 
     raise ValueError(
