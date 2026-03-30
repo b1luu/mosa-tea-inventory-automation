@@ -14,6 +14,7 @@ from app.config import (
     get_square_webhook_signature_key,
     get_square_webhook_notification_url,
 )
+from app.job_dispatcher import dispatch_webhook_job
 from app.order_processing_db import get_order_processing_state
 from app.webhook_event_db import (
     EVENT_STATUS_ENQUEUED,
@@ -21,7 +22,6 @@ from app.webhook_event_db import (
     has_webhook_event,
     upsert_webhook_event,
 )
-from app.webhook_worker import process_webhook_job
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
@@ -118,14 +118,14 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
             )
 
         if should_start_processing:
-            background_tasks.add_task(
-                process_webhook_job,
+            dispatch_webhook_job(
                 {
                     "event_id": event_id,
                     "merchant_id": payload.get("merchant_id"),
                     "event_type": event_type,
                     "order_id": order_id,
                 },
+                background_tasks=background_tasks,
             )
 
         processing_state_after = (
