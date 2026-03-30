@@ -6,7 +6,10 @@ from app.webhook_event_db import (
 )
 
 
-def process_order_webhook_event(order_id, event_id=None):
+def process_webhook_job(job):
+    order_id = job["order_id"]
+    event_id = job.get("event_id")
+
     try:
         process_orders([order_id], apply_changes=True)
         if event_id:
