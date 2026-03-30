@@ -15,16 +15,13 @@ from app.config import (
     get_square_webhook_notification_url,
 )
 from app.order_processing_db import get_order_processing_state
-from app.order_processor import process_orders
 from app.webhook_event_db import (
     EVENT_STATUS_ENQUEUED,
-    EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
-    EVENT_STATUS_PROCESSED,
     has_webhook_event,
-    set_webhook_event_status,
     upsert_webhook_event,
 )
+from app.webhook_worker import process_order_webhook_event
 from square.utils.webhooks_helper import verify_signature
 
 app = FastAPI()
@@ -66,17 +63,6 @@ def _record_square_webhook_event(payload, order_event_data, status):
         version=order_event_data.get("version"),
         status=status,
     )
-
-
-def _process_order_webhook_event(order_id, event_id=None):
-    try:
-        process_orders([order_id], apply_changes=True)
-        if event_id:
-            set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
-    except Exception:
-        if event_id:
-            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
-        raise
 
 
 @app.post("/webhook/square")
@@ -132,7 +118,7 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
             )
 
         if should_start_processing:
-            background_tasks.add_task(_process_order_webhook_event, order_id, event_id)
+            background_tasks.add_task(process_order_webhook_event, order_id, event_id)
 
         processing_state_after = (
             get_order_processing_state(order_id) if order_id else None
