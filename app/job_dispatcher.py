@@ -1,6 +1,7 @@
 from fastapi import BackgroundTasks
 
 from app.config import get_webhook_dispatch_mode
+from app.sqs_dispatcher import dispatch_webhook_job_to_sqs
 from app.webhook_worker import process_webhook_job
 
 
@@ -13,10 +14,7 @@ def _dispatch_webhook_job_local(job, background_tasks: BackgroundTasks | None = 
 
 
 def _dispatch_webhook_job_sqs(job):
-    raise NotImplementedError(
-        "SQS webhook job dispatch is not implemented yet. "
-        "Set WEBHOOK_DISPATCH_MODE=local for the current local workflow."
-    )
+    dispatch_webhook_job_to_sqs(job)
 
 
 def dispatch_webhook_job(job, background_tasks: BackgroundTasks | None = None):

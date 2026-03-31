@@ -25,10 +25,12 @@ class JobDispatcherTests(unittest.TestCase):
 
         self.assertEqual(len(background_tasks.tasks), 1)
 
-    def test_sqs_dispatch_mode_is_explicitly_not_implemented_yet(self):
+    def test_sqs_dispatch_mode_uses_sqs_dispatcher(self):
         with patch("app.job_dispatcher.get_webhook_dispatch_mode", return_value="sqs"):
-            with self.assertRaises(NotImplementedError):
+            with patch("app.job_dispatcher.dispatch_webhook_job_to_sqs") as mock_sqs:
                 job_dispatcher.dispatch_webhook_job({"order_id": "order-3"})
+
+        mock_sqs.assert_called_once_with({"order_id": "order-3"})
 
 
 if __name__ == "__main__":

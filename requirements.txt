@@ -2,3 +2,4 @@ python-dotenv
 squareup
 fastapi
 uvicorn
+boto3

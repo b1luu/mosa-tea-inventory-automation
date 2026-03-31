@@ -33,6 +33,26 @@ def get_webhook_dispatch_mode():
     return dispatch_mode
 
 
+def get_aws_region():
+    region = os.getenv("AWS_REGION")
+    if not region:
+        raise ValueError(
+            "Missing required environment variable: AWS_REGION. "
+            "Set it before using AWS-backed dispatch."
+        )
+    return region.strip()
+
+
+def get_webhook_job_queue_url():
+    queue_url = os.getenv("WEBHOOK_JOB_QUEUE_URL")
+    if not queue_url:
+        raise ValueError(
+            "Missing required environment variable: WEBHOOK_JOB_QUEUE_URL. "
+            "Set it before using SQS-backed dispatch."
+        )
+    return queue_url.strip()
+
+
 def get_square_webhook_signature_key():
     signature_key = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
     if not signature_key:
