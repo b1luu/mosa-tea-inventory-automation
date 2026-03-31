@@ -15,7 +15,7 @@ from app.config import (
     get_square_webhook_notification_url,
 )
 from app.job_dispatcher import dispatch_webhook_job
-from app.order_processing_db import get_order_processing_state
+from app.order_processing_store import get_order_processing_state
 from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
     EVENT_STATUS_IGNORED,

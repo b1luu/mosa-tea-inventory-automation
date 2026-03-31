@@ -6,7 +6,7 @@ import uuid
 from square.core.api_error import ApiError
 
 from app.client import create_square_client
-from app.order_processing_db import get_order_processing_state
+from app.order_processing_store import get_order_processing_state
 from scripts.inspect_order import summarize_order
 from testing.create_live_test_order import _build_order_payload, _load_scenarios
 

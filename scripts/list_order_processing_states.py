@@ -1,7 +1,7 @@
 import json
 import sys
 
-from app.order_processing_db import list_order_processing_rows
+from app.order_processing_store import list_order_processing_rows
 
 
 def _usage():

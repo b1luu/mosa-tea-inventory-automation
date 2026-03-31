@@ -1,6 +1,6 @@
 import json
 
-from app.order_processing_db import PROCESSING_STATE_FAILED, list_order_processing_rows
+from app.order_processing_store import PROCESSING_STATE_FAILED, list_order_processing_rows
 from app.order_processor import process_orders
 
 

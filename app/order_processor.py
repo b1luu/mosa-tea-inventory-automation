@@ -11,7 +11,7 @@ from app.inventory_stock_units import (
     summarize_combined_usage_in_display_units,
 )
 from app.order_inventory_projection import project_line_item_usage
-from app.order_processing_db import (
+from app.order_processing_store import (
     PROCESSING_STATE_BLOCKED,
     mark_order_failed,
     mark_order_pending,
