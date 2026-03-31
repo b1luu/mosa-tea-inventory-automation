@@ -322,6 +322,7 @@ http://127.0.0.1:8000/admin/order-processing
 ./.venv/bin/python -m scripts.list_order_processing_states
 ./.venv/bin/python -m scripts.replay_order ORDER_ID
 ./.venv/bin/python -m scripts.replay_failed_orders
+./.venv/bin/python -m scripts.process_sqs_webhook_job
 ```
 
 ### Tests

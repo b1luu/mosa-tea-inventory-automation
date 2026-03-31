@@ -15,3 +15,21 @@ def dispatch_webhook_job_to_sqs(job):
         QueueUrl=get_webhook_job_queue_url(),
         MessageBody=json.dumps(job),
     )
+
+
+def receive_webhook_jobs(max_number_of_messages=1, wait_time_seconds=20):
+    client = _create_sqs_client()
+    response = client.receive_message(
+        QueueUrl=get_webhook_job_queue_url(),
+        MaxNumberOfMessages=max_number_of_messages,
+        WaitTimeSeconds=wait_time_seconds,
+    )
+    return response.get("Messages", [])
+
+
+def delete_webhook_job(receipt_handle):
+    client = _create_sqs_client()
+    return client.delete_message(
+        QueueUrl=get_webhook_job_queue_url(),
+        ReceiptHandle=receipt_handle,
+    )
