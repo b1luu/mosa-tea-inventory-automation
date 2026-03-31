@@ -264,6 +264,11 @@ That design prevents two classes of bugs:
 - JSON-based recipe and inventory configuration
 - unittest for local regression coverage
 
+## Additional Documentation
+
+- [AWS cost analysis](docs/aws-cost-analysis.md)
+- [Docs index](docs/README.md)
+
 ## Repository Structure
 
 - `server.py`
