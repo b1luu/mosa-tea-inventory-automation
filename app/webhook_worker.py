@@ -1,5 +1,5 @@
 from app.order_processor import process_orders
-from app.webhook_event_db import (
+from app.webhook_event_store import (
     EVENT_STATUS_FAILED,
     EVENT_STATUS_PROCESSED,
     set_webhook_event_status,

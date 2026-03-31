@@ -16,11 +16,12 @@ from app.config import (
 )
 from app.job_dispatcher import dispatch_webhook_job
 from app.order_processing_db import get_order_processing_state
-from app.webhook_event_db import (
+from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
     EVENT_STATUS_IGNORED,
     has_webhook_event,
-    upsert_webhook_event,
+    record_webhook_event,
+    set_webhook_event_status,
 )
 from square.utils.webhooks_helper import verify_signature
 
@@ -50,7 +51,7 @@ def _get_order_id_from_payload(payload):
 
 def _record_square_webhook_event(payload, order_event_data, status):
     data = payload.get("data", {})
-    upsert_webhook_event(
+    record_webhook_event(
         event_id=payload["event_id"],
         merchant_id=payload["merchant_id"],
         event_type=payload["type"],
