@@ -24,6 +24,15 @@ def get_square_environment_name():
     return environment_name
 
 
+def get_webhook_dispatch_mode():
+    dispatch_mode = os.getenv("WEBHOOK_DISPATCH_MODE", "local").strip().lower()
+    if dispatch_mode not in {"local", "sqs"}:
+        raise ValueError(
+            "Invalid WEBHOOK_DISPATCH_MODE value. Use 'local' or 'sqs'."
+        )
+    return dispatch_mode
+
+
 def get_square_webhook_signature_key():
     signature_key = os.getenv("SQUARE_WEBHOOK_SIGNATURE_KEY")
     if not signature_key:
