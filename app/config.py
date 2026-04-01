@@ -33,6 +33,15 @@ def get_webhook_dispatch_mode():
     return dispatch_mode
 
 
+def get_order_processing_store_mode():
+    store_mode = os.getenv("ORDER_PROCESSING_STORE_MODE", "sqlite").strip().lower()
+    if store_mode not in {"sqlite", "dynamodb"}:
+        raise ValueError(
+            "Invalid ORDER_PROCESSING_STORE_MODE value. Use 'sqlite' or 'dynamodb'."
+        )
+    return store_mode
+
+
 def get_aws_region():
     region = os.getenv("AWS_REGION")
     if not region:
@@ -51,6 +60,16 @@ def get_webhook_job_queue_url():
             "Set it before using SQS-backed dispatch."
         )
     return queue_url.strip()
+
+
+def get_dynamodb_order_processing_table_name():
+    table_name = os.getenv("DYNAMODB_ORDER_PROCESSING_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_ORDER_PROCESSING_TABLE. "
+            "Set it before using DynamoDB-backed order processing state."
+        )
+    return table_name.strip()
 
 
 def get_square_webhook_signature_key():
