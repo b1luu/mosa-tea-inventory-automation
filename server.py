@@ -15,14 +15,18 @@ from app.config import (
     get_square_webhook_notification_url,
 )
 from app.job_dispatcher import dispatch_webhook_job
-from app.order_processing_store import get_order_processing_state
+from app.order_processing_store import (
+    clear_order_processing_reservation,
+    get_order_processing_state,
+    reserve_order_processing,
+)
 from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
     EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
     EVENT_STATUS_PROCESSED,
     EVENT_STATUS_RECEIVED,
-    has_webhook_event,
+    get_webhook_event,
     record_webhook_event,
     set_webhook_event_status,
 )
@@ -73,6 +77,9 @@ def _dispatch_order_webhook_job(job, event_id, background_tasks):
     try:
         dispatch_webhook_job(job, background_tasks=background_tasks)
     except Exception as exc:
+        order_id = job.get("order_id")
+        if order_id:
+            clear_order_processing_reservation(order_id)
         if event_id:
             set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
         print("order_webhook_dispatch_failed:")
@@ -173,7 +180,10 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
     updated_at = order_event_data.get("updated_at")
     version = order_event_data.get("version")
     event_id = payload.get("event_id")
-    duplicate_event = bool(event_id and has_webhook_event(event_id))
+    existing_event = get_webhook_event(event_id) if event_id else None
+    duplicate_event = bool(
+        existing_event and existing_event.get("status") != EVENT_STATUS_FAILED
+    )
 
     if event_type in {"order.created", "order.updated"}:
         if duplicate_event:
@@ -184,11 +194,15 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
         current_processing_state = (
             get_order_processing_state(order_id) if order_id else None
         )
-        should_start_processing = (
+        should_start_processing = False
+        if (
             order_state == "COMPLETED"
             and order_id is not None
             and current_processing_state is None
-        )
+        ):
+            should_start_processing = reserve_order_processing(order_id)
+            if not should_start_processing:
+                current_processing_state = get_order_processing_state(order_id)
 
         if event_id:
             _record_square_webhook_event(

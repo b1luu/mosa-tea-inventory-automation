@@ -85,6 +85,36 @@ def set_order_processing_state(order_id, processing_state):
         )
 
 
+def reserve_order_processing(order_id):
+    ensure_db()
+    with sqlite3.connect(DB_FILE) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO order_processing (square_order_id, processing_state, applied_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(square_order_id) DO NOTHING
+            """,
+            (order_id, PROCESSING_STATE_PENDING, None),
+        )
+        reserved = cursor.rowcount == 1
+
+    return reserved
+
+
+def clear_order_processing_reservation(order_id):
+    ensure_db()
+    with sqlite3.connect(DB_FILE) as connection:
+        cursor = connection.execute(
+            """
+            DELETE FROM order_processing
+            WHERE square_order_id = ? AND processing_state = ?
+            """,
+            (order_id, PROCESSING_STATE_PENDING),
+        )
+
+    return cursor.rowcount == 1
+
+
 def mark_order_applied(order_id):
     set_order_processing_state(order_id, PROCESSING_STATE_APPLIED)
 

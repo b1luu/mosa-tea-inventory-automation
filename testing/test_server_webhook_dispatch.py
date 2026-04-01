@@ -50,16 +50,17 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload = _build_order_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
-                    with patch("server.record_webhook_event") as mock_record:
-                        with patch("server.dispatch_webhook_job") as mock_dispatch:
-                            with patch("server.set_webhook_event_status") as mock_status:
-                                response = client.post(
-                                    "/webhook/square",
-                                    data=json.dumps(payload),
-                                    headers={"x-square-hmacsha256-signature": "ok"},
-                                )
+                    with patch("server.reserve_order_processing", return_value=True):
+                        with patch("server.record_webhook_event") as mock_record:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status") as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
 
         self.assertEqual(response.status_code, 200)
         mock_record.assert_called_once()
@@ -69,30 +70,39 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         mock_dispatch.assert_called_once()
         mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
 
-    def test_marks_event_failed_when_dispatch_raises(self):
+    def test_marks_event_failed_and_clears_reservation_when_dispatch_raises(self):
         client = TestClient(server.app, raise_server_exceptions=False)
         payload = _build_order_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
-                    with patch("server.record_webhook_event") as mock_record:
-                        with patch(
-                            "server.dispatch_webhook_job",
-                            side_effect=RuntimeError("dispatch exploded"),
-                        ):
-                            with patch("server.set_webhook_event_status") as mock_status:
-                                response = client.post(
-                                    "/webhook/square",
-                                    data=json.dumps(payload),
-                                    headers={"x-square-hmacsha256-signature": "ok"},
-                                )
+                    with patch("server.reserve_order_processing", return_value=True):
+                        with patch("server.record_webhook_event") as mock_record:
+                            with patch(
+                                "server.dispatch_webhook_job",
+                                side_effect=RuntimeError("dispatch exploded"),
+                            ):
+                                with patch(
+                                    "server.clear_order_processing_reservation"
+                                ) as mock_clear:
+                                    with patch(
+                                        "server.set_webhook_event_status"
+                                    ) as mock_status:
+                                        response = client.post(
+                                            "/webhook/square",
+                                            data=json.dumps(payload),
+                                            headers={
+                                                "x-square-hmacsha256-signature": "ok"
+                                            },
+                                        )
 
         self.assertEqual(response.status_code, 500)
         mock_record.assert_called_once()
         self.assertEqual(
             mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
         )
+        mock_clear.assert_called_once_with("order-1")
         mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_FAILED)
 
     def test_ignores_non_completed_order_event_without_dispatch(self):
@@ -101,7 +111,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload["data"]["object"]["order_updated"]["state"] = "OPEN"
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch("server.record_webhook_event") as mock_record:
                         with patch("server.dispatch_webhook_job") as mock_dispatch:
@@ -124,7 +134,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload = _build_order_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value="applied"):
                     with patch("server.record_webhook_event") as mock_record:
                         with patch("server.dispatch_webhook_job") as mock_dispatch:
@@ -147,7 +157,10 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload = _build_order_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=True):
+            with patch(
+                "server.get_webhook_event",
+                return_value={"event_id": "evt-1", "status": server.EVENT_STATUS_ENQUEUED},
+            ):
                 with patch("server.record_webhook_event") as mock_record:
                     with patch("server.dispatch_webhook_job") as mock_dispatch:
                         response = client.post(
@@ -160,6 +173,60 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         mock_record.assert_not_called()
         mock_dispatch.assert_not_called()
 
+    def test_failed_event_is_allowed_to_retry_dispatch(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch(
+                "server.get_webhook_event",
+                return_value={"event_id": "evt-1", "status": server.EVENT_STATUS_FAILED},
+            ):
+                with patch("server.get_order_processing_state", return_value=None):
+                    with patch("server.reserve_order_processing", return_value=True):
+                        with patch("server.record_webhook_event") as mock_record:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status") as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+        )
+        mock_dispatch.assert_called_once()
+        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
+
+    def test_completed_order_does_not_dispatch_when_reservation_is_lost(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_webhook_event", return_value=None):
+                with patch(
+                    "server.get_order_processing_state",
+                    side_effect=[None, "pending", "pending"],
+                ):
+                    with patch("server.reserve_order_processing", return_value=False):
+                        with patch("server.record_webhook_event") as mock_record:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status") as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+        )
+        mock_dispatch.assert_not_called()
+        mock_status.assert_not_called()
+
     def test_completed_order_without_event_id_dispatches_without_event_updates(self):
         client = TestClient(server.app)
         payload = _build_order_updated_payload()
@@ -167,14 +234,15 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_order_processing_state", return_value=None):
-                with patch("server.record_webhook_event") as mock_record:
-                    with patch("server.dispatch_webhook_job") as mock_dispatch:
-                        with patch("server.set_webhook_event_status") as mock_status:
-                            response = client.post(
-                                "/webhook/square",
-                                data=json.dumps(payload),
-                                headers={"x-square-hmacsha256-signature": "ok"},
-                            )
+                with patch("server.reserve_order_processing", return_value=True):
+                    with patch("server.record_webhook_event") as mock_record:
+                        with patch("server.dispatch_webhook_job") as mock_dispatch:
+                            with patch("server.set_webhook_event_status") as mock_status:
+                                response = client.post(
+                                    "/webhook/square",
+                                    data=json.dumps(payload),
+                                    headers={"x-square-hmacsha256-signature": "ok"},
+                                )
 
         self.assertEqual(response.status_code, 200)
         mock_record.assert_not_called()
@@ -186,7 +254,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload = _build_catalog_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.record_webhook_event") as mock_record:
                     with patch("server.get_or_create_last_synced_at", return_value="2026-03-31T12:00:00Z"):
                         with patch("server.search_changed_catalog_objects", return_value=[]):
@@ -211,7 +279,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         payload = _build_catalog_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.has_webhook_event", return_value=False):
+            with patch("server.get_webhook_event", return_value=None):
                 with patch("server.record_webhook_event") as mock_record:
                     with patch("server.get_or_create_last_synced_at", return_value="2026-03-31T12:00:00Z"):
                         with patch(

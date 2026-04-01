@@ -9,6 +9,8 @@ from app.order_processing_db import (
     mark_order_applied as _mark_order_applied,
     mark_order_failed as _mark_order_failed,
     mark_order_pending as _mark_order_pending,
+    clear_order_processing_reservation as _clear_order_processing_reservation,
+    reserve_order_processing as _reserve_order_processing,
     set_order_processing_state as _set_order_processing_state,
 )
 
@@ -27,6 +29,14 @@ def list_order_processing_rows(processing_state=None):
 
 def set_order_processing_state(order_id, processing_state):
     return _set_order_processing_state(order_id, processing_state)
+
+
+def reserve_order_processing(order_id):
+    return _reserve_order_processing(order_id)
+
+
+def clear_order_processing_reservation(order_id):
+    return _clear_order_processing_reservation(order_id)
 
 
 def mark_order_applied(order_id):
