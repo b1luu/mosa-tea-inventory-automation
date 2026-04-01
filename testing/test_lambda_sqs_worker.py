@@ -46,3 +46,24 @@ class LambdaSqsWorkerTests(unittest.TestCase):
             result,
             {"batchItemFailures": [{"itemIdentifier": "msg-2"}]},
         )
+
+    def test_lambda_handler_treats_non_terminal_worker_state_as_failure(self):
+        event = {
+            "Records": [
+                {
+                    "messageId": "msg-1",
+                    "body": '{"event_id": "evt-1", "order_id": "order-1"}',
+                }
+            ]
+        }
+
+        with patch(
+            "app.lambda_sqs_worker.process_webhook_job",
+            side_effect=RuntimeError("state not terminal"),
+        ):
+            result = lambda_handler(event, context=None)
+
+        self.assertEqual(
+            result,
+            {"batchItemFailures": [{"itemIdentifier": "msg-1"}]},
+        )

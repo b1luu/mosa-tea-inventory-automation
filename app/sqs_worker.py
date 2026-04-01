@@ -1,10 +1,5 @@
 import json
 
-from app.order_processing_store import (
-    PROCESSING_STATE_APPLIED,
-    PROCESSING_STATE_BLOCKED,
-    get_order_processing_state,
-)
 from app.sqs_dispatcher import delete_webhook_job, receive_webhook_jobs
 from app.webhook_worker import process_webhook_job
 
@@ -16,15 +11,7 @@ def process_one_sqs_message():
 
     message = messages[0]
     job = json.loads(message["Body"])
-    order_id = job["order_id"]
-    process_webhook_job(job)
-    processing_state = get_order_processing_state(order_id)
-
-    if processing_state not in {PROCESSING_STATE_APPLIED, PROCESSING_STATE_BLOCKED}:
-        raise RuntimeError(
-            f"Webhook job for order '{order_id}' did not reach a terminal deletable state. "
-            f"Current processing state: {processing_state!r}."
-        )
+    processing_state = process_webhook_job(job)
 
     delete_webhook_job(message["ReceiptHandle"])
 

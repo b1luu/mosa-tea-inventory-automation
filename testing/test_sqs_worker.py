@@ -19,12 +19,11 @@ class SqsWorkerTests(unittest.TestCase):
         }
 
         with patch("app.sqs_worker.receive_webhook_jobs", return_value=[message]):
-            with patch("app.sqs_worker.process_webhook_job") as mock_worker:
-                with patch(
-                    "app.sqs_worker.get_order_processing_state", return_value="applied"
-                ):
-                    with patch("app.sqs_worker.delete_webhook_job") as mock_delete:
-                        result = process_one_sqs_message()
+            with patch(
+                "app.sqs_worker.process_webhook_job", return_value="applied"
+            ) as mock_worker:
+                with patch("app.sqs_worker.delete_webhook_job") as mock_delete:
+                    result = process_one_sqs_message()
 
         mock_worker.assert_called_once_with({"event_id": "evt-1", "order_id": "order-1"})
         mock_delete.assert_called_once_with("receipt-1")
@@ -40,11 +39,13 @@ class SqsWorkerTests(unittest.TestCase):
         }
 
         with patch("app.sqs_worker.receive_webhook_jobs", return_value=[message]):
-            with patch("app.sqs_worker.process_webhook_job") as mock_worker:
-                with patch("app.sqs_worker.get_order_processing_state", return_value="failed"):
-                    with patch("app.sqs_worker.delete_webhook_job") as mock_delete:
-                        with self.assertRaises(RuntimeError):
-                            process_one_sqs_message()
+            with patch(
+                "app.sqs_worker.process_webhook_job",
+                side_effect=RuntimeError("state not terminal"),
+            ) as mock_worker:
+                with patch("app.sqs_worker.delete_webhook_job") as mock_delete:
+                    with self.assertRaises(RuntimeError):
+                        process_one_sqs_message()
 
         mock_worker.assert_called_once_with({"event_id": "evt-2", "order_id": "order-2"})
         mock_delete.assert_not_called()
