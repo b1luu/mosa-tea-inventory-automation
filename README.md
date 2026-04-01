@@ -267,6 +267,7 @@ That design prevents two classes of bugs:
 ## Additional Documentation
 
 - [AWS cost analysis](docs/aws-cost-analysis.md)
+- [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
 - [Docs index](docs/README.md)
 
 ## Repository Structure
