@@ -33,3 +33,12 @@ def delete_webhook_job(receipt_handle):
         QueueUrl=get_webhook_job_queue_url(),
         ReceiptHandle=receipt_handle,
     )
+
+
+def change_webhook_job_visibility(receipt_handle, visibility_timeout):
+    client = _create_sqs_client()
+    return client.change_message_visibility(
+        QueueUrl=get_webhook_job_queue_url(),
+        ReceiptHandle=receipt_handle,
+        VisibilityTimeout=visibility_timeout,
+    )
