@@ -18,7 +18,9 @@ from app.job_dispatcher import dispatch_webhook_job
 from app.order_processing_store import get_order_processing_state
 from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
+    EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
+    EVENT_STATUS_RECEIVED,
     has_webhook_event,
     record_webhook_event,
     set_webhook_event_status,
@@ -64,6 +66,30 @@ def _record_square_webhook_event(payload, order_event_data, status):
         version=order_event_data.get("version"),
         status=status,
     )
+
+
+def _dispatch_order_webhook_job(job, event_id, background_tasks):
+    try:
+        dispatch_webhook_job(job, background_tasks=background_tasks)
+    except Exception as exc:
+        if event_id:
+            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
+        print("order_webhook_dispatch_failed:")
+        print(
+            json.dumps(
+                {
+                    "event_id": event_id,
+                    "order_id": job.get("order_id"),
+                    "event_type": job.get("event_type"),
+                    "error": str(exc),
+                },
+                indent=2,
+            )
+        )
+        raise
+
+    if event_id:
+        set_webhook_event_status(event_id, EVENT_STATUS_ENQUEUED)
 
 
 @app.post("/webhook/square")
@@ -115,18 +141,19 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
             _record_square_webhook_event(
                 payload,
                 order_event_data,
-                EVENT_STATUS_ENQUEUED if should_start_processing else EVENT_STATUS_IGNORED,
+                EVENT_STATUS_RECEIVED if should_start_processing else EVENT_STATUS_IGNORED,
             )
 
         if should_start_processing:
-            dispatch_webhook_job(
+            _dispatch_order_webhook_job(
                 {
                     "event_id": event_id,
                     "merchant_id": payload.get("merchant_id"),
                     "event_type": event_type,
                     "order_id": order_id,
                 },
-                background_tasks=background_tasks,
+                event_id,
+                background_tasks,
             )
 
         processing_state_after = (
