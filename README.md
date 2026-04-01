@@ -273,6 +273,8 @@ That design prevents two classes of bugs:
 
 - `server.py`
   - FastAPI app, webhook entrypoint, static mount
+- `app/lambda_sqs_worker.py`
+  - Lambda-style SQS worker handler for AWS deployment
 - `app/order_processor.py`
   - shared end-to-end processing pipeline
 - `app/order_inventory_projection.py`
