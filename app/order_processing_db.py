@@ -25,6 +25,7 @@ def ensure_db():
 
 
 def is_order_applied(order_id):
+    ensure_db()
     with sqlite3.connect(DB_FILE) as connection:
         row = connection.execute(
             "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
@@ -34,6 +35,7 @@ def is_order_applied(order_id):
 
 
 def get_order_processing_state(order_id):
+    ensure_db()
     with sqlite3.connect(DB_FILE) as connection:
         row = connection.execute(
             "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
@@ -43,6 +45,7 @@ def get_order_processing_state(order_id):
 
 
 def list_order_processing_rows(processing_state=None):
+    ensure_db()
     query = (
         "SELECT square_order_id, processing_state, applied_at "
         "FROM order_processing"
@@ -67,6 +70,7 @@ def list_order_processing_rows(processing_state=None):
 
 
 def set_order_processing_state(order_id, processing_state):
+    ensure_db()
     applied_at = (
         datetime.now(UTC).isoformat()
         if processing_state == PROCESSING_STATE_APPLIED
