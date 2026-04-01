@@ -42,6 +42,15 @@ def get_order_processing_store_mode():
     return store_mode
 
 
+def get_webhook_event_store_mode():
+    store_mode = os.getenv("WEBHOOK_EVENT_STORE_MODE", "sqlite").strip().lower()
+    if store_mode not in {"sqlite", "dynamodb"}:
+        raise ValueError(
+            "Invalid WEBHOOK_EVENT_STORE_MODE value. Use 'sqlite' or 'dynamodb'."
+        )
+    return store_mode
+
+
 def get_aws_region():
     region = os.getenv("AWS_REGION")
     if not region:
@@ -68,6 +77,16 @@ def get_dynamodb_order_processing_table_name():
         raise ValueError(
             "Missing required environment variable: DYNAMODB_ORDER_PROCESSING_TABLE. "
             "Set it before using DynamoDB-backed order processing state."
+        )
+    return table_name.strip()
+
+
+def get_dynamodb_webhook_event_table_name():
+    table_name = os.getenv("DYNAMODB_WEBHOOK_EVENT_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_WEBHOOK_EVENT_TABLE. "
+            "Set it before using DynamoDB-backed webhook event state."
         )
     return table_name.strip()
 

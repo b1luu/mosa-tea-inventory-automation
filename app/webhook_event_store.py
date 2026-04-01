@@ -1,32 +1,38 @@
+from app.config import get_webhook_event_store_mode
 from app.webhook_event_db import (
     EVENT_STATUS_ENQUEUED,
     EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
     EVENT_STATUS_PROCESSED,
     EVENT_STATUS_RECEIVED,
-    get_webhook_event as _get_webhook_event,
-    has_webhook_event as _has_webhook_event,
-    list_webhook_events as _list_webhook_events,
-    set_webhook_event_status as _set_webhook_event_status,
-    upsert_webhook_event as _upsert_webhook_event,
 )
+from app import webhook_event_db, webhook_event_dynamodb
+
+
+def _get_store_backend():
+    store_mode = get_webhook_event_store_mode()
+    if store_mode == "sqlite":
+        return webhook_event_db
+    if store_mode == "dynamodb":
+        return webhook_event_dynamodb
+    raise ValueError(f"Unsupported webhook event store mode: {store_mode}")
 
 
 def get_webhook_event(event_id):
-    return _get_webhook_event(event_id)
+    return _get_store_backend().get_webhook_event(event_id)
 
 
 def has_webhook_event(event_id):
-    return _has_webhook_event(event_id)
+    return _get_store_backend().has_webhook_event(event_id)
 
 
 def record_webhook_event(**kwargs):
-    return _upsert_webhook_event(**kwargs)
+    return _get_store_backend().upsert_webhook_event(**kwargs)
 
 
 def set_webhook_event_status(event_id, status):
-    return _set_webhook_event_status(event_id, status)
+    return _get_store_backend().set_webhook_event_status(event_id, status)
 
 
 def list_webhook_events(status=None):
-    return _list_webhook_events(status=status)
+    return _get_store_backend().list_webhook_events(status=status)
