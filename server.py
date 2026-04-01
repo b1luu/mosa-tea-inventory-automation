@@ -20,6 +20,7 @@ from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
     EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
+    EVENT_STATUS_PROCESSED,
     EVENT_STATUS_RECEIVED,
     has_webhook_event,
     record_webhook_event,
@@ -90,6 +91,58 @@ def _dispatch_order_webhook_job(job, event_id, background_tasks):
 
     if event_id:
         set_webhook_event_status(event_id, EVENT_STATUS_ENQUEUED)
+
+
+def _process_catalog_webhook_event(event_id):
+    try:
+        last_synced_at = get_or_create_last_synced_at()
+        print("catalog_webhook:")
+        print(
+            json.dumps(
+                {
+                    "event_type": "catalog.version.updated",
+                    "event_id": event_id,
+                    "last_synced_at": last_synced_at,
+                },
+                indent=2,
+            )
+        )
+
+        changed_objects = search_changed_catalog_objects(last_synced_at)
+        changed_summaries = [
+            summarize_changed_object(catalog_object)
+            for catalog_object in changed_objects
+        ]
+        print("catalog_changes:")
+        print(json.dumps(changed_summaries, indent=2))
+
+        latest_object_updated_at = get_latest_updated_at(changed_objects)
+
+        if not latest_object_updated_at:
+            print("checkpoint unchanged: no changed objects found")
+        elif _parse_rfc3339(latest_object_updated_at) <= _parse_rfc3339(last_synced_at):
+            print("checkpoint unchanged: latest changed object is not newer")
+        else:
+            update_last_synced_at(latest_object_updated_at)
+            print(f"updated checkpoint to: {latest_object_updated_at}")
+    except Exception as exc:
+        if event_id:
+            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
+        print("catalog_webhook_processing_failed:")
+        print(
+            json.dumps(
+                {
+                    "event_id": event_id,
+                    "event_type": "catalog.version.updated",
+                    "error": str(exc),
+                },
+                indent=2,
+            )
+        )
+        raise
+
+    if event_id:
+        set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
 
 @app.post("/webhook/square")
@@ -187,42 +240,8 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
             return {"ok": True}
 
         if event_id:
-            _record_square_webhook_event(payload, order_event_data, EVENT_STATUS_ENQUEUED)
+            _record_square_webhook_event(payload, order_event_data, EVENT_STATUS_RECEIVED)
 
-        last_synced_at = get_or_create_last_synced_at()
-        print("catalog_webhook:")
-        print(
-            json.dumps(
-                {
-                    "event_type": event_type,
-                    "event_id": event_id,
-                    "last_synced_at": last_synced_at,
-                },
-                indent=2,
-            )
-        )
-
-        changed_objects = search_changed_catalog_objects(last_synced_at)
-        changed_summaries = [
-            summarize_changed_object(catalog_object)
-            for catalog_object in changed_objects
-        ]
-        print("catalog_changes:")
-        print(json.dumps(changed_summaries, indent=2))
-
-        latest_object_updated_at = get_latest_updated_at(changed_objects)
-
-        if not latest_object_updated_at:
-            print("checkpoint unchanged: no changed objects found")
-            return {"ok": True}
-
-        if _parse_rfc3339(latest_object_updated_at) <= _parse_rfc3339(last_synced_at):
-            print("checkpoint unchanged: latest changed object is not newer")
-            return {"ok": True}
-
-        update_last_synced_at(latest_object_updated_at)
-        print(f"updated checkpoint to: {latest_object_updated_at}")
-        if event_id:
-            set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+        _process_catalog_webhook_event(event_id)
 
     return {"ok": True}
