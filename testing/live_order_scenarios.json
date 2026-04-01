@@ -113,6 +113,25 @@
         }
       ]
     },
+    "signature_black_milk_tea_boba": {
+      "description": "Single Signature Black Milk Tea with Boba topping.",
+      "line_items": [
+        {
+          "catalog_object_id": "AQCPLG5NND3HT5SE3NLHNVXD",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "UIFT45SSDNEZBUDPKFGF6VES",
+              "quantity": "1"
+            },
+            {
+              "catalog_object_id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
     "tie_guan_yin_au_lait_boba": {
       "description": "Single Tie Guan Yin Au Lait with Boba topping.",
       "line_items": [
