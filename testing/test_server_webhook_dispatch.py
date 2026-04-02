@@ -278,54 +278,46 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         mock_dispatch.assert_called_once()
         mock_status.assert_not_called()
 
-    def test_catalog_event_marks_processed_when_no_changes_found(self):
+    def test_catalog_event_is_recorded_as_ignored_when_catalog_sync_is_disabled(self):
         client = TestClient(server.app)
         payload = _build_catalog_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.record_webhook_event") as mock_record:
-                    with patch("server.get_or_create_last_synced_at", return_value="2026-03-31T12:00:00Z"):
-                        with patch("server.search_changed_catalog_objects", return_value=[]):
-                            with patch("server.get_latest_updated_at", return_value=None):
-                                with patch("server.set_webhook_event_status") as mock_status:
-                                    response = client.post(
-                                        "/webhook/square",
-                                        data=json.dumps(payload),
-                                        headers={"x-square-hmacsha256-signature": "ok"},
-                                    )
+                    with patch("server.set_webhook_event_status") as mock_status:
+                        with patch("server.get_or_create_last_synced_at") as mock_get_checkpoint:
+                            response = client.post(
+                                "/webhook/square",
+                                data=json.dumps(payload),
+                                headers={"x-square-hmacsha256-signature": "ok"},
+                            )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
         )
-        mock_status.assert_called_once_with(
-            "catalog-evt-1", server.EVENT_STATUS_PROCESSED
-        )
+        mock_status.assert_not_called()
+        mock_get_checkpoint.assert_not_called()
 
-    def test_catalog_event_marks_failed_when_processing_raises(self):
-        client = TestClient(server.app, raise_server_exceptions=False)
+    def test_duplicate_catalog_event_is_not_re_recorded_when_catalog_sync_is_disabled(self):
+        client = TestClient(server.app)
         payload = _build_catalog_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
-            with patch("server.get_webhook_event", return_value=None):
+            with patch(
+                "server.get_webhook_event",
+                return_value={
+                    "event_id": "catalog-evt-1",
+                    "status": server.EVENT_STATUS_IGNORED,
+                },
+            ):
                 with patch("server.record_webhook_event") as mock_record:
-                    with patch("server.get_or_create_last_synced_at", return_value="2026-03-31T12:00:00Z"):
-                        with patch(
-                            "server.search_changed_catalog_objects",
-                            side_effect=RuntimeError("catalog exploded"),
-                        ):
-                            with patch("server.set_webhook_event_status") as mock_status:
-                                response = client.post(
-                                    "/webhook/square",
-                                    data=json.dumps(payload),
-                                    headers={"x-square-hmacsha256-signature": "ok"},
-                                )
+                    response = client.post(
+                        "/webhook/square",
+                        data=json.dumps(payload),
+                        headers={"x-square-hmacsha256-signature": "ok"},
+                    )
 
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
-        )
-        mock_status.assert_called_once_with(
-            "catalog-evt-1", server.EVENT_STATUS_FAILED
-        )
+        self.assertEqual(response.status_code, 200)
+        mock_record.assert_not_called()

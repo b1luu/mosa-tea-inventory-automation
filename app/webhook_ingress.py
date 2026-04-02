@@ -193,6 +193,20 @@ def _process_catalog_webhook_event(event_id, deps):
         deps.set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
 
+def _log_catalog_webhook_disabled(event_id):
+    print("catalog_webhook_disabled:")
+    print(
+        json.dumps(
+            {
+                "event_id": event_id,
+                "event_type": "catalog.version.updated",
+                "reason": "Catalog sync is currently disabled in serverless ingress.",
+            },
+            indent=2,
+        )
+    )
+
+
 def handle_square_webhook_request(
     request_body,
     signature_header,
@@ -302,11 +316,11 @@ def handle_square_webhook_request(
             _record_square_webhook_event(
                 payload,
                 order_event_data,
-                EVENT_STATUS_RECEIVED,
+                EVENT_STATUS_IGNORED,
                 deps,
             )
 
-        _process_catalog_webhook_event(event_id, deps)
+        _log_catalog_webhook_disabled(event_id)
         return WebhookIngressResponse(status_code=200, body={"ok": True})
 
     return WebhookIngressResponse(status_code=200, body={"ok": True})
