@@ -1,5 +1,6 @@
 import json
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -7,8 +8,13 @@ INVENTORY_ITEM_MAP_FILE = Path("data/inventory_item_map.json")
 RECIPE_MAP_FILE = Path("data/recipe_map.json")
 
 
+@lru_cache(maxsize=2)
 def _load_json(path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def clear_static_config_cache():
+    _load_json.cache_clear()
 
 
 def load_inventory_item_map():

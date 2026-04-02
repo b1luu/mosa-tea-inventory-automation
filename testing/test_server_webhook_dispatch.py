@@ -61,6 +61,19 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.notification_url_patcher.stop()
         self.signature_key_patcher.stop()
 
+    def test_invalid_signature_rejects_before_json_parsing(self):
+        client = TestClient(server.app)
+
+        with patch("server.verify_signature", return_value=False):
+            response = client.post(
+                "/webhook/square",
+                data="{not-json",
+                headers={"x-square-hmacsha256-signature": "bad"},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json(), {"error": "invalid signature"})
+
     def test_marks_event_enqueued_only_after_dispatch_succeeds(self):
         client = TestClient(server.app)
         payload = _build_order_updated_payload()

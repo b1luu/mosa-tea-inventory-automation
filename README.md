@@ -26,19 +26,13 @@ This project exists because POS sales are not the same thing as inventory consum
 ┌──────────────────────────┐
 │ Lambda / Worker          │
 │ fetch • project • apply  │
-└────┬──────────┬──────────┘
-     │          │
-     ▼          ▼
-┌───────────┐  ┌────────────────┐
-│ State     │  │ Square APIs    │
-│ DynamoDB  │  │ orders/inventory│
-└────┬──────┘  └────────────────┘
-     │
-     ▼
-┌──────────────────────────┐
-│ JSON Config              │
-│ recipes • inventory map  │
-└──────────────────────────┘
+└────┬──────────┬──────────┬────┘
+     │          │          │
+     ▼          ▼          ▼
+┌───────────┐  ┌──────────────┐  ┌──────────────┐
+│ State     │  │ Square APIs  │  │ JSON Config  │
+│ DynamoDB  │  │ orders / inv │  │ recipes / map│
+└───────────┘  └──────────────┘  └──────────────┘
 ```
 
 ## Current Shape
@@ -118,6 +112,7 @@ http://127.0.0.1:8000/admin/order-processing
 ## Docs
 
 - [Docs index](docs/README.md)
+- [API Gateway serverless ingress](docs/api-gateway-serverless-ingress.md)
 - [AWS cost analysis](docs/aws-cost-analysis.md)
 - [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
 

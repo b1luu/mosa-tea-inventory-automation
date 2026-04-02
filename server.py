@@ -1,8 +1,8 @@
-import json
-from datetime import datetime
-
-from fastapi import BackgroundTasks, FastAPI, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from square.utils.webhooks_helper import verify_signature
+
 from app.admin_routes import admin_router
 from app.catalog_change_search import (
     get_latest_updated_at,
@@ -11,8 +11,8 @@ from app.catalog_change_search import (
 )
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
-    get_square_webhook_signature_key,
     get_square_webhook_notification_url,
+    get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
 from app.order_processing_store import (
@@ -30,126 +30,34 @@ from app.webhook_event_store import (
     record_webhook_event,
     set_webhook_event_status,
 )
-from square.utils.webhooks_helper import verify_signature
+from app.webhook_ingress import (
+    WebhookIngressDependencies,
+    handle_square_webhook_request,
+)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(admin_router)
 
 
-def _parse_rfc3339(timestamp):
-    return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-
-
-def _get_event_type(payload):
-    return payload.get("type", "")
-
-
-def _get_order_event_data(payload):
-    data = payload.get("data", {})
-    object_data = data.get("object", {})
-    return object_data.get("order_created") or object_data.get("order_updated") or {}
-
-
-def _get_order_id_from_payload(payload):
-    order_data = _get_order_event_data(payload)
-    return order_data.get("order_id")
-
-
-def _record_square_webhook_event(payload, order_event_data, status):
-    data = payload.get("data", {})
-    record_webhook_event(
-        event_id=payload["event_id"],
-        merchant_id=payload["merchant_id"],
-        event_type=payload["type"],
-        event_created_at=payload.get("created_at"),
-        data_type=data.get("type"),
-        data_id=data.get("id"),
-        order_id=order_event_data.get("order_id"),
-        order_state=order_event_data.get("state"),
-        location_id=order_event_data.get("location_id"),
-        version=order_event_data.get("version"),
-        status=status,
+def _build_webhook_ingress_dependencies():
+    return WebhookIngressDependencies(
+        verify_signature=verify_signature,
+        get_square_webhook_signature_key=get_square_webhook_signature_key,
+        get_square_webhook_notification_url=get_square_webhook_notification_url,
+        get_webhook_event=get_webhook_event,
+        get_order_processing_state=get_order_processing_state,
+        reserve_order_processing=reserve_order_processing,
+        clear_order_processing_reservation=clear_order_processing_reservation,
+        record_webhook_event=record_webhook_event,
+        dispatch_webhook_job=dispatch_webhook_job,
+        set_webhook_event_status=set_webhook_event_status,
+        get_or_create_last_synced_at=get_or_create_last_synced_at,
+        search_changed_catalog_objects=search_changed_catalog_objects,
+        get_latest_updated_at=get_latest_updated_at,
+        summarize_changed_object=summarize_changed_object,
+        update_last_synced_at=update_last_synced_at,
     )
-
-
-def _dispatch_order_webhook_job(job, event_id, background_tasks):
-    try:
-        dispatch_webhook_job(job, background_tasks=background_tasks)
-    except Exception as exc:
-        order_id = job.get("order_id")
-        if order_id:
-            clear_order_processing_reservation(order_id)
-        if event_id:
-            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
-        print("order_webhook_dispatch_failed:")
-        print(
-            json.dumps(
-                {
-                    "event_id": event_id,
-                    "order_id": job.get("order_id"),
-                    "event_type": job.get("event_type"),
-                    "error": str(exc),
-                },
-                indent=2,
-            )
-        )
-        raise
-
-    if event_id:
-        set_webhook_event_status(event_id, EVENT_STATUS_ENQUEUED)
-
-
-def _process_catalog_webhook_event(event_id):
-    try:
-        last_synced_at = get_or_create_last_synced_at()
-        print("catalog_webhook:")
-        print(
-            json.dumps(
-                {
-                    "event_type": "catalog.version.updated",
-                    "event_id": event_id,
-                    "last_synced_at": last_synced_at,
-                },
-                indent=2,
-            )
-        )
-
-        changed_objects = search_changed_catalog_objects(last_synced_at)
-        changed_summaries = [
-            summarize_changed_object(catalog_object)
-            for catalog_object in changed_objects
-        ]
-        print("catalog_changes:")
-        print(json.dumps(changed_summaries, indent=2))
-
-        latest_object_updated_at = get_latest_updated_at(changed_objects)
-
-        if not latest_object_updated_at:
-            print("checkpoint unchanged: no changed objects found")
-        elif _parse_rfc3339(latest_object_updated_at) <= _parse_rfc3339(last_synced_at):
-            print("checkpoint unchanged: latest changed object is not newer")
-        else:
-            update_last_synced_at(latest_object_updated_at)
-            print(f"updated checkpoint to: {latest_object_updated_at}")
-    except Exception as exc:
-        if event_id:
-            set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
-        print("catalog_webhook_processing_failed:")
-        print(
-            json.dumps(
-                {
-                    "event_id": event_id,
-                    "event_type": "catalog.version.updated",
-                    "error": str(exc),
-                },
-                indent=2,
-            )
-        )
-        raise
-
-    if event_id:
-        set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
 
 @app.post("/webhook/square")
@@ -157,105 +65,10 @@ async def square_webhook(request: Request, background_tasks: BackgroundTasks):
     signature_header = request.headers.get("x-square-hmacsha256-signature", "")
     request_body = (await request.body()).decode("utf-8")
 
-    is_valid = verify_signature(
+    response = handle_square_webhook_request(
         request_body=request_body,
         signature_header=signature_header,
-        signature_key=get_square_webhook_signature_key(),
-        notification_url=get_square_webhook_notification_url(),
+        background_tasks=background_tasks,
+        deps=_build_webhook_ingress_dependencies(),
     )
-
-    if not is_valid:
-        return Response(
-            content='{"error":"invalid signature"}',
-            media_type="application/json",
-            status_code=403,
-        )
-
-    payload = json.loads(request_body)
-    event_type = _get_event_type(payload)
-    order_event_data = _get_order_event_data(payload)
-    order_id = _get_order_id_from_payload(payload)
-    order_state = order_event_data.get("state")
-    location_id = order_event_data.get("location_id")
-    updated_at = order_event_data.get("updated_at")
-    version = order_event_data.get("version")
-    event_id = payload.get("event_id")
-    existing_event = get_webhook_event(event_id) if event_id else None
-    duplicate_event = bool(
-        existing_event and existing_event.get("status") != EVENT_STATUS_FAILED
-    )
-
-    if event_type in {"order.created", "order.updated"}:
-        if duplicate_event:
-            print("order_webhook_duplicate:")
-            print(json.dumps({"event_id": event_id, "event_type": event_type}, indent=2))
-            return {"ok": True}
-
-        current_processing_state = (
-            get_order_processing_state(order_id) if order_id else None
-        )
-        should_start_processing = False
-        if (
-            order_state == "COMPLETED"
-            and order_id is not None
-            and current_processing_state is None
-        ):
-            should_start_processing = reserve_order_processing(order_id)
-            if not should_start_processing:
-                current_processing_state = get_order_processing_state(order_id)
-
-        if event_id:
-            _record_square_webhook_event(
-                payload,
-                order_event_data,
-                EVENT_STATUS_RECEIVED if should_start_processing else EVENT_STATUS_IGNORED,
-            )
-
-        if should_start_processing:
-            _dispatch_order_webhook_job(
-                {
-                    "event_id": event_id,
-                    "merchant_id": payload.get("merchant_id"),
-                    "event_type": event_type,
-                    "order_id": order_id,
-                },
-                event_id,
-                background_tasks,
-            )
-
-        processing_state_after = (
-            get_order_processing_state(order_id) if order_id else None
-        )
-
-        print("order_webhook:")
-        print(
-            json.dumps(
-                {
-                    "event_type": event_type,
-                    "order_id": order_id,
-                    "state": order_state,
-                    "location_id": location_id,
-                    "updated_at": updated_at,
-                    "version": version,
-                    "event_id": event_id,
-                    "current_processing_state": current_processing_state,
-                    "marked_pending": should_start_processing,
-                    "processing_state_after": processing_state_after,
-                },
-                indent=2,
-            )
-        )
-        return {"ok": True}
-
-    if payload.get("type") == "catalog.version.updated":
-        if duplicate_event:
-            print("catalog_webhook_duplicate:")
-            print(json.dumps({"event_id": event_id, "event_type": event_type}, indent=2))
-            return {"ok": True}
-
-        if event_id:
-            _record_square_webhook_event(payload, order_event_data, EVENT_STATUS_RECEIVED)
-
-        _process_catalog_webhook_event(event_id)
-
-    return {"ok": True}
+    return JSONResponse(content=response.body, status_code=response.status_code)

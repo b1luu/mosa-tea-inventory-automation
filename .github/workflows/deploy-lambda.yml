@@ -1,4 +1,4 @@
-name: Deploy Lambda Worker
+name: Deploy Lambda Functions
 
 on:
   workflow_dispatch:
@@ -8,13 +8,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-lambda-worker
+  group: deploy-lambda-functions
   cancel-in-progress: false
 
 env:
   PYTHON_VERSION: "3.14"
   AWS_REGION: ${{ vars.AWS_REGION }}
-  LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+  WORKER_LAMBDA_FUNCTION_NAME: ${{ vars.WORKER_LAMBDA_FUNCTION_NAME }}
+  LEGACY_LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+  WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
   AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
 jobs:
@@ -38,8 +40,10 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${LAMBDA_FUNCTION_NAME}" ]; then
-            echo "::error::Set repository variable LAMBDA_FUNCTION_NAME before deploying."
+          WORKER_FUNCTION_NAME="${WORKER_LAMBDA_FUNCTION_NAME:-${LEGACY_LAMBDA_FUNCTION_NAME}}"
+
+          if [ -z "${WORKER_FUNCTION_NAME}" ]; then
+            echo "::error::Set repository variable WORKER_LAMBDA_FUNCTION_NAME (or legacy LAMBDA_FUNCTION_NAME) before deploying."
             exit 1
           fi
 
@@ -97,11 +101,27 @@ jobs:
 
       - name: Deploy Lambda package
         run: |
-          aws lambda update-function-code \
-            --function-name "${LAMBDA_FUNCTION_NAME}" \
-            --region "${AWS_REGION}" \
-            --zip-file fileb://.build/lambda-package.zip \
-            --publish
-          aws lambda wait function-updated \
-            --function-name "${LAMBDA_FUNCTION_NAME}" \
-            --region "${AWS_REGION}"
+          WORKER_FUNCTION_NAME="${WORKER_LAMBDA_FUNCTION_NAME:-${LEGACY_LAMBDA_FUNCTION_NAME}}"
+
+          deploy_function () {
+            FUNCTION_NAME="$1"
+            LABEL="$2"
+
+            if [ -z "${FUNCTION_NAME}" ]; then
+              echo "Skipping ${LABEL}: function name not configured."
+              return
+            fi
+
+            echo "Deploying ${LABEL}: ${FUNCTION_NAME}"
+            aws lambda update-function-code \
+              --function-name "${FUNCTION_NAME}" \
+              --region "${AWS_REGION}" \
+              --zip-file fileb://.build/lambda-package.zip \
+              --publish
+            aws lambda wait function-updated \
+              --function-name "${FUNCTION_NAME}" \
+              --region "${AWS_REGION}"
+          }
+
+          deploy_function "${WORKER_FUNCTION_NAME}" "worker Lambda"
+          deploy_function "${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" "webhook ingress Lambda"
