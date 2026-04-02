@@ -132,6 +132,21 @@
         }
       ]
     },
+    "roasted_buckwheat_barley_milk_tea_100_sugar": {
+      "description": "Single Roasted Buckwheat Barley Milk Tea with 100% Sugar and no toppings.",
+      "line_items": [
+        {
+          "catalog_object_id": "UMBGTNZ3VXRWVFZQ3D2UESYF",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "VEDNAO6LH5WQET6TQTJGSPOB",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
+    },
     "tie_guan_yin_au_lait_boba": {
       "description": "Single Tie Guan Yin Au Lait with Boba topping.",
       "line_items": [
