@@ -184,6 +184,21 @@
           ]
         }
       ]
+    },
+    "tgy_tea_100_sugar": {
+      "description": "Single Tie Guan Yin Oolong Tea with 100% Sugar and no toppings.",
+      "line_items": [
+        {
+          "catalog_object_id": "72KIPS2KHWEK6RAT452MAB2P",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "VEDNAO6LH5WQET6TQTJGSPOB",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
     }
   }
 }

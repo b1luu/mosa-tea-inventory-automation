@@ -51,6 +51,36 @@ class CreateLiveTestOrderTests(unittest.TestCase):
             "UMBGTNZ3VXRWVFZQ3D2UESYF",
         )
 
+    def test_build_order_payload_for_tgy_tea_100_sugar(self):
+        payload = _build_order_payload(
+            "LB1MECVA7EZ8Z",
+            "tgy_tea_100_sugar",
+            {
+                "line_items": [
+                    {
+                        "catalog_object_id": "72KIPS2KHWEK6RAT452MAB2P",
+                        "quantity": "1",
+                        "modifiers": [
+                            {
+                                "catalog_object_id": "VEDNAO6LH5WQET6TQTJGSPOB",
+                                "quantity": "1",
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+
+        self.assertEqual(payload["reference_id"], "testing:tgy_tea_100_sugar")
+        self.assertEqual(
+            payload["line_items"][0]["catalog_object_id"],
+            "72KIPS2KHWEK6RAT452MAB2P",
+        )
+        self.assertEqual(
+            payload["line_items"][0]["modifiers"][0]["catalog_object_id"],
+            "VEDNAO6LH5WQET6TQTJGSPOB",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
