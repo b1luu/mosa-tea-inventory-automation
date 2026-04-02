@@ -1,6 +1,7 @@
 import json
 import sys
 
+from app.json_utils import to_jsonable
 from app.order_processor import process_orders
 
 
@@ -29,25 +30,25 @@ def _parse_args(argv):
 
 def _print_result(result):
     print("mode:")
-    print(json.dumps(result["mode"], indent=2))
+    print(json.dumps(to_jsonable(result["mode"]), indent=2))
     print("projected_orders:")
-    print(json.dumps(result["projected_orders"], indent=2))
+    print(json.dumps(to_jsonable(result["projected_orders"]), indent=2))
     print("skipped_orders:")
-    print(json.dumps(result["skipped_orders"], indent=2))
+    print(json.dumps(to_jsonable(result["skipped_orders"]), indent=2))
     print("skipped_line_items:")
-    print(json.dumps(result["skipped_line_items"], indent=2))
+    print(json.dumps(to_jsonable(result["skipped_line_items"]), indent=2))
     print("projected_line_items:")
-    print(json.dumps(result["projected_line_items"], indent=2))
+    print(json.dumps(to_jsonable(result["projected_line_items"]), indent=2))
     print("combined_usage:")
-    print(json.dumps(result["combined_usage"], indent=2))
+    print(json.dumps(to_jsonable(result["combined_usage"]), indent=2))
     print("display_usage:")
-    print(json.dumps(result["display_usage"], indent=2))
+    print(json.dumps(to_jsonable(result["display_usage"]), indent=2))
     print("inventory_request:")
-    print(json.dumps(result["inventory_request"], indent=2))
+    print(json.dumps(to_jsonable(result["inventory_request"]), indent=2))
 
     if result["inventory_response"] is not None:
         print("inventory_response:")
-        print(json.dumps(result["inventory_response"], indent=2))
+        print(json.dumps(to_jsonable(result["inventory_response"]), indent=2))
 
 
 def main():

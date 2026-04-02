@@ -1,5 +1,6 @@
 import json
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from app.order_inventory_projection import (
@@ -39,6 +40,27 @@ def project_fixture_order(order_fixture):
 
 
 class OrderInventoryProjectionTests(unittest.TestCase):
+    def assertEqual(self, first, second, msg=None):
+        if isinstance(first, (Decimal, int, float)) and isinstance(
+            second, (Decimal, int, float)
+        ):
+            return self.assertAlmostEqual(first, second, places=12, msg=msg)
+        return super().assertEqual(first, second, msg=msg)
+
+    def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
+        if isinstance(first, Decimal) or isinstance(second, Decimal):
+            first = Decimal(str(first))
+            second = Decimal(str(second))
+            if delta is not None:
+                delta = Decimal(str(delta))
+        return super().assertAlmostEqual(
+            first,
+            second,
+            places=places,
+            msg=msg,
+            delta=delta,
+        )
+
     def test_hot_four_seasons_tea_alias_matches_cold_recipe(self):
         projected = project_line_item_usage(
             "3IUNOTOZ23VKQF3CT3FZGQJO",
@@ -217,6 +239,29 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["tgy"], 8.0)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
+
+    def test_projected_usage_amounts_remain_decimals(self):
+        projected = project_line_item_usage(
+            "72KIPS2KHWEK6RAT452MAB2P",
+            "1",
+            ["VEDNAO6LH5WQET6TQTJGSPOB"],
+        )
+
+        usage = projected["usage"][0]
+        self.assertIsInstance(usage["recipe_amount"], Decimal)
+        self.assertIsInstance(usage["per_drink_inventory_amount"], Decimal)
+        self.assertIsInstance(usage["sold_quantity"], Decimal)
+        self.assertIsInstance(usage["total_amount"], Decimal)
+
+    def test_combined_usage_amounts_remain_decimals(self):
+        projected = project_line_item_usage(
+            "72KIPS2KHWEK6RAT452MAB2P",
+            "1",
+            ["VEDNAO6LH5WQET6TQTJGSPOB"],
+        )
+
+        combined_usage = combine_projected_usage([projected])
+        self.assertIsInstance(combined_usage[0]["total_amount"], Decimal)
 
     def test_tgy_osmanthus_honey_brewed_tea_fixture(self):
         order_fixture = load_fixture("completed_tgy_osmanthus_honey_brewed_tea.json")

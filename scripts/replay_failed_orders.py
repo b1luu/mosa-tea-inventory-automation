@@ -1,5 +1,6 @@
 import json
 
+from app.json_utils import to_jsonable
 from app.order_processing_store import PROCESSING_STATE_FAILED, list_order_processing_rows
 from app.order_processor import process_orders
 
@@ -8,7 +9,8 @@ def _print_result(order_id, result):
     print("replay_result:")
     print(
         json.dumps(
-            {
+            to_jsonable(
+                {
                 "order_id": order_id,
                 "mode": result["mode"],
                 "projected_orders": result["projected_orders"],
@@ -18,7 +20,8 @@ def _print_result(order_id, result):
                 "display_usage": result["display_usage"],
                 "inventory_request": result["inventory_request"],
                 "inventory_response": result["inventory_response"],
-            },
+                }
+            ),
             indent=2,
         )
     )

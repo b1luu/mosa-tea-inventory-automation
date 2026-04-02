@@ -10,7 +10,10 @@ RECIPE_MAP_FILE = Path("data/recipe_map.json")
 
 @lru_cache(maxsize=2)
 def _load_json(path):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return json.loads(
+        Path(path).read_text(encoding="utf-8"),
+        parse_float=Decimal,
+    )
 
 
 def clear_static_config_cache():
@@ -149,9 +152,7 @@ def _expand_ingredients(recipe_ingredients):
             expanded_ingredients.append(
                 {
                     **base_ingredient,
-                    "amount": float(
-                        Decimal(str(base_ingredient["amount"])) * scale_factor
-                    ),
+                    "amount": Decimal(str(base_ingredient["amount"])) * scale_factor,
                 }
             )
 
@@ -187,7 +188,7 @@ def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
         return [
             {
                 "inventory_key": sugar_config["inventory_key"],
-                "amount": float(
+                "amount": (
                     Decimal(str(sugar_config["full_amount"]))
                     * Decimal(str(multiplier))
                 ),
@@ -386,11 +387,11 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
                 "inventory_key": inventory_key,
                 "square_variation_id": inventory_item["square_variation_id"],
                 "recipe_unit": recipe_unit,
-                "recipe_amount": float(recipe_amount),
+                "recipe_amount": recipe_amount,
                 "inventory_unit": inventory_item["unit"],
-                "per_drink_inventory_amount": float(inventory_amount_per_drink),
-                "sold_quantity": float(normalized_quantity),
-                "total_amount": float(total_amount),
+                "per_drink_inventory_amount": inventory_amount_per_drink,
+                "sold_quantity": normalized_quantity,
+                "total_amount": total_amount,
             }
         )
 
@@ -423,9 +424,6 @@ def combine_projected_usage(projected_line_items):
             )
 
     return [
-        {
-            **value,
-            "total_amount": float(value["total_amount"]),
-        }
+        value
         for value in combined.values()
     ]

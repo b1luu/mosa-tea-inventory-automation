@@ -21,6 +21,10 @@ from app.order_processing_store import (
 from app.processed_orders_state import load_processed_order_ids, mark_orders_processed
 
 
+def _quantized_decimal_string(value):
+    return str(Decimal(str(value)).quantize(Decimal("0.00001")))
+
+
 def _serialize_response_model(response):
     if hasattr(response, "model_dump"):
         return response.model_dump(mode="json")
@@ -36,7 +40,7 @@ def _build_request_idempotency_key(order_ids, combined_usage):
             (
                 f"{usage['location_id']}:"
                 f"{usage['square_variation_id']}:"
-                f"{Decimal(str(usage['total_amount'])).quantize(Decimal('0.00001'))}"
+                f"{_quantized_decimal_string(usage['total_amount'])}"
             )
             for usage in combined_usage
         )
@@ -59,7 +63,7 @@ def _build_adjustment_reference_id(order_ids, usage):
                 f"{joined_order_ids}:"
                 f"{usage['location_id']}:"
                 f"{usage['square_variation_id']}:"
-                f"{usage['total_amount']}"
+                f"{_quantized_decimal_string(usage['total_amount'])}"
             ),
         )
     )
@@ -126,10 +130,7 @@ def _combine_usage_by_location(projected_line_items):
             combined[key]["total_amount"] += Decimal(str(usage["total_amount"]))
 
     return [
-        {
-            **value,
-            "total_amount": float(value["total_amount"]),
-        }
+        value
         for value in combined.values()
     ]
 

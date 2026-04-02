@@ -27,9 +27,9 @@ def convert_inventory_amount_to_stock_unit(inventory_key, amount):
     return {
         "inventory_key": inventory_key,
         "inventory_unit": inventory_item["unit"],
-        "inventory_amount": float(normalized_amount),
+        "inventory_amount": normalized_amount,
         "stock_unit": stock_unit,
-        "stock_unit_amount": float(stock_amount),
+        "stock_unit_amount": stock_amount,
     }
 
 
