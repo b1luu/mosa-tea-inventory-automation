@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHON_VERSION: "3.14"
   AWS_REGION: ${{ vars.AWS_REGION }}
   WORKER_LAMBDA_FUNCTION_NAME: ${{ vars.WORKER_LAMBDA_FUNCTION_NAME }}
