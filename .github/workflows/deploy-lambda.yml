@@ -1,0 +1,107 @@
+name: Deploy Lambda Worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-lambda-worker
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.12"
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+  AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+jobs:
+  deploy:
+    name: Deploy From Main
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Require main branch
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::This workflow only deploys from main."
+            exit 1
+          fi
+
+      - name: Validate deployment configuration
+        run: |
+          if [ -z "${AWS_REGION}" ]; then
+            echo "::error::Set repository variable AWS_REGION before deploying."
+            exit 1
+          fi
+
+          if [ -z "${LAMBDA_FUNCTION_NAME}" ]; then
+            echo "::error::Set repository variable LAMBDA_FUNCTION_NAME before deploying."
+            exit 1
+          fi
+
+          if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
+            echo "::error::Set repository secret AWS_ROLE_TO_ASSUME before deploying."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run deployment safety checks
+        run: |
+          python -m compileall app scripts server.py
+          python -m unittest discover -s testing -p 'test_*.py'
+
+      - name: Build Lambda deployment package
+        run: |
+          rm -rf .build
+          mkdir -p .build/package/data
+          pip install -r requirements.txt --target .build/package
+          cp -R app .build/package/app
+          cp data/inventory_item_map.json data/recipe_map.json .build/package/data/
+          find .build/package -type d -name "__pycache__" -prune -exec rm -rf {} +
+          find .build/package -type f -name "*.pyc" -delete
+          (
+            cd .build/package
+            zip -r ../lambda-package.zip .
+          )
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: .build/lambda-package.zip
+          if-no-files-found: error
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+
+      - name: Deploy Lambda package
+        run: |
+          aws lambda update-function-code \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --region "${AWS_REGION}" \
+            --zip-file fileb://.build/lambda-package.zip \
+            --publish
+          aws lambda wait function-updated \
+            --function-name "${LAMBDA_FUNCTION_NAME}" \
+            --region "${AWS_REGION}"
