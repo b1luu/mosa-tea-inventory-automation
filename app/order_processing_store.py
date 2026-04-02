@@ -36,6 +36,17 @@ def set_order_processing_state(order_id, processing_state):
     return _get_store_backend().set_order_processing_state(order_id, processing_state)
 
 
+def transition_order_processing_state(order_id, from_state, to_state):
+    backend = _get_store_backend()
+    if hasattr(backend, "transition_order_processing_state"):
+        return backend.transition_order_processing_state(order_id, from_state, to_state)
+    current_state = backend.get_order_processing_state(order_id)
+    if current_state != from_state:
+        return False
+    backend.set_order_processing_state(order_id, to_state)
+    return True
+
+
 def reserve_order_processing(order_id):
     return _get_store_backend().reserve_order_processing(order_id)
 
@@ -60,4 +71,8 @@ def mark_order_blocked(order_id):
     backend = _get_store_backend()
     if hasattr(backend, "mark_order_blocked"):
         return backend.mark_order_blocked(order_id)
-    return backend.set_order_processing_state(order_id, PROCESSING_STATE_BLOCKED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_BLOCKED,
+    )

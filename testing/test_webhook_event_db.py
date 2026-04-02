@@ -59,6 +59,21 @@ class WebhookEventDbTests(unittest.TestCase):
         event = webhook_event_db.get_webhook_event("evt-2")
         self.assertEqual(event["status"], webhook_event_db.EVENT_STATUS_PROCESSED)
 
+    def test_create_webhook_event_only_succeeds_once(self):
+        created_first = webhook_event_db.create_webhook_event(
+            event_id="evt-3",
+            merchant_id="merchant-3",
+            event_type="order.updated",
+        )
+        created_second = webhook_event_db.create_webhook_event(
+            event_id="evt-3",
+            merchant_id="merchant-3",
+            event_type="order.updated",
+        )
+
+        self.assertTrue(created_first)
+        self.assertFalse(created_second)
+
 
 if __name__ == "__main__":
     unittest.main()

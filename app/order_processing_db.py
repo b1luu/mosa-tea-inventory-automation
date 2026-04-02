@@ -89,6 +89,22 @@ def set_order_processing_state(order_id, processing_state):
         )
 
 
+def transition_order_processing_state(order_id, from_state, to_state):
+    ensure_db()
+    applied_at = datetime.now(UTC).isoformat() if to_state == PROCESSING_STATE_APPLIED else None
+    with sqlite3.connect(DB_FILE) as connection:
+        cursor = connection.execute(
+            """
+            UPDATE order_processing
+            SET processing_state = ?, applied_at = ?
+            WHERE square_order_id = ? AND processing_state = ?
+            """,
+            (to_state, applied_at, order_id, from_state),
+        )
+
+    return cursor.rowcount == 1
+
+
 def reserve_order_processing(order_id):
     ensure_db()
     with sqlite3.connect(DB_FILE) as connection:
@@ -120,7 +136,11 @@ def clear_order_processing_reservation(order_id):
 
 
 def mark_order_applied(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_APPLIED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_APPLIED,
+    )
 
 
 def mark_order_pending(order_id):
@@ -128,4 +148,16 @@ def mark_order_pending(order_id):
 
 
 def mark_order_failed(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_FAILED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_FAILED,
+    )
+
+
+def mark_order_blocked(order_id):
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_BLOCKED,
+    )

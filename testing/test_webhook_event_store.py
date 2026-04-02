@@ -30,3 +30,25 @@ class WebhookEventStoreTests(unittest.TestCase):
                 webhook_event_store.set_webhook_event_status("evt-1", "processed")
 
         mock_dynamodb.assert_called_once_with("evt-1", "processed")
+
+    def test_create_webhook_event_uses_backend_create_when_available(self):
+        with patch(
+            "app.webhook_event_store.get_webhook_event_store_mode",
+            return_value="dynamodb",
+        ):
+            with patch(
+                "app.webhook_event_store.webhook_event_dynamodb.create_webhook_event",
+                return_value=True,
+            ) as mock_dynamodb:
+                created = webhook_event_store.create_webhook_event(
+                    event_id="evt-1",
+                    merchant_id="merchant-1",
+                    event_type="order.updated",
+                )
+
+        self.assertTrue(created)
+        mock_dynamodb.assert_called_once_with(
+            event_id="evt-1",
+            merchant_id="merchant-1",
+            event_type="order.updated",
+        )

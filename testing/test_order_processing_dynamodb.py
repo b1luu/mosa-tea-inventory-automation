@@ -66,6 +66,44 @@ class OrderProcessingDynamoDbTests(unittest.TestCase):
 
         self.assertFalse(cleared)
 
+    def test_mark_order_applied_uses_pending_to_applied_transition(self):
+        table = MagicMock()
+
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            transitioned = order_processing_dynamodb.mark_order_applied("order-1")
+
+        self.assertTrue(transitioned)
+        table.update_item.assert_called_once()
+        kwargs = table.update_item.call_args.kwargs
+        self.assertEqual(kwargs["Key"], {"square_order_id": "order-1"})
+        self.assertEqual(kwargs["ConditionExpression"], "processing_state = :from_state")
+        self.assertEqual(
+            kwargs["ExpressionAttributeValues"][":from_state"],
+            order_processing_dynamodb.PROCESSING_STATE_PENDING,
+        )
+        self.assertEqual(
+            kwargs["ExpressionAttributeValues"][":to_state"],
+            order_processing_dynamodb.PROCESSING_STATE_APPLIED,
+        )
+
+    def test_mark_order_failed_returns_false_when_order_is_not_pending(self):
+        table = MagicMock()
+        error = ClientError(
+            {
+                "Error": {
+                    "Code": "ConditionalCheckFailedException",
+                    "Message": "conditional failed",
+                }
+            },
+            "UpdateItem",
+        )
+        table.update_item.side_effect = error
+
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            transitioned = order_processing_dynamodb.mark_order_failed("order-1")
+
+        self.assertFalse(transitioned)
+
     def test_list_order_processing_rows_returns_sorted_rows(self):
         table = MagicMock()
         table.scan.return_value = {

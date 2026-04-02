@@ -22,6 +22,7 @@ from app.order_processing_store import (
 )
 from app.webhook_event_store import (
     EVENT_STATUS_ENQUEUED,
+    create_webhook_event,
     EVENT_STATUS_FAILED,
     EVENT_STATUS_IGNORED,
     EVENT_STATUS_PROCESSED,
@@ -49,6 +50,7 @@ def _build_webhook_ingress_dependencies():
         get_order_processing_state=get_order_processing_state,
         reserve_order_processing=reserve_order_processing,
         clear_order_processing_reservation=clear_order_processing_reservation,
+        create_webhook_event=create_webhook_event,
         record_webhook_event=record_webhook_event,
         dispatch_webhook_job=dispatch_webhook_job,
         set_webhook_event_status=set_webhook_event_status,

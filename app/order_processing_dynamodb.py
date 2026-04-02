@@ -85,6 +85,34 @@ def set_order_processing_state(order_id, processing_state):
     return _get_table().put_item(Item=_build_item(order_id, processing_state))
 
 
+def transition_order_processing_state(order_id, from_state, to_state):
+    now = datetime.now(UTC).isoformat()
+    update_expression = "SET processing_state = :to_state, updated_at = :updated_at"
+    expression_attribute_values = {
+        ":from_state": from_state,
+        ":to_state": to_state,
+        ":updated_at": now,
+    }
+
+    if to_state == PROCESSING_STATE_APPLIED:
+        update_expression += ", applied_at = :applied_at"
+        expression_attribute_values[":applied_at"] = now
+
+    try:
+        _get_table().update_item(
+            Key={"square_order_id": order_id},
+            UpdateExpression=update_expression,
+            ConditionExpression="processing_state = :from_state",
+            ExpressionAttributeValues=expression_attribute_values,
+        )
+    except ClientError as error:
+        if _is_conditional_check_failed(error):
+            return False
+        raise
+
+    return True
+
+
 def reserve_order_processing(order_id):
     try:
         _get_table().put_item(
@@ -115,7 +143,11 @@ def clear_order_processing_reservation(order_id):
 
 
 def mark_order_applied(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_APPLIED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_APPLIED,
+    )
 
 
 def mark_order_pending(order_id):
@@ -123,8 +155,16 @@ def mark_order_pending(order_id):
 
 
 def mark_order_failed(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_FAILED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_FAILED,
+    )
 
 
 def mark_order_blocked(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_BLOCKED)
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_BLOCKED,
+    )

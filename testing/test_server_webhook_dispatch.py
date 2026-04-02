@@ -82,7 +82,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch("server.reserve_order_processing", return_value=True):
-                        with patch("server.record_webhook_event") as mock_record:
+                        with patch(
+                            "server.create_webhook_event", return_value=True
+                        ) as mock_create:
                             with patch("server.dispatch_webhook_job") as mock_dispatch:
                                 with patch("server.set_webhook_event_status") as mock_status:
                                     response = client.post(
@@ -92,9 +94,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                                     )
 
         self.assertEqual(response.status_code, 200)
-        mock_record.assert_called_once()
+        mock_create.assert_called_once()
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
         )
         mock_dispatch.assert_called_once()
         mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
@@ -107,7 +109,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch("server.reserve_order_processing", return_value=True):
-                        with patch("server.record_webhook_event") as mock_record:
+                        with patch(
+                            "server.create_webhook_event", return_value=True
+                        ) as mock_create:
                             with patch(
                                 "server.dispatch_webhook_job",
                                 side_effect=RuntimeError("dispatch exploded"),
@@ -127,9 +131,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                                         )
 
         self.assertEqual(response.status_code, 500)
-        mock_record.assert_called_once()
+        mock_create.assert_called_once()
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
         )
         mock_clear.assert_called_once_with("order-1")
         mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_FAILED)
@@ -142,7 +146,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
-                    with patch("server.record_webhook_event") as mock_record:
+                    with patch(
+                        "server.create_webhook_event", return_value=True
+                    ) as mock_create:
                         with patch("server.dispatch_webhook_job") as mock_dispatch:
                             with patch("server.set_webhook_event_status") as mock_status:
                                 response = client.post(
@@ -153,7 +159,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
@@ -165,7 +171,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value="applied"):
-                    with patch("server.record_webhook_event") as mock_record:
+                    with patch(
+                        "server.create_webhook_event", return_value=True
+                    ) as mock_create:
                         with patch("server.dispatch_webhook_job") as mock_dispatch:
                             with patch("server.set_webhook_event_status") as mock_status:
                                 response = client.post(
@@ -176,7 +184,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
@@ -190,7 +198,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                 "server.get_webhook_event",
                 return_value={"event_id": "evt-1", "status": server.EVENT_STATUS_ENQUEUED},
             ):
-                with patch("server.record_webhook_event") as mock_record:
+                with patch("server.create_webhook_event") as mock_create:
                     with patch("server.dispatch_webhook_job") as mock_dispatch:
                         response = client.post(
                             "/webhook/square",
@@ -199,7 +207,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                         )
 
         self.assertEqual(response.status_code, 200)
-        mock_record.assert_not_called()
+        mock_create.assert_not_called()
         mock_dispatch.assert_not_called()
 
     def test_failed_event_is_allowed_to_retry_dispatch(self):
@@ -213,7 +221,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             ):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch("server.reserve_order_processing", return_value=True):
-                        with patch("server.record_webhook_event") as mock_record:
+                        with patch("server.create_webhook_event") as mock_create:
                             with patch("server.dispatch_webhook_job") as mock_dispatch:
                                 with patch("server.set_webhook_event_status") as mock_status:
                                     response = client.post(
@@ -223,11 +231,15 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                                     )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
-        )
+        mock_create.assert_not_called()
         mock_dispatch.assert_called_once()
-        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
+        self.assertEqual(
+            mock_status.call_args_list,
+            [
+                unittest.mock.call("evt-1", server.EVENT_STATUS_RECEIVED),
+                unittest.mock.call("evt-1", server.EVENT_STATUS_ENQUEUED),
+            ],
+        )
 
     def test_completed_order_does_not_dispatch_when_reservation_is_lost(self):
         client = TestClient(server.app)
@@ -240,7 +252,9 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                     side_effect=[None, "pending", "pending"],
                 ):
                     with patch("server.reserve_order_processing", return_value=False):
-                        with patch("server.record_webhook_event") as mock_record:
+                        with patch(
+                            "server.create_webhook_event", return_value=True
+                        ) as mock_create:
                             with patch("server.dispatch_webhook_job") as mock_dispatch:
                                 with patch("server.set_webhook_event_status") as mock_status:
                                     response = client.post(
@@ -251,10 +265,46 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
         )
         mock_dispatch.assert_not_called()
-        mock_status.assert_not_called()
+        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_IGNORED)
+
+    def test_atomic_event_create_loss_short_circuits_before_reserving_or_dispatching(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch(
+                "server.get_webhook_event",
+                side_effect=[
+                    None,
+                    {
+                        "event_id": "evt-1",
+                        "status": server.EVENT_STATUS_ENQUEUED,
+                    },
+                ],
+            ):
+                with patch("server.get_order_processing_state", return_value=None):
+                    with patch(
+                        "server.create_webhook_event", return_value=False
+                    ) as mock_create:
+                        with patch(
+                            "server.reserve_order_processing"
+                        ) as mock_reserve:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                response = client.post(
+                                    "/webhook/square",
+                                    data=json.dumps(payload),
+                                    headers={
+                                        "x-square-hmacsha256-signature": "ok"
+                                    },
+                                )
+
+        self.assertEqual(response.status_code, 200)
+        mock_create.assert_called_once()
+        mock_reserve.assert_not_called()
+        mock_dispatch.assert_not_called()
 
     def test_completed_order_without_event_id_dispatches_without_event_updates(self):
         client = TestClient(server.app)
@@ -264,7 +314,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_order_processing_state", return_value=None):
                 with patch("server.reserve_order_processing", return_value=True):
-                    with patch("server.record_webhook_event") as mock_record:
+                    with patch("server.create_webhook_event") as mock_create:
                         with patch("server.dispatch_webhook_job") as mock_dispatch:
                             with patch("server.set_webhook_event_status") as mock_status:
                                 response = client.post(
@@ -274,17 +324,19 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                                 )
 
         self.assertEqual(response.status_code, 200)
-        mock_record.assert_not_called()
+        mock_create.assert_not_called()
         mock_dispatch.assert_called_once()
         mock_status.assert_not_called()
 
-    def test_catalog_event_is_recorded_as_ignored_when_catalog_sync_is_disabled(self):
+    def test_catalog_event_is_created_as_ignored_when_catalog_sync_is_disabled(self):
         client = TestClient(server.app)
         payload = _build_catalog_updated_payload()
 
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
-                with patch("server.record_webhook_event") as mock_record:
+                with patch(
+                    "server.create_webhook_event", return_value=True
+                ) as mock_create:
                     with patch("server.set_webhook_event_status") as mock_status:
                         with patch("server.get_or_create_last_synced_at") as mock_get_checkpoint:
                             response = client.post(
@@ -295,7 +347,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_record.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
         )
         mock_status.assert_not_called()
         mock_get_checkpoint.assert_not_called()
@@ -312,7 +364,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                     "status": server.EVENT_STATUS_IGNORED,
                 },
             ):
-                with patch("server.record_webhook_event") as mock_record:
+                with patch("server.create_webhook_event") as mock_create:
                     response = client.post(
                         "/webhook/square",
                         data=json.dumps(payload),
@@ -320,4 +372,4 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                     )
 
         self.assertEqual(response.status_code, 200)
-        mock_record.assert_not_called()
+        mock_create.assert_not_called()

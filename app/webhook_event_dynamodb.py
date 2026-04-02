@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from botocore.exceptions import ClientError
 
 from app.config import get_aws_region, get_dynamodb_webhook_event_table_name
 from app.webhook_event_db import (
@@ -18,6 +19,10 @@ def _create_dynamodb_resource():
 
 def _get_table():
     return _create_dynamodb_resource().Table(get_dynamodb_webhook_event_table_name())
+
+
+def _is_conditional_check_failed(error):
+    return error.response["Error"]["Code"] == "ConditionalCheckFailedException"
 
 
 def get_webhook_event(event_id):
@@ -97,6 +102,48 @@ def upsert_webhook_event(
             ":updated_at": now,
         },
     )
+
+
+def create_webhook_event(
+    *,
+    event_id,
+    merchant_id,
+    event_type,
+    event_created_at=None,
+    data_type=None,
+    data_id=None,
+    order_id=None,
+    order_state=None,
+    location_id=None,
+    version=None,
+    status=EVENT_STATUS_RECEIVED,
+):
+    now = datetime.now(UTC).isoformat()
+    try:
+        _get_table().put_item(
+            Item={
+                "event_id": event_id,
+                "merchant_id": merchant_id,
+                "event_type": event_type,
+                "event_created_at": event_created_at,
+                "data_type": data_type,
+                "data_id": data_id,
+                "order_id": order_id,
+                "order_state": order_state,
+                "location_id": location_id,
+                "version": version,
+                "status": status,
+                "received_at": now,
+                "updated_at": now,
+            },
+            ConditionExpression="attribute_not_exists(event_id)",
+        )
+    except ClientError as error:
+        if _is_conditional_check_failed(error):
+            return False
+        raise
+
+    return True
 
 
 def set_webhook_event_status(event_id, status):

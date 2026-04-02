@@ -13,6 +13,7 @@ from app.inventory_stock_units import (
 from app.order_inventory_projection import project_line_item_usage
 from app.order_processing_store import (
     PROCESSING_STATE_BLOCKED,
+    mark_order_blocked,
     mark_order_failed,
     mark_order_pending,
     set_order_processing_state,
@@ -266,10 +267,8 @@ def process_orders(order_ids, apply_changes=False):
     api_result = None
     if apply_changes and skipped_line_items:
         for order in projected_orders:
-            set_order_processing_state(
-                order["order_id"],
-                PROCESSING_STATE_BLOCKED,
-            )
+            mark_order_pending(order["order_id"])
+            mark_order_blocked(order["order_id"])
         api_result = {
             "error": (
                 "Refusing to apply inventory changes because one or more line items "

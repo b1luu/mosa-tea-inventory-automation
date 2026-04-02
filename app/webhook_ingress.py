@@ -27,6 +27,7 @@ from app.webhook_event_store import (
     EVENT_STATUS_IGNORED,
     EVENT_STATUS_PROCESSED,
     EVENT_STATUS_RECEIVED,
+    create_webhook_event,
     get_webhook_event,
     record_webhook_event,
     set_webhook_event_status,
@@ -48,6 +49,7 @@ class WebhookIngressDependencies:
     get_order_processing_state: Callable[[str], str | None]
     reserve_order_processing: Callable[[str], bool]
     clear_order_processing_reservation: Callable[[str], Any]
+    create_webhook_event: Callable[..., bool]
     record_webhook_event: Callable[..., Any]
     dispatch_webhook_job: Callable[..., Any]
     set_webhook_event_status: Callable[[str, str], Any]
@@ -67,6 +69,7 @@ def default_webhook_ingress_dependencies():
         get_order_processing_state=get_order_processing_state,
         reserve_order_processing=reserve_order_processing,
         clear_order_processing_reservation=clear_order_processing_reservation,
+        create_webhook_event=create_webhook_event,
         record_webhook_event=record_webhook_event,
         dispatch_webhook_job=dispatch_webhook_job,
         set_webhook_event_status=set_webhook_event_status,
@@ -100,6 +103,23 @@ def _get_order_id_from_payload(payload):
 def _record_square_webhook_event(payload, order_event_data, status, deps):
     data = payload.get("data", {})
     deps.record_webhook_event(
+        event_id=payload["event_id"],
+        merchant_id=payload["merchant_id"],
+        event_type=payload["type"],
+        event_created_at=payload.get("created_at"),
+        data_type=data.get("type"),
+        data_id=data.get("id"),
+        order_id=order_event_data.get("order_id"),
+        order_state=order_event_data.get("state"),
+        location_id=order_event_data.get("location_id"),
+        version=order_event_data.get("version"),
+        status=status,
+    )
+
+
+def _create_square_webhook_event(payload, order_event_data, status, deps):
+    data = payload.get("data", {})
+    return deps.create_webhook_event(
         event_id=payload["event_id"],
         merchant_id=payload["merchant_id"],
         event_type=payload["type"],
@@ -251,23 +271,49 @@ def handle_square_webhook_request(
         current_processing_state = (
             deps.get_order_processing_state(order_id) if order_id else None
         )
-        should_start_processing = False
-        if (
+        should_attempt_processing = (
             order_state == "COMPLETED"
             and order_id is not None
             and current_processing_state is None
-        ):
+        )
+        initial_event_status = (
+            EVENT_STATUS_RECEIVED
+            if should_attempt_processing
+            else EVENT_STATUS_IGNORED
+        )
+        if event_id:
+            if existing_event is None:
+                created = _create_square_webhook_event(
+                    payload,
+                    order_event_data,
+                    initial_event_status,
+                    deps,
+                )
+                if not created:
+                    existing_event = deps.get_webhook_event(event_id)
+                    duplicate_event = bool(
+                        existing_event
+                        and existing_event.get("status") != EVENT_STATUS_FAILED
+                    )
+                    if duplicate_event:
+                        print("order_webhook_duplicate:")
+                        print(
+                            json.dumps(
+                                {"event_id": event_id, "event_type": event_type},
+                                indent=2,
+                            )
+                        )
+                        return WebhookIngressResponse(status_code=200, body={"ok": True})
+            elif existing_event.get("status") == EVENT_STATUS_FAILED:
+                deps.set_webhook_event_status(event_id, initial_event_status)
+
+        should_start_processing = False
+        if should_attempt_processing:
             should_start_processing = deps.reserve_order_processing(order_id)
             if not should_start_processing:
                 current_processing_state = deps.get_order_processing_state(order_id)
-
-        if event_id:
-            _record_square_webhook_event(
-                payload,
-                order_event_data,
-                EVENT_STATUS_RECEIVED if should_start_processing else EVENT_STATUS_IGNORED,
-                deps,
-            )
+                if event_id:
+                    deps.set_webhook_event_status(event_id, EVENT_STATUS_IGNORED)
 
         if should_start_processing:
             _dispatch_order_webhook_job(
@@ -313,12 +359,30 @@ def handle_square_webhook_request(
             return WebhookIngressResponse(status_code=200, body={"ok": True})
 
         if event_id:
-            _record_square_webhook_event(
-                payload,
-                order_event_data,
-                EVENT_STATUS_IGNORED,
-                deps,
-            )
+            if existing_event is None:
+                created = _create_square_webhook_event(
+                    payload,
+                    order_event_data,
+                    EVENT_STATUS_IGNORED,
+                    deps,
+                )
+                if not created:
+                    existing_event = deps.get_webhook_event(event_id)
+                    duplicate_event = bool(
+                        existing_event
+                        and existing_event.get("status") != EVENT_STATUS_FAILED
+                    )
+                    if duplicate_event:
+                        print("catalog_webhook_duplicate:")
+                        print(
+                            json.dumps(
+                                {"event_id": event_id, "event_type": event_type},
+                                indent=2,
+                            )
+                        )
+                        return WebhookIngressResponse(status_code=200, body={"ok": True})
+            elif existing_event.get("status") == EVENT_STATUS_FAILED:
+                deps.set_webhook_event_status(event_id, EVENT_STATUS_IGNORED)
 
         _log_catalog_webhook_disabled(event_id)
         return WebhookIngressResponse(status_code=200, body={"ok": True})

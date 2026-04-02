@@ -30,6 +30,13 @@ def record_webhook_event(**kwargs):
     return _get_store_backend().upsert_webhook_event(**kwargs)
 
 
+def create_webhook_event(**kwargs):
+    backend = _get_store_backend()
+    if hasattr(backend, "create_webhook_event"):
+        return backend.create_webhook_event(**kwargs)
+    return backend.upsert_webhook_event(**kwargs)
+
+
 def set_webhook_event_status(event_id, status):
     return _get_store_backend().set_webhook_event_status(event_id, status)
 

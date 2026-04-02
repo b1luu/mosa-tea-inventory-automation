@@ -150,6 +150,63 @@ def upsert_webhook_event(
         )
 
 
+def create_webhook_event(
+    *,
+    event_id,
+    merchant_id,
+    event_type,
+    event_created_at=None,
+    data_type=None,
+    data_id=None,
+    order_id=None,
+    order_state=None,
+    location_id=None,
+    version=None,
+    status=EVENT_STATUS_RECEIVED,
+):
+    ensure_db()
+    now = datetime.now(UTC).isoformat()
+    with sqlite3.connect(DB_FILE) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO webhook_events (
+                event_id,
+                merchant_id,
+                event_type,
+                event_created_at,
+                data_type,
+                data_id,
+                order_id,
+                order_state,
+                location_id,
+                version,
+                status,
+                received_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(event_id) DO NOTHING
+            """,
+            (
+                event_id,
+                merchant_id,
+                event_type,
+                event_created_at,
+                data_type,
+                data_id,
+                order_id,
+                order_state,
+                location_id,
+                version,
+                status,
+                now,
+                now,
+            ),
+        )
+
+    return cursor.rowcount == 1
+
+
 def set_webhook_event_status(event_id, status):
     ensure_db()
     with sqlite3.connect(DB_FILE) as connection:
