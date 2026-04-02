@@ -45,6 +45,22 @@ def _build_catalog_updated_payload():
 
 
 class ServerWebhookDispatchTests(unittest.TestCase):
+    def setUp(self):
+        self.signature_key_patcher = patch(
+            "server.get_square_webhook_signature_key",
+            return_value="test-signature-key",
+        )
+        self.notification_url_patcher = patch(
+            "server.get_square_webhook_notification_url",
+            return_value="https://example.com/webhook/square",
+        )
+        self.signature_key_patcher.start()
+        self.notification_url_patcher.start()
+
+    def tearDown(self):
+        self.notification_url_patcher.stop()
+        self.signature_key_patcher.stop()
+
     def test_marks_event_enqueued_only_after_dispatch_succeeds(self):
         client = TestClient(server.app)
         payload = _build_order_updated_payload()
