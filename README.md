@@ -7,54 +7,38 @@ This project exists because POS sales are not the same thing as inventory consum
 ## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Square                                                        │
-│  - Orders API                                                  │
-│  - Inventory API                                               │
-│  - Webhooks                                                    │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                    POST /webhook/square
-                               │
-             ┌─────────────────▼─────────────────┐
-             │  FastAPI Server                   │
-             │  - verify signature               │
-             │  - gate COMPLETED orders          │
-             │  - reserve processing state       │
-             │  - record webhook events          │
-             └─────────────────┬─────────────────┘
-                               │
-                    dispatch_webhook_job()
-                               │
-        ┌──────────────────────▼──────────────────────┐
-        │  SQS                                        │
-        │  - webhook job queue                        │
-        │  - retry buffer                             │
-        │  - DLQ on repeated failure                  │
-        └──────────────────────┬──────────────────────┘
-                               │
-                  event source mapping / local worker
-                               │
-      ┌────────────────────────▼────────────────────────┐
-      │  Worker                                         │
-      │  - app/webhook_worker.py                        │
-      │  - app/lambda_sqs_worker.py                     │
-      │  - fetch full order                             │
-      │  - project ingredient + packaging usage         │
-      │  - convert to Square stock units                │
-      │  - apply inventory adjustments                  │
-      └───────────────┬──────────────────┬──────────────┘
-                      │                  │
-          ┌───────────▼──────────┐   ┌──▼────────────────────┐
-          │  DynamoDB / SQLite   │   │  JSON Config          │
-          │  - order state       │   │  - recipe_map.json    │
-          │  - webhook events    │   │  - inventory map      │
-          └───────────┬──────────┘   └───────────────────────┘
-                      │
-           ┌──────────▼──────────┐
-           │  Square Inventory   │
-           │  - IN_STOCK->WASTE  │
-           └─────────────────────┘
+┌────────────┐
+│   Square   │
+└─────┬──────┘
+      │ webhooks
+      ▼
+┌──────────────────────────┐
+│ FastAPI Webhook Server   │
+│ verify • gate • record   │
+└─────────┬────────────────┘
+          │ enqueue completed jobs
+          ▼
+┌──────────────────────────┐
+│ SQS Queue + DLQ          │
+└─────────┬────────────────┘
+          │
+          ▼
+┌──────────────────────────┐
+│ Lambda / Worker          │
+│ fetch • project • apply  │
+└────┬──────────┬──────────┘
+     │          │
+     ▼          ▼
+┌───────────┐  ┌────────────────┐
+│ State     │  │ Square APIs    │
+│ DynamoDB  │  │ orders/inventory│
+└────┬──────┘  └────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ JSON Config              │
+│ recipes • inventory map  │
+└──────────────────────────┘
 ```
 
 ## Current Shape
