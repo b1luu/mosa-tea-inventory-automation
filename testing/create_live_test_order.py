@@ -1,3 +1,4 @@
+import hashlib
 import json
 import sys
 import uuid
@@ -10,6 +11,7 @@ from scripts.inspect_order import summarize_order
 
 
 SCENARIO_FILE = Path("testing/live_order_scenarios.json")
+MAX_REFERENCE_ID_LENGTH = 40
 
 
 def _load_scenarios():
@@ -41,6 +43,19 @@ def _parse_args(argv):
     return False, pay_order, argv[0]
 
 
+def _build_reference_id(scenario_name):
+    reference_id = f"testing:{scenario_name}"
+    if len(reference_id) <= MAX_REFERENCE_ID_LENGTH:
+        return reference_id
+
+    digest = hashlib.sha1(reference_id.encode("utf-8")).hexdigest()[:8]
+    max_name_length = (
+        MAX_REFERENCE_ID_LENGTH - len("testing:") - len("-") - len(digest)
+    )
+    truncated_name = scenario_name[:max_name_length]
+    return f"testing:{truncated_name}-{digest}"
+
+
 def _build_order_payload(location_id, scenario_name, scenario):
     line_items = []
 
@@ -64,7 +79,7 @@ def _build_order_payload(location_id, scenario_name, scenario):
 
     return {
         "location_id": location_id,
-        "reference_id": f"testing:{scenario_name}",
+        "reference_id": _build_reference_id(scenario_name),
         "line_items": line_items,
     }
 
