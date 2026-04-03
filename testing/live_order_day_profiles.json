@@ -4,6 +4,7 @@
       "description": "Operationally realistic peak day mix capped at 200 drinks across 176 paid sandbox orders.",
       "ordering_strategy": "interleaved",
       "drill_batches": [12, 18, 24, 36, 42, 44],
+      "dispatch_offsets_minutes": [0, 30, 75, 150, 255, 360],
       "entries": [
         {
           "scenario_name": "signature_black_milk_tea",
@@ -65,7 +66,8 @@
     "sandbox_canary_mix_40": {
       "description": "Short canary run with mixed drinks, small bursts, and 40 total drinks for fast cloud verification.",
       "ordering_strategy": "interleaved",
-      "drill_batches": [8, 12, 16],
+      "drill_batches": [8, 12, 12],
+      "dispatch_offsets_minutes": [0, 20, 45],
       "entries": [
         {
           "scenario_name": "signature_black_milk_tea",

@@ -24,6 +24,13 @@ def _normalize_count(value):
     return normalized
 
 
+def _normalize_non_negative_decimal(value, name):
+    normalized = Decimal(str(value))
+    if normalized < 0:
+        raise ValueError(f"{name} cannot be negative. Got: {value}")
+    return normalized
+
+
 def count_scenario_drinks(scenario):
     return sum(
         _normalize_count(line_item["quantity"])
@@ -36,6 +43,10 @@ def get_day_profile(profile_name):
     if not profile:
         raise ValueError(f"Unknown live day profile: {profile_name}")
     return profile
+
+
+def _count_profile_orders(profile):
+    return sum(_normalize_count(entry["order_count"]) for entry in profile.get("entries", []))
 
 
 def list_day_profiles():
@@ -269,16 +280,39 @@ def build_operational_drill_commands(profile_name):
     batches = profile.get("drill_batches", [])
     if not batches:
         raise ValueError(f"Profile '{profile_name}' does not define drill_batches.")
+    dispatch_offsets_minutes = profile.get("dispatch_offsets_minutes")
+    if dispatch_offsets_minutes and len(dispatch_offsets_minutes) != len(batches):
+        raise ValueError(
+            f"Profile '{profile_name}' must define dispatch_offsets_minutes for each drill batch."
+        )
+    if sum(_normalize_count(batch_size) for batch_size in batches) != _count_profile_orders(profile):
+        raise ValueError(
+            f"Profile '{profile_name}' drill_batches must sum to the total planned order count."
+        )
 
     commands = []
     offset = 0
-    for batch_size in batches:
+    previous_dispatch_offset = Decimal("0")
+    for index, batch_size in enumerate(batches):
         normalized_batch_size = _normalize_count(batch_size)
+        dispatch_offset_minutes = (
+            _normalize_non_negative_decimal(dispatch_offsets_minutes[index], "dispatch offset")
+            if dispatch_offsets_minutes
+            else previous_dispatch_offset
+        )
+        wait_since_previous_minutes = (
+            dispatch_offset_minutes - previous_dispatch_offset
+            if index > 0
+            else Decimal("0")
+        )
         commands.append(
             {
                 "action": "pay_batch",
+                "batch_number": index + 1,
                 "offset": offset,
                 "limit": normalized_batch_size,
+                "dispatch_offset_minutes": str(dispatch_offset_minutes),
+                "wait_since_previous_minutes": str(wait_since_previous_minutes),
                 "command": (
                     "./.venv/bin/python -m testing.run_live_order_day_profile "
                     f"--pay --offset {offset} --limit {normalized_batch_size} {profile_name}"
@@ -308,6 +342,7 @@ def build_operational_drill_commands(profile_name):
             }
         )
         offset += normalized_batch_size
+        previous_dispatch_offset = dispatch_offset_minutes
 
     commands.append(
         {
@@ -322,3 +357,56 @@ def build_operational_drill_commands(profile_name):
         }
     )
     return commands
+
+
+def build_dispatch_schedule(profile_name, schedule_scale=1):
+    profile = get_day_profile(profile_name)
+    batches = profile.get("drill_batches", [])
+    dispatch_offsets_minutes = profile.get("dispatch_offsets_minutes", [])
+
+    if not batches:
+        raise ValueError(f"Profile '{profile_name}' does not define drill_batches.")
+    if len(dispatch_offsets_minutes) != len(batches):
+        raise ValueError(
+            f"Profile '{profile_name}' must define dispatch_offsets_minutes for each drill batch."
+        )
+    if sum(_normalize_count(batch_size) for batch_size in batches) != _count_profile_orders(profile):
+        raise ValueError(
+            f"Profile '{profile_name}' drill_batches must sum to the total planned order count."
+        )
+
+    scale = _normalize_non_negative_decimal(schedule_scale, "schedule scale")
+    schedule = []
+    offset = 0
+    previous_dispatch_offset = Decimal("0")
+
+    for index, batch_size in enumerate(batches):
+        normalized_batch_size = _normalize_count(batch_size)
+        dispatch_offset_minutes = _normalize_non_negative_decimal(
+            dispatch_offsets_minutes[index],
+            "dispatch offset",
+        )
+        if index > 0 and dispatch_offset_minutes < previous_dispatch_offset:
+            raise ValueError(
+                f"Profile '{profile_name}' has non-monotonic dispatch_offsets_minutes."
+            )
+
+        wait_minutes = (
+            dispatch_offset_minutes - previous_dispatch_offset
+            if index > 0
+            else Decimal("0")
+        )
+        schedule.append(
+            {
+                "batch_number": index + 1,
+                "offset": offset,
+                "limit": normalized_batch_size,
+                "dispatch_offset_minutes": str(dispatch_offset_minutes),
+                "wait_since_previous_minutes": str(wait_minutes),
+                "sleep_before_seconds": str(wait_minutes * Decimal("60") * scale),
+            }
+        )
+        offset += normalized_batch_size
+        previous_dispatch_offset = dispatch_offset_minutes
+
+    return schedule

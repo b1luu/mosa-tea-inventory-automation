@@ -45,6 +45,18 @@ Show the staged operational drill commands with queue checkpoints between batche
 ./.venv/bin/python -m testing.run_live_order_day_profile --show-drill sandbox_peak_day_200
 ```
 
+Show the timed dispatch schedule for a compressed day:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile --show-schedule --schedule-scale 0.1 sandbox_peak_day_200
+```
+
+Run the full day as timed waves instead of one uninterrupted burst:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile --pay --run-schedule --schedule-scale 0.02 --per-order-delay-seconds 0.5 sandbox_peak_day_200
+```
+
 Create and pay the full profile in Sandbox:
 
 ```bash

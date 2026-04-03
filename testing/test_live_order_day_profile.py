@@ -4,6 +4,7 @@ from decimal import Decimal
 from testing.create_live_test_order import MAX_REFERENCE_ID_LENGTH
 from testing.live_order_day_profile import (
     build_day_profile_orders,
+    build_dispatch_schedule,
     build_operational_drill_commands,
     list_day_profiles,
     project_day_profile_usage,
@@ -108,6 +109,27 @@ class LiveOrderDayProfileTests(unittest.TestCase):
         self.assertTrue(
             any(command["action"] == "tail_worker_logs" for command in commands)
         )
+
+    def test_peak_day_dispatch_schedule_spreads_batches_over_time(self):
+        schedule = build_dispatch_schedule("sandbox_peak_day_200", schedule_scale=0.1)
+
+        self.assertEqual(len(schedule), 6)
+        self.assertEqual(schedule[0]["offset"], 0)
+        self.assertEqual(schedule[0]["limit"], 12)
+        self.assertEqual(schedule[1]["offset"], 12)
+        self.assertEqual(schedule[1]["limit"], 18)
+        self.assertEqual(schedule[1]["dispatch_offset_minutes"], "30")
+        self.assertEqual(schedule[1]["wait_since_previous_minutes"], "30")
+        self.assertEqual(schedule[1]["sleep_before_seconds"], "180.0")
+        self.assertEqual(schedule[-1]["dispatch_offset_minutes"], "360")
+
+    def test_canary_dispatch_schedule_matches_all_orders(self):
+        schedule = build_dispatch_schedule("sandbox_canary_mix_40")
+
+        self.assertEqual(sum(batch["limit"] for batch in schedule), 32)
+        self.assertEqual(schedule[0]["dispatch_offset_minutes"], "0")
+        self.assertEqual(schedule[1]["dispatch_offset_minutes"], "20")
+        self.assertEqual(schedule[2]["dispatch_offset_minutes"], "45")
 
 
 if __name__ == "__main__":
