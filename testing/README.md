@@ -45,6 +45,18 @@ Add a projected one-order before/after summary on top of the live count:
 ./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy --order-id ORDER_ID
 ```
 
+Run one real Sandbox -> AWS -> Square inventory canary end to end:
+
+```bash
+./.venv/bin/python -m testing.run_live_cloud_canary tgy_tea_100_sugar
+```
+
+Tune the polling window if Square or AWS is slow:
+
+```bash
+./.venv/bin/python -m testing.run_live_cloud_canary --timeout-seconds 180 --poll-seconds 5 tgy_tea_100_sugar
+```
+
 ### Preview or run a bulk day profile
 
 Preview the 200-drink peak-day mix:
