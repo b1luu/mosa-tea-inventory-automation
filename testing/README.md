@@ -19,6 +19,32 @@ lets you:
 ./.venv/bin/python -m unittest discover -s testing -p 'test_*.py'
 ```
 
+### Inspect one order's math atomically
+
+Use a single fixture, scenario, or live Sandbox order to inspect the exact
+projected inventory math without any batching:
+
+```bash
+./.venv/bin/python -m testing.inspect_order_math --fixture completed_fresh_fruit_tea_green
+./.venv/bin/python -m testing.inspect_order_math --scenario tgy_tea_100_sugar
+./.venv/bin/python -m testing.inspect_order_math --order-id ORDER_ID
+```
+
+Inspect the current live inventory count for a tracked item:
+
+```bash
+./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy
+./.venv/bin/python -m scripts.inspect_inventory_count --catalog-object-id DFSCYEJEFN4PTIKTE4YVJWLH
+```
+
+Add a projected one-order before/after summary on top of the live count:
+
+```bash
+./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy --scenario tgy_tea_100_sugar
+./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy --fixture completed_tgy_brewed_tea
+./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy --order-id ORDER_ID
+```
+
 ### Preview or run a bulk day profile
 
 Preview the 200-drink peak-day mix:

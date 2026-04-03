@@ -8,6 +8,7 @@ from square.core.api_error import ApiError
 from app.client import create_square_client
 from app.json_utils import to_jsonable
 from scripts.inspect_order import summarize_order
+from testing.create_live_test_order import attach_placeholder_customer
 from testing.live_order_day_profile import (
     build_day_profile_orders,
     build_dispatch_schedule,
@@ -124,6 +125,7 @@ def _parse_args(argv):
 
 
 def _create_paid_order(client, order_payload, location_id):
+    order_payload, customer = attach_placeholder_customer(client, order_payload)
     response = client.orders.create(order=order_payload, idempotency_key=str(uuid.uuid4()))
     if not response.order:
         raise RuntimeError("Order creation did not return an order.")
@@ -136,6 +138,7 @@ def _create_paid_order(client, order_payload, location_id):
         source_id="cnon:card-nonce-ok",
         idempotency_key=str(uuid.uuid4()),
         order_id=response.order.id,
+        customer_id=customer.id,
         location_id=location_id,
         amount_money={
             "amount": total_money.amount,
@@ -163,7 +166,11 @@ def _execute_paid_orders(planned_orders, per_order_delay_seconds=0):
         created_orders.append(
             {
                 "sequence": planned_order["sequence"],
-                "scenario_name": planned_order["scenario_name"],
+                "source_kind": planned_order.get("source_kind", "scenario"),
+                "source_name": planned_order.get(
+                    "source_name",
+                    planned_order["scenario_name"],
+                ),
                 "drink_count": planned_order["drink_count"],
                 "order_id": created_order.id,
                 "reference_id": planned_order["order_payload"]["reference_id"],
@@ -254,7 +261,11 @@ def main():
                 [
                     {
                         "sequence": planned_order["sequence"],
-                        "scenario_name": planned_order["scenario_name"],
+                        "source_kind": planned_order.get("source_kind", "scenario"),
+                        "source_name": planned_order.get(
+                            "source_name",
+                            planned_order["scenario_name"],
+                        ),
                         "drink_count": planned_order["drink_count"],
                         "reference_id": planned_order["order_payload"]["reference_id"],
                     }

@@ -28,7 +28,9 @@ def summarize_line_item(line_item):
 def summarize_order(order):
     return {
         "id": order.id,
+        "customer_id": getattr(order, "customer_id", None),
         "location_id": order.location_id,
+        "ticket_name": getattr(order, "ticket_name", None),
         "state": order.state,
         "created_at": order.created_at,
         "updated_at": order.updated_at,

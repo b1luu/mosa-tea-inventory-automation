@@ -11,6 +11,7 @@ from testing.create_live_test_order import _build_order_payload, _load_scenarios
 
 
 PROFILE_FILE = Path("testing/live_order_day_profiles.json")
+FIXTURE_ORDER_DIR = Path("testing/fixtures/orders")
 
 
 def _load_profiles():
@@ -38,6 +39,34 @@ def count_scenario_drinks(scenario):
     )
 
 
+def _normalize_fixture_name(fixture_name):
+    return fixture_name if fixture_name.endswith(".json") else f"{fixture_name}.json"
+
+
+def _load_order_fixture(fixture_name):
+    fixture_path = FIXTURE_ORDER_DIR / _normalize_fixture_name(fixture_name)
+    if not fixture_path.exists():
+        raise ValueError(f"Unknown fixture order: {fixture_name}")
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def count_fixture_drinks(order_fixture):
+    return sum(
+        _normalize_count(line_item["quantity"])
+        for line_item in order_fixture.get("line_items", [])
+    )
+
+
+def _describe_fixture_order(fixture_name, order_fixture):
+    line_item_names = [
+        line_item.get("name")
+        for line_item in order_fixture.get("line_items", [])
+        if line_item.get("name")
+    ]
+    joined_names = ", ".join(line_item_names) if line_item_names else fixture_name
+    return f"Historical fixture replay from {fixture_name}: {joined_names}"
+
+
 def get_day_profile(profile_name):
     profile = _load_profiles().get(profile_name)
     if not profile:
@@ -59,20 +88,52 @@ def list_day_profiles():
 def _resolve_planning_entries(profile_name, profile, scenarios):
     planning_entries = []
     for entry in profile.get("entries", []):
-        scenario_name = entry["scenario_name"]
-        scenario = scenarios.get(scenario_name)
-        if not scenario:
+        order_count = _normalize_count(entry["order_count"])
+        burst_size = _normalize_count(entry.get("burst_size", 1))
+        scenario_name = entry.get("scenario_name")
+        fixture_name = entry.get("fixture_name")
+
+        if bool(scenario_name) == bool(fixture_name):
             raise ValueError(
-                f"Profile '{profile_name}' references unknown scenario '{scenario_name}'."
+                f"Profile '{profile_name}' entries must define exactly one of scenario_name or fixture_name."
             )
 
+        if scenario_name:
+            scenario = scenarios.get(scenario_name)
+            if not scenario:
+                raise ValueError(
+                    f"Profile '{profile_name}' references unknown scenario '{scenario_name}'."
+                )
+
+            planning_entries.append(
+                {
+                    "source_kind": "scenario",
+                    "source_name": scenario_name,
+                    "source_description": scenario.get("description", ""),
+                    "template": scenario,
+                    "location_id": profile["location_id"],
+                    "remaining_orders": order_count,
+                    "burst_size": burst_size,
+                    "drink_count": count_scenario_drinks(scenario),
+                }
+            )
+            continue
+
+        normalized_fixture_name = _normalize_fixture_name(fixture_name)
+        fixture_order = _load_order_fixture(normalized_fixture_name)
         planning_entries.append(
             {
-                "scenario_name": scenario_name,
-                "scenario": scenario,
-                "remaining_orders": _normalize_count(entry["order_count"]),
-                "burst_size": _normalize_count(entry.get("burst_size", 1)),
-                "drink_count": count_scenario_drinks(scenario),
+                "source_kind": "fixture",
+                "source_name": normalized_fixture_name,
+                "source_description": _describe_fixture_order(
+                    normalized_fixture_name,
+                    fixture_order,
+                ),
+                "template": {"line_items": fixture_order.get("line_items", [])},
+                "location_id": fixture_order.get("location_id") or profile["location_id"],
+                "remaining_orders": order_count,
+                "burst_size": burst_size,
+                "drink_count": count_fixture_drinks(fixture_order),
             }
         )
 
@@ -81,7 +142,6 @@ def _resolve_planning_entries(profile_name, profile, scenarios):
 
 def _build_interleaved_day_profile_orders(
     profile_name,
-    location_id,
     planning_entries,
     limit=None,
 ):
@@ -99,18 +159,20 @@ def _build_interleaved_day_profile_orders(
                     return planned_orders
 
                 reference_context = (
-                    f"{profile_name}-{sequence:03d}-{entry['scenario_name']}"
+                    f"{profile_name}-{sequence:03d}-{entry['source_name']}"
                 )
                 planned_orders.append(
                     {
                         "sequence": sequence,
-                        "scenario_name": entry["scenario_name"],
-                        "scenario_description": entry["scenario"].get("description", ""),
+                        "source_kind": entry["source_kind"],
+                        "source_name": entry["source_name"],
+                        "scenario_name": entry["source_name"],
+                        "scenario_description": entry["source_description"],
                         "drink_count": entry["drink_count"],
                         "order_payload": _build_order_payload(
-                            location_id,
+                            entry["location_id"],
                             reference_context,
-                            entry["scenario"],
+                            entry["template"],
                         ),
                     }
                 )
@@ -122,7 +184,6 @@ def _build_interleaved_day_profile_orders(
 
 def _build_grouped_day_profile_orders(
     profile_name,
-    location_id,
     planning_entries,
     limit=None,
 ):
@@ -134,17 +195,19 @@ def _build_grouped_day_profile_orders(
             if limit is not None and len(planned_orders) >= limit:
                 return planned_orders
 
-            reference_context = f"{profile_name}-{sequence:03d}-{entry['scenario_name']}"
+            reference_context = f"{profile_name}-{sequence:03d}-{entry['source_name']}"
             planned_orders.append(
                 {
                     "sequence": sequence,
-                    "scenario_name": entry["scenario_name"],
-                    "scenario_description": entry["scenario"].get("description", ""),
+                    "source_kind": entry["source_kind"],
+                    "source_name": entry["source_name"],
+                    "scenario_name": entry["source_name"],
+                    "scenario_description": entry["source_description"],
                     "drink_count": entry["drink_count"],
                     "order_payload": _build_order_payload(
-                        location_id,
+                        entry["location_id"],
                         reference_context,
-                        entry["scenario"],
+                        entry["template"],
                     ),
                 }
             )
@@ -157,8 +220,8 @@ def _build_grouped_day_profile_orders(
 def build_day_profile_orders(profile_name, limit=None, offset=0):
     scenario_data = _load_scenarios()
     scenarios = scenario_data.get("scenarios", {})
-    location_id = scenario_data["location_id"]
     profile = get_day_profile(profile_name)
+    profile = {**profile, "location_id": scenario_data["location_id"]}
 
     if limit is not None and limit <= 0:
         raise ValueError("limit must be positive when provided")
@@ -179,7 +242,6 @@ def build_day_profile_orders(profile_name, limit=None, offset=0):
 
     planned_orders = builder(
         profile_name,
-        location_id,
         planning_entries,
         None if limit is None else limit + offset,
     )
@@ -235,6 +297,7 @@ def summarize_day_profile(
 
     scenario_breakdown = defaultdict(
         lambda: {
+            "source_kind": "",
             "scenario_name": "",
             "scenario_description": "",
             "order_count": 0,
@@ -246,6 +309,7 @@ def summarize_day_profile(
     for planned_order in planned_orders:
         scenario_name = planned_order["scenario_name"]
         breakdown = scenario_breakdown[scenario_name]
+        breakdown["source_kind"] = planned_order.get("source_kind", "scenario")
         breakdown["scenario_name"] = scenario_name
         breakdown["scenario_description"] = planned_order["scenario_description"]
         breakdown["drinks_per_order"] = planned_order["drink_count"]

@@ -70,6 +70,8 @@ class LiveOrderDayProfileTests(unittest.TestCase):
         self.assertEqual(profiles["sandbox_peak_day_200"]["total_drinks"], 200)
         self.assertIn("sandbox_canary_mix_40", profiles)
         self.assertEqual(profiles["sandbox_canary_mix_40"]["total_drinks"], 40)
+        self.assertIn("sandbox_historical_fixture_day_200", profiles)
+        self.assertEqual(profiles["sandbox_historical_fixture_day_200"]["total_drinks"], 200)
 
     def test_peak_day_projection_consumes_200_cups(self):
         combined_usage = project_day_profile_usage("sandbox_peak_day_200")
@@ -130,6 +132,32 @@ class LiveOrderDayProfileTests(unittest.TestCase):
         self.assertEqual(schedule[0]["dispatch_offset_minutes"], "0")
         self.assertEqual(schedule[1]["dispatch_offset_minutes"], "20")
         self.assertEqual(schedule[2]["dispatch_offset_minutes"], "45")
+
+    def test_historical_fixture_profile_caps_at_200_drinks(self):
+        summary = summarize_day_profile(
+            "sandbox_historical_fixture_day_200",
+            include_projected_usage=False,
+        )
+
+        self.assertEqual(summary["total_orders"], 172)
+        self.assertEqual(summary["total_drinks"], 200)
+
+    def test_historical_fixture_profile_uses_fixture_sources(self):
+        planned_orders = build_day_profile_orders(
+            "sandbox_historical_fixture_day_200",
+            limit=10,
+        )
+
+        self.assertEqual(len(planned_orders), 10)
+        self.assertTrue(
+            all(planned_order["source_kind"] == "fixture" for planned_order in planned_orders)
+        )
+        self.assertTrue(
+            any(
+                planned_order["source_name"] == "completed_grapefruit_bloom_matcha.json"
+                for planned_order in planned_orders
+            )
+        )
 
 
 if __name__ == "__main__":
