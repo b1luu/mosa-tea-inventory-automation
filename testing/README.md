@@ -19,6 +19,26 @@ lets you:
 ./.venv/bin/python -m unittest discover -s testing -p 'test_*.py'
 ```
 
+### Preview or run a bulk day profile
+
+Preview the 200-drink peak-day mix:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile sandbox_peak_day_200
+```
+
+Show the planned order references for a smaller canary slice:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile --limit 20 --show-orders sandbox_peak_day_200
+```
+
+Create and pay the full profile in Sandbox:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile --pay sandbox_peak_day_200
+```
+
 ### Export a real order into a fixture
 
 ```bash

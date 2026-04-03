@@ -1,0 +1,53 @@
+{
+  "profiles": {
+    "sandbox_peak_day_200": {
+      "description": "Operationally realistic peak day mix capped at 200 drinks across 176 paid sandbox orders.",
+      "entries": [
+        {
+          "scenario_name": "signature_black_milk_tea",
+          "order_count": 40
+        },
+        {
+          "scenario_name": "signature_black_milk_tea_boba",
+          "order_count": 24
+        },
+        {
+          "scenario_name": "roasted_buckwheat_barley_milk_tea_100_sugar",
+          "order_count": 18
+        },
+        {
+          "scenario_name": "tgy_tea_100_sugar",
+          "order_count": 18
+        },
+        {
+          "scenario_name": "four_seasons_au_lait",
+          "order_count": 14
+        },
+        {
+          "scenario_name": "matcha_latte_boba",
+          "order_count": 12
+        },
+        {
+          "scenario_name": "fresh_fruit_tea_green",
+          "order_count": 10
+        },
+        {
+          "scenario_name": "fresh_fruit_tea_four_seasons",
+          "order_count": 10
+        },
+        {
+          "scenario_name": "tie_guan_yin_au_lait_boba",
+          "order_count": 10
+        },
+        {
+          "scenario_name": "tgy_osm_au_lait_boba",
+          "order_count": 8
+        },
+        {
+          "scenario_name": "grapefruit_bloom_and_matcha",
+          "order_count": 12
+        }
+      ]
+    }
+  }
+}
