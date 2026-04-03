@@ -2,50 +2,105 @@
   "profiles": {
     "sandbox_peak_day_200": {
       "description": "Operationally realistic peak day mix capped at 200 drinks across 176 paid sandbox orders.",
+      "ordering_strategy": "interleaved",
+      "drill_batches": [12, 18, 24, 36, 42, 44],
       "entries": [
         {
           "scenario_name": "signature_black_milk_tea",
-          "order_count": 40
+          "order_count": 40,
+          "burst_size": 2
         },
         {
           "scenario_name": "signature_black_milk_tea_boba",
-          "order_count": 24
+          "order_count": 24,
+          "burst_size": 2
         },
         {
           "scenario_name": "roasted_buckwheat_barley_milk_tea_100_sugar",
-          "order_count": 18
+          "order_count": 18,
+          "burst_size": 1
         },
         {
           "scenario_name": "tgy_tea_100_sugar",
-          "order_count": 18
+          "order_count": 18,
+          "burst_size": 1
         },
         {
           "scenario_name": "four_seasons_au_lait",
-          "order_count": 14
+          "order_count": 14,
+          "burst_size": 1
         },
         {
           "scenario_name": "matcha_latte_boba",
-          "order_count": 12
+          "order_count": 12,
+          "burst_size": 1
         },
         {
           "scenario_name": "fresh_fruit_tea_green",
-          "order_count": 10
+          "order_count": 10,
+          "burst_size": 1
         },
         {
           "scenario_name": "fresh_fruit_tea_four_seasons",
-          "order_count": 10
+          "order_count": 10,
+          "burst_size": 1
         },
         {
           "scenario_name": "tie_guan_yin_au_lait_boba",
-          "order_count": 10
+          "order_count": 10,
+          "burst_size": 1
         },
         {
           "scenario_name": "tgy_osm_au_lait_boba",
-          "order_count": 8
+          "order_count": 8,
+          "burst_size": 1
         },
         {
           "scenario_name": "grapefruit_bloom_and_matcha",
-          "order_count": 12
+          "order_count": 12,
+          "burst_size": 1
+        }
+      ]
+    },
+    "sandbox_canary_mix_40": {
+      "description": "Short canary run with mixed drinks, small bursts, and 40 total drinks for fast cloud verification.",
+      "ordering_strategy": "interleaved",
+      "drill_batches": [8, 12, 16],
+      "entries": [
+        {
+          "scenario_name": "signature_black_milk_tea",
+          "order_count": 6,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "signature_black_milk_tea_boba",
+          "order_count": 5,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "tgy_tea_100_sugar",
+          "order_count": 5,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "matcha_latte_boba",
+          "order_count": 4,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "fresh_fruit_tea_green",
+          "order_count": 4,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "four_seasons_au_lait",
+          "order_count": 4,
+          "burst_size": 1
+        },
+        {
+          "scenario_name": "grapefruit_bloom_and_matcha",
+          "order_count": 4,
+          "burst_size": 1
         }
       ]
     }

@@ -27,10 +27,22 @@ Preview the 200-drink peak-day mix:
 ./.venv/bin/python -m testing.run_live_order_day_profile sandbox_peak_day_200
 ```
 
+Preview a smaller mixed canary slice:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile sandbox_canary_mix_40
+```
+
 Show the planned order references for a smaller canary slice:
 
 ```bash
 ./.venv/bin/python -m testing.run_live_order_day_profile --limit 20 --show-orders sandbox_peak_day_200
+```
+
+Show the staged operational drill commands with queue checkpoints between batches:
+
+```bash
+./.venv/bin/python -m testing.run_live_order_day_profile --show-drill sandbox_peak_day_200
 ```
 
 Create and pay the full profile in Sandbox:

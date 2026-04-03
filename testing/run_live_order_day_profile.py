@@ -9,6 +9,7 @@ from app.json_utils import to_jsonable
 from scripts.inspect_order import summarize_order
 from testing.live_order_day_profile import (
     build_day_profile_orders,
+    build_operational_drill_commands,
     list_day_profiles,
     summarize_day_profile,
 )
@@ -17,7 +18,7 @@ from testing.live_order_day_profile import (
 def _usage():
     return (
         "Usage: ./.venv/bin/python -m testing.run_live_order_day_profile "
-        "[--list] [--show-orders] [--pay] [--limit N] <profile_name>"
+        "[--list] [--show-orders] [--show-drill] [--pay] [--offset N] [--limit N] <profile_name>"
     )
 
 
@@ -27,15 +28,17 @@ def _parse_args(argv):
 
     list_only = "--list" in argv
     show_orders = "--show-orders" in argv
+    show_drill = "--show-drill" in argv
     pay_orders = "--pay" in argv
 
     argv = [
         arg
         for arg in argv
-        if arg not in {"--list", "--show-orders", "--pay"}
+        if arg not in {"--list", "--show-orders", "--show-drill", "--pay"}
     ]
 
     limit = None
+    offset = 0
     if "--limit" in argv:
         limit_index = argv.index("--limit")
         if limit_index + 1 >= len(argv):
@@ -43,15 +46,22 @@ def _parse_args(argv):
         limit = int(argv[limit_index + 1])
         argv = argv[:limit_index] + argv[limit_index + 2 :]
 
+    if "--offset" in argv:
+        offset_index = argv.index("--offset")
+        if offset_index + 1 >= len(argv):
+            raise ValueError(_usage())
+        offset = int(argv[offset_index + 1])
+        argv = argv[:offset_index] + argv[offset_index + 2 :]
+
     if list_only:
         if argv:
             raise ValueError(_usage())
-        return list_only, show_orders, pay_orders, limit, None
+        return list_only, show_orders, show_drill, pay_orders, offset, limit, None
 
     if len(argv) != 1:
         raise ValueError(_usage())
 
-    return list_only, show_orders, pay_orders, limit, argv[0]
+    return list_only, show_orders, show_drill, pay_orders, offset, limit, argv[0]
 
 
 def _create_paid_order(client, order_payload, location_id):
@@ -79,7 +89,7 @@ def _create_paid_order(client, order_payload, location_id):
 
 def main():
     try:
-        list_only, show_orders, pay_orders, limit, profile_name = _parse_args(sys.argv[1:])
+        list_only, show_orders, show_drill, pay_orders, offset, limit, profile_name = _parse_args(sys.argv[1:])
     except ValueError as error:
         print(error)
         return 1
@@ -90,8 +100,8 @@ def main():
         return 0
 
     try:
-        planned_orders = build_day_profile_orders(profile_name, limit=limit)
-        summary = summarize_day_profile(profile_name, limit=limit)
+        planned_orders = build_day_profile_orders(profile_name, limit=limit, offset=offset)
+        summary = summarize_day_profile(profile_name, limit=limit, offset=offset)
     except ValueError as error:
         print(error)
         return 1
@@ -115,6 +125,16 @@ def main():
                 indent=2,
             )
         )
+
+    if show_drill:
+        try:
+            drill_commands = build_operational_drill_commands(profile_name)
+        except ValueError as error:
+            print(error)
+            return 1
+
+        print("drill_commands:")
+        print(json.dumps(drill_commands, indent=2))
 
     if not pay_orders:
         return 0
