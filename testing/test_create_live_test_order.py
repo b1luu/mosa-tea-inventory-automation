@@ -2,12 +2,8 @@ import unittest
 
 from testing.create_live_test_order import (
     MAX_REFERENCE_ID_LENGTH,
-    TEST_CUSTOMER_REFERENCE_ID,
-    TEST_TICKET_NAME,
     _build_order_payload,
     _build_reference_id,
-    attach_placeholder_customer,
-    ensure_placeholder_customer,
 )
 
 
@@ -54,7 +50,9 @@ class CreateLiveTestOrderTests(unittest.TestCase):
             payload["line_items"][0]["catalog_object_id"],
             "UMBGTNZ3VXRWVFZQ3D2UESYF",
         )
-        self.assertEqual(payload["ticket_name"], TEST_TICKET_NAME)
+        self.assertNotIn("ticket_name", payload)
+        self.assertNotIn("customer_id", payload)
+        self.assertNotIn("fulfillments", payload)
 
     def test_build_order_payload_for_tgy_tea_100_sugar(self):
         payload = _build_order_payload(
@@ -77,7 +75,9 @@ class CreateLiveTestOrderTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["reference_id"], "testing:tgy_tea_100_sugar")
-        self.assertEqual(payload["ticket_name"], TEST_TICKET_NAME)
+        self.assertNotIn("ticket_name", payload)
+        self.assertNotIn("customer_id", payload)
+        self.assertNotIn("fulfillments", payload)
         self.assertEqual(
             payload["line_items"][0]["catalog_object_id"],
             "72KIPS2KHWEK6RAT452MAB2P",
@@ -86,56 +86,6 @@ class CreateLiveTestOrderTests(unittest.TestCase):
             payload["line_items"][0]["modifiers"][0]["catalog_object_id"],
             "VEDNAO6LH5WQET6TQTJGSPOB",
         )
-
-    def test_ensure_placeholder_customer_reuses_existing_customer(self):
-        customer = type("Customer", (), {"id": "cust-123"})()
-        search_response = type("Response", (), {"customers": [customer]})()
-        client = type(
-            "Client",
-            (),
-            {
-                "customers": type(
-                    "Customers",
-                    (),
-                    {
-                        "search": staticmethod(lambda **kwargs: search_response),
-                    },
-                )()
-            },
-        )()
-
-        resolved = ensure_placeholder_customer(client)
-
-        self.assertEqual(resolved.id, "cust-123")
-
-    def test_attach_placeholder_customer_sets_customer_id_on_order_payload(self):
-        customer = type("Customer", (), {"id": "cust-456"})()
-        search_response = type("Response", (), {"customers": [customer]})()
-        client = type(
-            "Client",
-            (),
-            {
-                "customers": type(
-                    "Customers",
-                    (),
-                    {
-                        "search": staticmethod(lambda **kwargs: search_response),
-                    },
-                )()
-            },
-        )()
-        payload = {
-            "location_id": "LB1MECVA7EZ8Z",
-            "reference_id": "testing:tgy_tea_100_sugar",
-            "ticket_name": TEST_TICKET_NAME,
-            "line_items": [],
-        }
-
-        enriched_payload, resolved_customer = attach_placeholder_customer(client, payload)
-
-        self.assertEqual(resolved_customer.id, "cust-456")
-        self.assertEqual(enriched_payload["customer_id"], "cust-456")
-        self.assertEqual(enriched_payload["ticket_name"], TEST_TICKET_NAME)
 
 
 if __name__ == "__main__":

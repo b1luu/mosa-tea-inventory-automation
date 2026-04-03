@@ -11,7 +11,6 @@ from scripts.inspect_order import summarize_order
 from testing.create_live_test_order import (
     _build_order_payload,
     _load_scenarios,
-    attach_placeholder_customer,
 )
 
 
@@ -39,7 +38,6 @@ def main():
 
     client = create_square_client()
     order_payload = _build_order_payload(scenario_data["location_id"], scenario_name, scenario)
-    order_payload, customer = attach_placeholder_customer(client, order_payload)
     response = client.orders.create(order=order_payload, idempotency_key=str(uuid.uuid4()))
     total_money = response.order.total_money
     try:
@@ -47,7 +45,6 @@ def main():
             source_id="cnon:card-nonce-ok",
             idempotency_key=str(uuid.uuid4()),
             order_id=response.order.id,
-            customer_id=customer.id,
             location_id=scenario_data["location_id"],
             amount_money={"amount": total_money.amount, "currency": total_money.currency},
         )

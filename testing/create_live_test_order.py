@@ -12,8 +12,6 @@ from scripts.inspect_order import summarize_order
 
 SCENARIO_FILE = Path("testing/live_order_scenarios.json")
 MAX_REFERENCE_ID_LENGTH = 40
-TEST_TICKET_NAME = "Dennis"
-TEST_CUSTOMER_REFERENCE_ID = "sandbox-placeholder-dennis"
 
 
 def _load_scenarios():
@@ -82,43 +80,8 @@ def _build_order_payload(location_id, scenario_name, scenario):
     return {
         "location_id": location_id,
         "reference_id": _build_reference_id(scenario_name),
-        "ticket_name": TEST_TICKET_NAME,
         "line_items": line_items,
     }
-
-
-def ensure_placeholder_customer(client):
-    search_response = client.customers.search(
-        limit=1,
-        query={
-            "filter": {
-                "reference_id": {
-                    "exact": TEST_CUSTOMER_REFERENCE_ID,
-                }
-            }
-        },
-    )
-    customers = getattr(search_response, "customers", None) or []
-    if customers:
-        return customers[0]
-
-    create_response = client.customers.create(
-        idempotency_key=str(uuid.uuid4()),
-        given_name=TEST_TICKET_NAME,
-        reference_id=TEST_CUSTOMER_REFERENCE_ID,
-        note="Reusable Sandbox placeholder customer for automated test orders.",
-    )
-    if not create_response.customer:
-        raise RuntimeError("Customer creation did not return a customer.")
-    return create_response.customer
-
-
-def attach_placeholder_customer(client, order_payload):
-    customer = ensure_placeholder_customer(client)
-    return {
-        **order_payload,
-        "customer_id": customer.id,
-    }, customer
 
 
 def main():
@@ -153,7 +116,6 @@ def main():
 
     client = create_square_client()
     order_payload = _build_order_payload(location_id, scenario_name, scenario)
-    order_payload, customer = attach_placeholder_customer(client, order_payload)
     idempotency_key = str(uuid.uuid4())
 
     try:
@@ -181,7 +143,6 @@ def main():
                 source_id="cnon:card-nonce-ok",
                 idempotency_key=str(uuid.uuid4()),
                 order_id=response.order.id,
-                customer_id=customer.id,
                 location_id=location_id,
                 amount_money={
                     "amount": total_money.amount,
