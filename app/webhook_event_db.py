@@ -10,6 +10,26 @@ EVENT_STATUS_ENQUEUED = "enqueued"
 EVENT_STATUS_PROCESSED = "processed"
 EVENT_STATUS_FAILED = "failed"
 
+_ALLOWED_CURRENT_STATUSES_BY_TARGET_STATUS = {
+    EVENT_STATUS_RECEIVED: {EVENT_STATUS_RECEIVED, EVENT_STATUS_FAILED},
+    EVENT_STATUS_IGNORED: {
+        EVENT_STATUS_IGNORED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_FAILED,
+    },
+    EVENT_STATUS_ENQUEUED: {EVENT_STATUS_ENQUEUED, EVENT_STATUS_RECEIVED},
+    EVENT_STATUS_PROCESSED: {
+        EVENT_STATUS_PROCESSED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_ENQUEUED,
+    },
+    EVENT_STATUS_FAILED: {
+        EVENT_STATUS_FAILED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_ENQUEUED,
+    },
+}
+
 
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -209,15 +229,28 @@ def create_webhook_event(
 
 def set_webhook_event_status(event_id, status):
     ensure_db()
+    allowed_current_statuses = _ALLOWED_CURRENT_STATUSES_BY_TARGET_STATUS.get(status)
+    if not allowed_current_statuses:
+        raise ValueError(f"Unsupported webhook event status transition target: {status}")
+
+    placeholders = ", ".join("?" for _ in allowed_current_statuses)
+    params = (
+        status,
+        datetime.now(UTC).isoformat(),
+        event_id,
+        *sorted(allowed_current_statuses),
+    )
     with sqlite3.connect(DB_FILE) as connection:
-        connection.execute(
-            """
+        cursor = connection.execute(
+            f"""
             UPDATE webhook_events
             SET status = ?, updated_at = ?
-            WHERE event_id = ?
+            WHERE event_id = ? AND status IN ({placeholders})
             """,
-            (status, datetime.now(UTC).isoformat(), event_id),
+            params,
         )
+
+    return cursor.rowcount == 1
 
 
 def list_webhook_events(status=None):

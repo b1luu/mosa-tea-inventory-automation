@@ -8,6 +8,7 @@ from app.order_processing_db import (
     PROCESSING_STATE_BLOCKED,
     PROCESSING_STATE_FAILED,
     PROCESSING_STATE_PENDING,
+    PROCESSING_STATE_PROCESSING,
 )
 
 
@@ -127,6 +128,37 @@ def reserve_order_processing(order_id):
     return True
 
 
+def claim_order_processing(order_id):
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_PROCESSING,
+    )
+
+
+def release_order_processing_claim(order_id):
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PROCESSING,
+        PROCESSING_STATE_PENDING,
+    )
+
+
+def requeue_order_processing(order_id):
+    if transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_FAILED,
+        PROCESSING_STATE_PENDING,
+    ):
+        return True
+
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_BLOCKED,
+        PROCESSING_STATE_PENDING,
+    )
+
+
 def clear_order_processing_reservation(order_id):
     try:
         _get_table().delete_item(
@@ -145,7 +177,7 @@ def clear_order_processing_reservation(order_id):
 def mark_order_applied(order_id):
     return transition_order_processing_state(
         order_id,
-        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_PROCESSING,
         PROCESSING_STATE_APPLIED,
     )
 
@@ -157,7 +189,7 @@ def mark_order_pending(order_id):
 def mark_order_failed(order_id):
     return transition_order_processing_state(
         order_id,
-        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_PROCESSING,
         PROCESSING_STATE_FAILED,
     )
 
@@ -165,6 +197,6 @@ def mark_order_failed(order_id):
 def mark_order_blocked(order_id):
     return transition_order_processing_state(
         order_id,
-        PROCESSING_STATE_PENDING,
+        PROCESSING_STATE_PROCESSING,
         PROCESSING_STATE_BLOCKED,
     )

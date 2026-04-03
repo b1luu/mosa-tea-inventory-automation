@@ -25,10 +25,14 @@ class WebhookEventStoreTests(unittest.TestCase):
             return_value="dynamodb",
         ):
             with patch(
-                "app.webhook_event_store.webhook_event_dynamodb.set_webhook_event_status"
+                "app.webhook_event_store.webhook_event_dynamodb.set_webhook_event_status",
+                return_value=True,
             ) as mock_dynamodb:
-                webhook_event_store.set_webhook_event_status("evt-1", "processed")
+                transitioned = webhook_event_store.set_webhook_event_status(
+                    "evt-1", "processed"
+                )
 
+        self.assertTrue(transitioned)
         mock_dynamodb.assert_called_once_with("evt-1", "processed")
 
     def test_create_webhook_event_uses_backend_create_when_available(self):

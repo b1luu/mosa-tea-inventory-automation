@@ -51,23 +51,50 @@ class WebhookEventDbTests(unittest.TestCase):
             event_type="order.created",
         )
 
-        webhook_event_db.set_webhook_event_status(
+        transitioned = webhook_event_db.set_webhook_event_status(
             "evt-2",
             webhook_event_db.EVENT_STATUS_PROCESSED,
         )
 
+        self.assertTrue(transitioned)
         event = webhook_event_db.get_webhook_event("evt-2")
         self.assertEqual(event["status"], webhook_event_db.EVENT_STATUS_PROCESSED)
 
-    def test_create_webhook_event_only_succeeds_once(self):
-        created_first = webhook_event_db.create_webhook_event(
+    def test_set_webhook_event_status_does_not_downgrade_processed_events(self):
+        webhook_event_db.upsert_webhook_event(
             event_id="evt-3",
             merchant_id="merchant-3",
             event_type="order.updated",
+            status=webhook_event_db.EVENT_STATUS_PROCESSED,
+        )
+
+        transitioned = webhook_event_db.set_webhook_event_status(
+            "evt-3",
+            webhook_event_db.EVENT_STATUS_FAILED,
+        )
+
+        self.assertFalse(transitioned)
+        event = webhook_event_db.get_webhook_event("evt-3")
+        self.assertEqual(event["status"], webhook_event_db.EVENT_STATUS_PROCESSED)
+
+    def test_set_webhook_event_status_returns_false_when_event_does_not_exist(self):
+        transitioned = webhook_event_db.set_webhook_event_status(
+            "missing-evt",
+            webhook_event_db.EVENT_STATUS_FAILED,
+        )
+
+        self.assertFalse(transitioned)
+        self.assertIsNone(webhook_event_db.get_webhook_event("missing-evt"))
+
+    def test_create_webhook_event_only_succeeds_once(self):
+        created_first = webhook_event_db.create_webhook_event(
+            event_id="evt-4",
+            merchant_id="merchant-4",
+            event_type="order.updated",
         )
         created_second = webhook_event_db.create_webhook_event(
-            event_id="evt-3",
-            merchant_id="merchant-3",
+            event_id="evt-4",
+            merchant_id="merchant-4",
             event_type="order.updated",
         )
 

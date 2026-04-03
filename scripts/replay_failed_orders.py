@@ -2,7 +2,7 @@ import json
 
 from app.json_utils import to_jsonable
 from app.order_processing_store import PROCESSING_STATE_FAILED, list_order_processing_rows
-from app.order_processor import process_orders
+from app.webhook_worker import replay_order_job
 
 
 def _print_result(order_id, result):
@@ -39,7 +39,13 @@ def main():
 
     exit_code = 0
     for order_id in failed_order_ids:
-        result = process_orders([order_id], apply_changes=True)
+        try:
+            result = replay_order_job(order_id)
+        except RuntimeError as error:
+            print(json.dumps({"order_id": order_id, "error": str(error)}, indent=2))
+            exit_code = 1
+            continue
+
         _print_result(order_id, result)
         inventory_response = result["inventory_response"] or {}
         if "error" in inventory_response:

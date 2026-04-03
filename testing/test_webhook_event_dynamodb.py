@@ -89,6 +89,58 @@ class WebhookEventDynamoDbTests(unittest.TestCase):
 
         self.assertFalse(created)
 
+    def test_set_webhook_event_status_uses_conditional_transition(self):
+        table = MagicMock()
+
+        with patch("app.webhook_event_dynamodb._get_table", return_value=table):
+            transitioned = webhook_event_dynamodb.set_webhook_event_status(
+                "evt-1",
+                webhook_event_dynamodb.EVENT_STATUS_PROCESSED,
+            )
+
+        self.assertTrue(transitioned)
+        kwargs = table.update_item.call_args.kwargs
+        self.assertEqual(kwargs["Key"], {"event_id": "evt-1"})
+        self.assertIn("attribute_exists(event_id)", kwargs["ConditionExpression"])
+        self.assertIn("#status IN", kwargs["ConditionExpression"])
+        self.assertEqual(
+            kwargs["ExpressionAttributeValues"][":status"],
+            webhook_event_dynamodb.EVENT_STATUS_PROCESSED,
+        )
+        allowed_statuses = {
+            value
+            for key, value in kwargs["ExpressionAttributeValues"].items()
+            if key.startswith(":allowed_")
+        }
+        self.assertEqual(
+            allowed_statuses,
+            {
+                webhook_event_dynamodb.EVENT_STATUS_RECEIVED,
+                webhook_event_dynamodb.EVENT_STATUS_ENQUEUED,
+                webhook_event_dynamodb.EVENT_STATUS_PROCESSED,
+            },
+        )
+
+    def test_set_webhook_event_status_returns_false_on_invalid_transition(self):
+        table = MagicMock()
+        table.update_item.side_effect = ClientError(
+            {
+                "Error": {
+                    "Code": "ConditionalCheckFailedException",
+                    "Message": "conditional failed",
+                }
+            },
+            "UpdateItem",
+        )
+
+        with patch("app.webhook_event_dynamodb._get_table", return_value=table):
+            transitioned = webhook_event_dynamodb.set_webhook_event_status(
+                "evt-1",
+                webhook_event_dynamodb.EVENT_STATUS_FAILED,
+            )
+
+        self.assertFalse(transitioned)
+
     def test_list_webhook_events_returns_sorted_rows(self):
         table = MagicMock()
         table.scan.return_value = {

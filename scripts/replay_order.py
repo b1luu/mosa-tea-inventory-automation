@@ -2,7 +2,7 @@ import json
 import sys
 
 from app.json_utils import to_jsonable
-from app.order_processor import process_orders
+from app.webhook_worker import replay_order_job
 
 
 def _usage():
@@ -41,13 +41,21 @@ def main():
         print(_usage())
         return 1
 
-    result = process_orders(order_ids, apply_changes=True)
-    _print_result(result)
+    exit_code = 0
+    for order_id in order_ids:
+        try:
+            result = replay_order_job(order_id)
+        except RuntimeError as error:
+            print(json.dumps({"order_id": order_id, "error": str(error)}, indent=2))
+            exit_code = 1
+            continue
 
-    inventory_response = result["inventory_response"] or {}
-    if "error" in inventory_response:
-        return 1
-    return 0
+        _print_result(result)
+
+        inventory_response = result["inventory_response"] or {}
+        if "error" in inventory_response:
+            exit_code = 1
+    return exit_code
 
 
 if __name__ == "__main__":

@@ -12,13 +12,9 @@ from app.inventory_stock_units import (
 )
 from app.order_inventory_projection import project_line_item_usage
 from app.order_processing_store import (
-    PROCESSING_STATE_BLOCKED,
-    mark_order_blocked,
-    mark_order_failed,
-    mark_order_pending,
-    set_order_processing_state,
+    PROCESSING_STATE_APPLIED,
+    get_order_processing_state,
 )
-from app.processed_orders_state import load_processed_order_ids, mark_orders_processed
 
 
 def _quantized_decimal_string(value):
@@ -170,7 +166,6 @@ def _build_adjustment_changes(order_ids, combined_usage, occurred_at):
 
 def process_orders(order_ids, apply_changes=False):
     client = create_square_client()
-    already_processed_order_ids = load_processed_order_ids()
     projected_orders = []
     skipped_orders = []
     skipped_line_items = []
@@ -208,7 +203,7 @@ def process_orders(order_ids, apply_changes=False):
             )
             continue
 
-        if order.id in already_processed_order_ids:
+        if get_order_processing_state(order.id) == PROCESSING_STATE_APPLIED:
             skipped_orders.append(
                 {
                     "order_id": order.id,
@@ -267,9 +262,6 @@ def process_orders(order_ids, apply_changes=False):
 
     api_result = None
     if apply_changes and skipped_line_items:
-        for order in projected_orders:
-            mark_order_pending(order["order_id"])
-            mark_order_blocked(order["order_id"])
         api_result = {
             "error": (
                 "Refusing to apply inventory changes because one or more line items "
@@ -277,15 +269,10 @@ def process_orders(order_ids, apply_changes=False):
             )
         }
     elif apply_changes and changes:
-        for order in projected_orders:
-            mark_order_pending(order["order_id"])
         try:
             response = client.inventory.batch_create_changes(**request_body)
             api_result = _serialize_response_model(response)
-            mark_orders_processed([order["order_id"] for order in projected_orders])
         except ApiError as error:
-            for order in projected_orders:
-                mark_order_failed(order["order_id"])
             api_result = {"error": f"Square API error: {error}"}
     elif apply_changes:
         api_result = {"message": "No inventory changes to apply."}

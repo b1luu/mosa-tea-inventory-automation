@@ -61,7 +61,7 @@
     "grapefruit_bloom_and_matcha": {
       "description": "One Grapefruit Bloom and two Matcha Lattes.",
       "line_items": [
-g        {
+       {
           "catalog_object_id": "IPAOWQYVBTMVYEWOQQAYXI7J",
           "quantity": "1",
           "modifiers": [

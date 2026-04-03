@@ -32,3 +32,31 @@ class OrderProcessingStoreTests(unittest.TestCase):
 
         self.assertTrue(reserved)
         mock_dynamodb.assert_called_once_with("order-1")
+
+    def test_claim_order_processing_uses_configured_backend(self):
+        with patch(
+            "app.order_processing_store.get_order_processing_store_mode",
+            return_value="dynamodb",
+        ):
+            with patch(
+                "app.order_processing_store.order_processing_dynamodb.claim_order_processing",
+                return_value=True,
+            ) as mock_dynamodb:
+                claimed = order_processing_store.claim_order_processing("order-1")
+
+        self.assertTrue(claimed)
+        mock_dynamodb.assert_called_once_with("order-1")
+
+    def test_requeue_order_processing_uses_configured_backend(self):
+        with patch(
+            "app.order_processing_store.get_order_processing_store_mode",
+            return_value="dynamodb",
+        ):
+            with patch(
+                "app.order_processing_store.order_processing_dynamodb.requeue_order_processing",
+                return_value=True,
+            ) as mock_dynamodb:
+                requeued = order_processing_store.requeue_order_processing("order-1")
+
+        self.assertTrue(requeued)
+        mock_dynamodb.assert_called_once_with("order-1")

@@ -10,6 +10,26 @@ from app.webhook_event_db import (
     EVENT_STATUS_RECEIVED,
 )
 
+_ALLOWED_CURRENT_STATUSES_BY_TARGET_STATUS = {
+    EVENT_STATUS_RECEIVED: {EVENT_STATUS_RECEIVED, EVENT_STATUS_FAILED},
+    EVENT_STATUS_IGNORED: {
+        EVENT_STATUS_IGNORED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_FAILED,
+    },
+    EVENT_STATUS_ENQUEUED: {EVENT_STATUS_ENQUEUED, EVENT_STATUS_RECEIVED},
+    EVENT_STATUS_PROCESSED: {
+        EVENT_STATUS_PROCESSED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_ENQUEUED,
+    },
+    EVENT_STATUS_FAILED: {
+        EVENT_STATUS_FAILED,
+        EVENT_STATUS_RECEIVED,
+        EVENT_STATUS_ENQUEUED,
+    },
+}
+
 
 def _create_dynamodb_resource():
     import boto3
@@ -147,15 +167,37 @@ def create_webhook_event(
 
 
 def set_webhook_event_status(event_id, status):
-    _get_table().update_item(
-        Key={"event_id": event_id},
-        UpdateExpression="SET #status = :status, updated_at = :updated_at",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={
-            ":status": status,
-            ":updated_at": datetime.now(UTC).isoformat(),
-        },
-    )
+    allowed_current_statuses = _ALLOWED_CURRENT_STATUSES_BY_TARGET_STATUS.get(status)
+    if not allowed_current_statuses:
+        raise ValueError(f"Unsupported webhook event status transition target: {status}")
+
+    expression_attribute_values = {
+        ":status": status,
+        ":updated_at": datetime.now(UTC).isoformat(),
+    }
+    allowed_status_placeholders = []
+    for index, allowed_status in enumerate(sorted(allowed_current_statuses)):
+        placeholder = f":allowed_{index}"
+        allowed_status_placeholders.append(placeholder)
+        expression_attribute_values[placeholder] = allowed_status
+
+    try:
+        _get_table().update_item(
+            Key={"event_id": event_id},
+            UpdateExpression="SET #status = :status, updated_at = :updated_at",
+            ConditionExpression=(
+                "attribute_exists(event_id) AND "
+                f"#status IN ({', '.join(allowed_status_placeholders)})"
+            ),
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues=expression_attribute_values,
+        )
+    except ClientError as error:
+        if _is_conditional_check_failed(error):
+            return False
+        raise
+
+    return True
 
 
 def list_webhook_events(status=None):
