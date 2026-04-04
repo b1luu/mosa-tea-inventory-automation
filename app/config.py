@@ -94,6 +94,15 @@ def get_webhook_event_store_mode():
     return store_mode
 
 
+def get_merchant_store_mode():
+    store_mode = os.getenv("MERCHANT_STORE_MODE", "sqlite").strip().lower()
+    if store_mode not in {"sqlite", "dynamodb"}:
+        raise ValueError(
+            "Invalid MERCHANT_STORE_MODE value. Use 'sqlite' or 'dynamodb'."
+        )
+    return store_mode
+
+
 def get_aws_region():
     region = os.getenv("AWS_REGION")
     if not region:
@@ -132,6 +141,36 @@ def get_dynamodb_webhook_event_table_name():
             "Set it before using DynamoDB-backed webhook event state."
         )
     return table_name.strip()
+
+
+def get_dynamodb_merchant_connection_table_name():
+    table_name = os.getenv("DYNAMODB_MERCHANT_CONNECTION_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_MERCHANT_CONNECTION_TABLE. "
+            "Set it before using DynamoDB-backed merchant connection state."
+        )
+    return table_name.strip()
+
+
+def get_dynamodb_merchant_catalog_binding_table_name():
+    table_name = os.getenv("DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE. "
+            "Set it before using DynamoDB-backed merchant catalog bindings."
+        )
+    return table_name.strip()
+
+
+def get_merchant_secret_prefix():
+    prefix = os.getenv("MERCHANT_SECRET_PREFIX")
+    if not prefix:
+        raise ValueError(
+            "Missing required environment variable: MERCHANT_SECRET_PREFIX. "
+            "Set it before using Secrets Manager-backed merchant auth."
+        )
+    return prefix.strip().rstrip("/")
 
 
 def get_square_webhook_signature_key():

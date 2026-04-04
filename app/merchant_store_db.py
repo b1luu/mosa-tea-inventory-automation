@@ -3,20 +3,19 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.merchant_store_constants import (
+    AUTH_SOURCE_MANUAL_TOKEN,
+    AUTH_SOURCE_OAUTH,
+    BINDING_STATUS_APPROVED,
+    BINDING_STATUS_ARCHIVED,
+    BINDING_STATUS_DRAFT,
+    MERCHANT_STATUS_ACTIVE,
+    MERCHANT_STATUS_DISABLED,
+    MERCHANT_STATUS_PENDING,
+    MERCHANT_STATUS_REVOKED,
+)
 
 DB_FILE = Path("data/merchant_store.db")
-
-MERCHANT_STATUS_PENDING = "pending"
-MERCHANT_STATUS_ACTIVE = "active"
-MERCHANT_STATUS_REVOKED = "revoked"
-MERCHANT_STATUS_DISABLED = "disabled"
-
-AUTH_SOURCE_MANUAL_TOKEN = "manual_token"
-AUTH_SOURCE_OAUTH = "oauth"
-
-BINDING_STATUS_DRAFT = "draft"
-BINDING_STATUS_APPROVED = "approved"
-BINDING_STATUS_ARCHIVED = "archived"
 
 
 def _utcnow():

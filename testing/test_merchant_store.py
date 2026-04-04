@@ -171,6 +171,30 @@ class MerchantStoreTests(unittest.TestCase):
             merchant_store.get_merchant_context("production", "merchant-1").writes_enabled
         )
 
+    def test_get_merchant_context_uses_dynamodb_backend_when_configured(self):
+        with (
+            patch("app.merchant_store.get_merchant_store_mode", return_value="dynamodb"),
+            patch(
+                "app.merchant_store.merchant_store_dynamodb.get_merchant_connection",
+                return_value={
+                    "environment": "production",
+                    "merchant_id": "merchant-9",
+                    "status": "active",
+                    "auth_mode": "oauth",
+                    "display_name": "Prod Merchant",
+                    "selected_location_id": "LOC-9",
+                    "writes_enabled": True,
+                    "active_binding_version": 3,
+                },
+            ),
+        ):
+            context = merchant_store.get_merchant_context("production", "merchant-9")
+
+        self.assertEqual(context.merchant_id, "merchant-9")
+        self.assertEqual(context.location_id, "LOC-9")
+        self.assertTrue(context.writes_enabled)
+        self.assertEqual(context.binding_version, 3)
+
 
 if __name__ == "__main__":
     unittest.main()

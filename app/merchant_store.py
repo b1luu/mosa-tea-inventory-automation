@@ -1,7 +1,17 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from app import merchant_store_db
+from app.config import get_merchant_store_mode
+from app import merchant_store_db, merchant_store_dynamodb
+from app.merchant_store_constants import (
+    AUTH_SOURCE_MANUAL_TOKEN,
+    AUTH_SOURCE_OAUTH,
+    BINDING_STATUS_APPROVED,
+    BINDING_STATUS_DRAFT,
+    MERCHANT_STATUS_ACTIVE,
+    MERCHANT_STATUS_DISABLED,
+    MERCHANT_STATUS_REVOKED,
+)
 from app.square_oauth import refresh_authorization_token
 
 
@@ -37,8 +47,17 @@ def _oauth_token_needs_refresh(expires_at, *, refresh_window_seconds=300):
     return expires_at_dt <= datetime.now(UTC) + timedelta(seconds=refresh_window_seconds)
 
 
+def _get_store_backend():
+    store_mode = get_merchant_store_mode()
+    if store_mode == "sqlite":
+        return merchant_store_db
+    if store_mode == "dynamodb":
+        return merchant_store_dynamodb
+    raise ValueError(f"Unsupported merchant store mode: {store_mode}")
+
+
 def get_merchant_context(environment, merchant_id):
-    connection = merchant_store_db.get_merchant_connection(environment, merchant_id)
+    connection = _get_store_backend().get_merchant_connection(environment, merchant_id)
     if not connection:
         return None
 
@@ -66,16 +85,16 @@ def list_merchant_contexts(status=None):
             binding_version=connection["active_binding_version"],
             display_name=connection["display_name"],
         )
-        for connection in merchant_store_db.list_merchant_connections(status=status)
+        for connection in _get_store_backend().list_merchant_connections(status=status)
     ]
 
 
 def get_merchant_access_token(environment, merchant_id):
-    return merchant_store_db.get_merchant_access_token(environment, merchant_id)
+    return _get_store_backend().get_merchant_access_token(environment, merchant_id)
 
 
 def get_merchant_auth_record(environment, merchant_id):
-    return merchant_store_db.get_merchant_auth(environment, merchant_id)
+    return _get_store_backend().get_merchant_auth(environment, merchant_id)
 
 
 def refresh_oauth_merchant_access_token(
@@ -85,6 +104,7 @@ def refresh_oauth_merchant_access_token(
     force=False,
     refresh_window_seconds=300,
 ):
+    backend = _get_store_backend()
     auth_record = get_merchant_auth_record(environment, merchant_id)
     if not auth_record:
         raise ValueError(
@@ -92,7 +112,7 @@ def refresh_oauth_merchant_access_token(
             f"in environment {environment!r}."
         )
 
-    if auth_record["source"] != merchant_store_db.AUTH_SOURCE_OAUTH:
+    if auth_record["source"] != AUTH_SOURCE_OAUTH:
         raise ValueError(
             f"Merchant {merchant_id!r} in environment {environment!r} is not using OAuth."
         )
@@ -119,7 +139,7 @@ def refresh_oauth_merchant_access_token(
             "Square returned a refreshed token for a different merchant than expected."
         )
 
-    merchant_store_db.upsert_merchant_auth(
+    backend.upsert_merchant_auth(
         environment,
         merchant_id,
         token_response.access_token,
@@ -134,7 +154,7 @@ def refresh_oauth_merchant_access_token(
             else auth_record["short_lived"]
         ),
         scopes=auth_record["scopes"],
-        source=merchant_store_db.AUTH_SOURCE_OAUTH,
+        source=AUTH_SOURCE_OAUTH,
     )
     return get_merchant_auth_record(environment, merchant_id)
 
@@ -152,7 +172,7 @@ def resolve_merchant_access_token(
 
     if (
         refresh_if_needed
-        and auth_record["source"] == merchant_store_db.AUTH_SOURCE_OAUTH
+        and auth_record["source"] == AUTH_SOURCE_OAUTH
         and auth_record["refresh_token"]
     ):
         auth_record = refresh_oauth_merchant_access_token(
@@ -166,7 +186,7 @@ def resolve_merchant_access_token(
 
 
 def get_active_catalog_binding(environment, merchant_id, location_id):
-    return merchant_store_db.get_active_catalog_binding(
+    return _get_store_backend().get_active_catalog_binding(
         environment,
         merchant_id,
         location_id,
@@ -174,7 +194,7 @@ def get_active_catalog_binding(environment, merchant_id, location_id):
 
 
 def list_catalog_bindings(environment, merchant_id, *, location_id=None, status=None):
-    return merchant_store_db.list_merchant_catalog_bindings(
+    return _get_store_backend().list_merchant_catalog_bindings(
         environment,
         merchant_id,
         location_id=location_id,
@@ -196,7 +216,7 @@ def get_merchant_write_readiness(environment, merchant_id):
     if merchant_context is None:
         reasons.append("merchant_not_found")
     else:
-        if merchant_context.status != merchant_store_db.MERCHANT_STATUS_ACTIVE:
+        if merchant_context.status != MERCHANT_STATUS_ACTIVE:
             reasons.append(f"merchant_status_{merchant_context.status}")
         if not merchant_context.location_id:
             reasons.append("missing_selected_location")
@@ -224,23 +244,24 @@ def upsert_manual_merchant(
     display_name=None,
     scopes=None,
     writes_enabled=False,
-    status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
+    status=MERCHANT_STATUS_ACTIVE,
 ):
-    merchant_store_db.upsert_merchant_connection(
+    backend = _get_store_backend()
+    backend.upsert_merchant_connection(
         environment,
         merchant_id,
         status=status,
-        auth_mode=merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN,
+        auth_mode=AUTH_SOURCE_MANUAL_TOKEN,
         display_name=display_name,
         selected_location_id=selected_location_id,
         writes_enabled=writes_enabled,
     )
-    merchant_store_db.upsert_merchant_auth(
+    backend.upsert_merchant_auth(
         environment,
         merchant_id,
         access_token,
         scopes=scopes,
-        source=merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN,
+        source=AUTH_SOURCE_MANUAL_TOKEN,
     )
     return get_merchant_context(environment, merchant_id)
 
@@ -258,18 +279,19 @@ def upsert_oauth_merchant(
     short_lived=None,
     scopes=None,
     writes_enabled=False,
-    status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
+    status=MERCHANT_STATUS_ACTIVE,
 ):
-    merchant_store_db.upsert_merchant_connection(
+    backend = _get_store_backend()
+    backend.upsert_merchant_connection(
         environment,
         merchant_id,
         status=status,
-        auth_mode=merchant_store_db.AUTH_SOURCE_OAUTH,
+        auth_mode=AUTH_SOURCE_OAUTH,
         display_name=display_name,
         selected_location_id=selected_location_id,
         writes_enabled=writes_enabled,
     )
-    merchant_store_db.upsert_merchant_auth(
+    backend.upsert_merchant_auth(
         environment,
         merchant_id,
         access_token,
@@ -278,13 +300,13 @@ def upsert_oauth_merchant(
         expires_at=expires_at,
         short_lived=short_lived,
         scopes=scopes,
-        source=merchant_store_db.AUTH_SOURCE_OAUTH,
+        source=AUTH_SOURCE_OAUTH,
     )
     return get_merchant_context(environment, merchant_id)
 
 
 def set_selected_location_id(environment, merchant_id, selected_location_id):
-    return merchant_store_db.set_selected_location_id(
+    return _get_store_backend().set_selected_location_id(
         environment,
         merchant_id,
         selected_location_id,
@@ -292,26 +314,26 @@ def set_selected_location_id(environment, merchant_id, selected_location_id):
 
 
 def enable_merchant_writes(environment, merchant_id):
-    return merchant_store_db.set_writes_enabled(environment, merchant_id, True)
+    return _get_store_backend().set_writes_enabled(environment, merchant_id, True)
 
 
 def disable_merchant_writes(environment, merchant_id):
-    return merchant_store_db.set_writes_enabled(environment, merchant_id, False)
+    return _get_store_backend().set_writes_enabled(environment, merchant_id, False)
 
 
 def revoke_merchant(environment, merchant_id):
-    return merchant_store_db.set_merchant_connection_status(
+    return _get_store_backend().set_merchant_connection_status(
         environment,
         merchant_id,
-        merchant_store_db.MERCHANT_STATUS_REVOKED,
+        MERCHANT_STATUS_REVOKED,
     )
 
 
 def disable_merchant(environment, merchant_id):
-    return merchant_store_db.set_merchant_connection_status(
+    return _get_store_backend().set_merchant_connection_status(
         environment,
         merchant_id,
-        merchant_store_db.MERCHANT_STATUS_DISABLED,
+        MERCHANT_STATUS_DISABLED,
     )
 
 
@@ -322,11 +344,12 @@ def upsert_catalog_binding(
     version,
     mapping,
     *,
-    status=merchant_store_db.BINDING_STATUS_DRAFT,
+    status=BINDING_STATUS_DRAFT,
     notes=None,
 ):
-    approved_at = _utcnow() if status == merchant_store_db.BINDING_STATUS_APPROVED else None
-    merchant_store_db.upsert_merchant_catalog_binding(
+    backend = _get_store_backend()
+    approved_at = _utcnow() if status == BINDING_STATUS_APPROVED else None
+    backend.upsert_merchant_catalog_binding(
         environment,
         merchant_id,
         location_id,
@@ -336,13 +359,13 @@ def upsert_catalog_binding(
         notes=notes,
         approved_at=approved_at,
     )
-    if status == merchant_store_db.BINDING_STATUS_APPROVED:
-        merchant_store_db.set_active_binding_version(
+    if status == BINDING_STATUS_APPROVED:
+        backend.set_active_binding_version(
             environment,
             merchant_id,
             version,
         )
-    return merchant_store_db.get_merchant_catalog_binding(
+    return backend.get_merchant_catalog_binding(
         environment,
         merchant_id,
         location_id,
@@ -351,19 +374,20 @@ def upsert_catalog_binding(
 
 
 def approve_catalog_binding(environment, merchant_id, location_id, version):
+    backend = _get_store_backend()
     approved_at = _utcnow()
-    updated = merchant_store_db.set_catalog_binding_status(
+    updated = backend.set_catalog_binding_status(
         environment,
         merchant_id,
         location_id,
         version,
-        merchant_store_db.BINDING_STATUS_APPROVED,
+        BINDING_STATUS_APPROVED,
         approved_at=approved_at,
     )
     if not updated:
         return False
 
-    merchant_store_db.set_active_binding_version(
+    backend.set_active_binding_version(
         environment,
         merchant_id,
         version,
@@ -372,6 +396,7 @@ def approve_catalog_binding(environment, merchant_id, location_id, version):
 
 
 def enable_merchant_writes_if_ready(environment, merchant_id):
+    backend = _get_store_backend()
     readiness = get_merchant_write_readiness(environment, merchant_id)
     if not readiness["ready"]:
         return {
@@ -379,7 +404,7 @@ def enable_merchant_writes_if_ready(environment, merchant_id):
             "readiness": readiness,
         }
 
-    enabled = merchant_store_db.set_writes_enabled(environment, merchant_id, True)
+    enabled = backend.set_writes_enabled(environment, merchant_id, True)
     return {
         "enabled": enabled,
         "readiness": get_merchant_write_readiness(environment, merchant_id),
