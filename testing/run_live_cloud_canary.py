@@ -29,6 +29,17 @@ DEFAULT_TIMEOUT_SECONDS = 120
 DEFAULT_POLL_SECONDS = 3
 
 
+def _status_line(message, **fields):
+    parts = [message]
+    for key, value in fields.items():
+        parts.append(f"{key}={json.dumps(to_jsonable(value), sort_keys=True)}")
+    return " | ".join(parts)
+
+
+def _emit_status(message, **fields):
+    print(_status_line(message, **fields), file=sys.stderr, flush=True)
+
+
 def _usage():
     return (
         "Usage: ./.venv/bin/python -m testing.run_live_cloud_canary "
@@ -210,15 +221,31 @@ def _inventory_mismatches(before_summaries, after_summaries):
     return mismatches
 
 
-def _wait_for_square_order_completed(client, order_id, timeout_seconds, poll_seconds):
+def _wait_for_square_order_completed(
+    client,
+    order_id,
+    timeout_seconds,
+    poll_seconds,
+    status_callback=None,
+):
     deadline = time.time() + timeout_seconds
     last_order = None
+    attempt = 0
 
     while time.time() <= deadline:
+        attempt += 1
         response = client.orders.get(order_id=order_id)
         last_order = response.order
         if last_order and last_order.state == "COMPLETED":
             return last_order
+        if status_callback:
+            status_callback(
+                "waiting_for_square_order_completion",
+                attempt=attempt,
+                order_id=order_id,
+                current_state=getattr(last_order, "state", None),
+                elapsed_seconds=round(timeout_seconds - max(deadline - time.time(), 0), 2),
+            )
         time.sleep(poll_seconds)
 
     raise RuntimeError(
@@ -227,11 +254,18 @@ def _wait_for_square_order_completed(client, order_id, timeout_seconds, poll_sec
     )
 
 
-def _wait_for_pipeline_settlement(order_id, timeout_seconds, poll_seconds):
+def _wait_for_pipeline_settlement(
+    order_id,
+    timeout_seconds,
+    poll_seconds,
+    status_callback=None,
+):
     deadline = time.time() + timeout_seconds
     last_snapshot = None
+    attempt = 0
 
     while time.time() <= deadline:
+        attempt += 1
         order_row = _get_order_processing_row(order_id)
         events = _list_webhook_events_for_order(order_id)
         event_summary = _summarize_webhook_events(events)
@@ -246,6 +280,17 @@ def _wait_for_pipeline_settlement(order_id, timeout_seconds, poll_seconds):
         if _pipeline_has_terminal_failure(order_row, event_summary):
             raise RuntimeError(
                 f"Webhook pipeline reached a failure state for order '{order_id}'."
+            )
+        if status_callback:
+            status_callback(
+                "waiting_for_aws_pipeline",
+                attempt=attempt,
+                order_id=order_id,
+                processing_state=(order_row or {}).get("processing_state"),
+                processed_count=event_summary["processed_count"],
+                failed_count=event_summary["failed_count"],
+                total_events=event_summary["total"],
+                elapsed_seconds=round(timeout_seconds - max(deadline - time.time(), 0), 2),
             )
 
         time.sleep(poll_seconds)
@@ -263,11 +308,14 @@ def _wait_for_inventory_counts(
     before_summaries,
     timeout_seconds,
     poll_seconds,
+    status_callback=None,
 ):
     deadline = time.time() + timeout_seconds
     last_mismatches = None
+    attempt = 0
 
     while time.time() <= deadline:
+        attempt += 1
         counts = _fetch_inventory_counts(client, targets, location_id)
         after_summaries = _build_inventory_summary_by_key(
             targets,
@@ -277,6 +325,15 @@ def _wait_for_inventory_counts(
         last_mismatches = _inventory_mismatches(before_summaries, after_summaries)
         if not last_mismatches:
             return after_summaries
+        if status_callback:
+            status_callback(
+                "waiting_for_inventory_counts",
+                attempt=attempt,
+                location_id=location_id,
+                mismatch_count=len(last_mismatches),
+                sample_mismatch=last_mismatches[0],
+                elapsed_seconds=round(timeout_seconds - max(deadline - time.time(), 0), 2),
+            )
         time.sleep(poll_seconds)
 
     raise RuntimeError(
@@ -337,6 +394,14 @@ def main():
 
     client = create_square_client()
     try:
+        _emit_status(
+            "canary_started",
+            scenario_name=scenario_name,
+            location_id=location_id,
+            timeout_seconds=timeout_seconds,
+            poll_seconds=poll_seconds,
+        )
+        _emit_status("fetching_inventory_before", target_count=len(targets))
         before_counts = _fetch_inventory_counts(client, targets, location_id)
         before_summaries = _build_inventory_summary_by_key(
             targets,
@@ -346,17 +411,30 @@ def main():
             source={"kind": "scenario", "name": scenario_name},
         )
 
+        _emit_status("creating_and_paying_order", scenario_name=scenario_name)
         order_payload, created_order, payment = _create_and_pay_order(
             client,
             location_id,
             scenario_name,
             scenario,
         )
+        _emit_status(
+            "order_created",
+            order_id=created_order.id,
+            payment_id=payment.id if payment else None,
+            payment_status=payment.status if payment else None,
+        )
         completed_order = _wait_for_square_order_completed(
             client,
             created_order.id,
             timeout_seconds=timeout_seconds,
             poll_seconds=poll_seconds,
+            status_callback=_emit_status,
+        )
+        _emit_status(
+            "square_order_completed",
+            order_id=completed_order.id,
+            state=completed_order.state,
         )
         live_order_summary = summarize_order(completed_order)
         live_projected_line_items, live_combined_usage = project_order_summary(
@@ -374,6 +452,15 @@ def main():
             completed_order.id,
             timeout_seconds=timeout_seconds,
             poll_seconds=poll_seconds,
+            status_callback=_emit_status,
+        )
+        _emit_status(
+            "aws_pipeline_settled",
+            order_id=completed_order.id,
+            processing_state=(pipeline_snapshot["order_processing"] or {}).get(
+                "processing_state"
+            ),
+            webhook_event_summary=pipeline_snapshot["webhook_event_summary"],
         )
         after_summaries = _wait_for_inventory_counts(
             client,
@@ -382,6 +469,11 @@ def main():
             before_summaries,
             timeout_seconds=timeout_seconds,
             poll_seconds=poll_seconds,
+            status_callback=_emit_status,
+        )
+        _emit_status(
+            "inventory_counts_settled",
+            inventory_keys=sorted(after_summaries.keys()),
         )
     except (ApiError, RuntimeError) as error:
         print(f"canary_error: {error}")
@@ -413,6 +505,7 @@ def main():
         "success": True,
     }
 
+    _emit_status("canary_complete", order_id=created_order.id, success=True)
     print(json.dumps(to_jsonable(result), indent=2))
     return 0
 

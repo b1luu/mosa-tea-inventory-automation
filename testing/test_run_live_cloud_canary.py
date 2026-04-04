@@ -1,5 +1,6 @@
 import unittest
 from decimal import Decimal
+from unittest.mock import patch
 
 from testing.run_live_cloud_canary import (
     _inventory_mismatches,
@@ -7,6 +8,8 @@ from testing.run_live_cloud_canary import (
     _pipeline_has_terminal_failure,
     _pipeline_is_settled,
     _summarize_webhook_events,
+    _wait_for_pipeline_settlement,
+    _wait_for_square_order_completed,
 )
 
 
@@ -118,6 +121,91 @@ class LiveCloudCanaryTests(unittest.TestCase):
 
         self.assertEqual(len(mismatches), 1)
         self.assertEqual(mismatches[0]["inventory_key"], "tgy")
+
+    def test_wait_for_square_order_completed_emits_poll_status(self):
+        states = iter(["OPEN", "COMPLETED"])
+
+        client = type(
+            "Client",
+            (),
+            {
+                "orders": type(
+                    "Orders",
+                    (),
+                    {
+                        "get": staticmethod(
+                            lambda order_id: type(
+                                "Response",
+                                (),
+                                {
+                                    "order": type(
+                                        "Order",
+                                        (),
+                                        {"id": order_id, "state": next(states)},
+                                    )()
+                                },
+                            )()
+                        )
+                    },
+                )()
+            },
+        )()
+        events = []
+
+        order = _wait_for_square_order_completed(
+            client,
+            "order-1",
+            timeout_seconds=1,
+            poll_seconds=0,
+            status_callback=lambda message, **fields: events.append((message, fields)),
+        )
+
+        self.assertEqual(order.state, "COMPLETED")
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0][0], "waiting_for_square_order_completion")
+        self.assertEqual(events[0][1]["current_state"], "OPEN")
+
+    def test_wait_for_pipeline_settlement_emits_poll_status(self):
+        order_rows = iter(
+            [
+                {"processing_state": "pending"},
+                {"processing_state": "applied"},
+            ]
+        )
+        event_lists = iter(
+            [
+                [{"status": "enqueued"}],
+                [{"status": "processed"}],
+            ]
+        )
+        events = []
+
+        with (
+            patch(
+                "testing.run_live_cloud_canary._get_order_processing_row",
+                side_effect=lambda order_id: next(order_rows),
+            ),
+            patch(
+                "testing.run_live_cloud_canary._list_webhook_events_for_order",
+                side_effect=lambda order_id: next(event_lists),
+            ),
+        ):
+            snapshot = _wait_for_pipeline_settlement(
+                "order-1",
+                timeout_seconds=1,
+                poll_seconds=0,
+                status_callback=lambda message, **fields: events.append(
+                    (message, fields)
+                ),
+            )
+
+        self.assertEqual(
+            snapshot["order_processing"]["processing_state"],
+            "applied",
+        )
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0][0], "waiting_for_aws_pipeline")
+        self.assertEqual(events[0][1]["processing_state"], "pending")
 
 
 if __name__ == "__main__":
