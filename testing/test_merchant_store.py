@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app import merchant_store, merchant_store_db
 
@@ -82,6 +83,45 @@ class MerchantStoreTests(unittest.TestCase):
             "LOC-1",
         )
         self.assertEqual(binding["version"], 2)
+
+    def test_refresh_oauth_merchant_access_token_persists_new_access_token(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            expires_at="2026-04-01T00:00:00Z",
+            scopes=["ORDERS_READ"],
+        )
+        token_response = type(
+            "TokenResponse",
+            (),
+            {
+                "access_token": "access-2",
+                "refresh_token": "refresh-1",
+                "merchant_id": "merchant-1",
+                "token_type": "bearer",
+                "expires_at": "2026-05-01T00:00:00Z",
+                "short_lived": False,
+            },
+        )()
+
+        with patch(
+            "app.merchant_store.refresh_authorization_token",
+            return_value=token_response,
+        ) as mock_refresh:
+            refreshed = merchant_store.refresh_oauth_merchant_access_token(
+                "production",
+                "merchant-1",
+                force=True,
+            )
+
+        mock_refresh.assert_called_once_with("production", "refresh-1")
+        self.assertEqual(refreshed["access_token"], "access-2")
+        self.assertEqual(
+            merchant_store.resolve_merchant_access_token("production", "merchant-1"),
+            "access-2",
+        )
 
 
 if __name__ == "__main__":

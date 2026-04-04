@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from app import merchant_store_db
+from app.square_oauth import refresh_authorization_token
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,22 @@ class MerchantContext:
 
 def _utcnow():
     return datetime.now(UTC).isoformat()
+
+
+def _parse_datetime(value):
+    if not value:
+        return None
+
+    normalized = value.replace("Z", "+00:00") if value.endswith("Z") else value
+    return datetime.fromisoformat(normalized)
+
+
+def _oauth_token_needs_refresh(expires_at, *, refresh_window_seconds=300):
+    expires_at_dt = _parse_datetime(expires_at)
+    if expires_at_dt is None:
+        return False
+
+    return expires_at_dt <= datetime.now(UTC) + timedelta(seconds=refresh_window_seconds)
 
 
 def get_merchant_context(environment, merchant_id):
@@ -55,6 +72,97 @@ def list_merchant_contexts(status=None):
 
 def get_merchant_access_token(environment, merchant_id):
     return merchant_store_db.get_merchant_access_token(environment, merchant_id)
+
+
+def get_merchant_auth_record(environment, merchant_id):
+    return merchant_store_db.get_merchant_auth(environment, merchant_id)
+
+
+def refresh_oauth_merchant_access_token(
+    environment,
+    merchant_id,
+    *,
+    force=False,
+    refresh_window_seconds=300,
+):
+    auth_record = get_merchant_auth_record(environment, merchant_id)
+    if not auth_record:
+        raise ValueError(
+            f"No Square auth record found for merchant {merchant_id!r} "
+            f"in environment {environment!r}."
+        )
+
+    if auth_record["source"] != merchant_store_db.AUTH_SOURCE_OAUTH:
+        raise ValueError(
+            f"Merchant {merchant_id!r} in environment {environment!r} is not using OAuth."
+        )
+
+    if not auth_record["refresh_token"]:
+        raise ValueError(
+            f"Merchant {merchant_id!r} in environment {environment!r} has no refresh token."
+        )
+
+    if not force and not _oauth_token_needs_refresh(
+        auth_record["expires_at"],
+        refresh_window_seconds=refresh_window_seconds,
+    ):
+        return auth_record
+
+    token_response = refresh_authorization_token(
+        environment,
+        auth_record["refresh_token"],
+    )
+
+    response_merchant_id = getattr(token_response, "merchant_id", None)
+    if response_merchant_id and response_merchant_id != merchant_id:
+        raise ValueError(
+            "Square returned a refreshed token for a different merchant than expected."
+        )
+
+    merchant_store_db.upsert_merchant_auth(
+        environment,
+        merchant_id,
+        token_response.access_token,
+        refresh_token=(
+            getattr(token_response, "refresh_token", None) or auth_record["refresh_token"]
+        ),
+        token_type=getattr(token_response, "token_type", None) or auth_record["token_type"],
+        expires_at=getattr(token_response, "expires_at", None) or auth_record["expires_at"],
+        short_lived=(
+            getattr(token_response, "short_lived", None)
+            if getattr(token_response, "short_lived", None) is not None
+            else auth_record["short_lived"]
+        ),
+        scopes=auth_record["scopes"],
+        source=merchant_store_db.AUTH_SOURCE_OAUTH,
+    )
+    return get_merchant_auth_record(environment, merchant_id)
+
+
+def resolve_merchant_access_token(
+    environment,
+    merchant_id,
+    *,
+    refresh_if_needed=True,
+    refresh_window_seconds=300,
+):
+    auth_record = get_merchant_auth_record(environment, merchant_id)
+    if not auth_record:
+        return None
+
+    if (
+        refresh_if_needed
+        and auth_record["source"] == merchant_store_db.AUTH_SOURCE_OAUTH
+        and auth_record["refresh_token"]
+    ):
+        auth_record = refresh_oauth_merchant_access_token(
+            environment,
+            merchant_id,
+            force=False,
+            refresh_window_seconds=refresh_window_seconds,
+        )
+
+    return auth_record["access_token"]
 
 
 def get_active_catalog_binding(environment, merchant_id, location_id):

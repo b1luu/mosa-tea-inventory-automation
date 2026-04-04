@@ -3,7 +3,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from square.core.api_error import ApiError
 
 from app.config import get_square_environment_name
-from app.merchant_store import list_merchant_contexts, upsert_oauth_merchant
+from app.merchant_store import (
+    get_merchant_auth_record,
+    list_merchant_contexts,
+    refresh_oauth_merchant_access_token,
+    upsert_oauth_merchant,
+)
 from app.oauth_state_db import consume_oauth_state, create_oauth_state
 from app.square_oauth import (
     build_square_oauth_authorization_url,
@@ -29,6 +34,21 @@ def _resolve_environment(environment=None):
             detail="Invalid environment. Use 'sandbox' or 'production'.",
         )
     return normalized
+
+
+def _summarize_auth_record(auth_record):
+    if not auth_record:
+        return None
+
+    return {
+        "source": auth_record["source"],
+        "token_type": auth_record["token_type"],
+        "expires_at": auth_record["expires_at"],
+        "short_lived": auth_record["short_lived"],
+        "scopes": auth_record["scopes"],
+        "has_refresh_token": bool(auth_record["refresh_token"]),
+        "updated_at": auth_record["updated_at"],
+    }
 
 
 @oauth_router.get("/oauth/square/start")
@@ -161,7 +181,55 @@ async def square_oauth_status():
                 "selected_location_id": context.location_id,
                 "writes_enabled": context.writes_enabled,
                 "binding_version": context.binding_version,
+                "auth": _summarize_auth_record(
+                    get_merchant_auth_record(
+                        context.environment,
+                        context.merchant_id,
+                    )
+                ),
             }
             for context in contexts
         ]
+    }
+
+
+@oauth_router.post("/oauth/square/refresh/{merchant_id}")
+async def square_oauth_refresh(
+    merchant_id: str,
+    environment: str | None = Query(default=None),
+):
+    resolved_environment = _resolve_environment(environment)
+
+    try:
+        auth_record = refresh_oauth_merchant_access_token(
+            resolved_environment,
+            merchant_id,
+            force=True,
+        )
+    except ValueError as error_response:
+        raise HTTPException(status_code=400, detail=str(error_response)) from error_response
+    except ApiError as error_response:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "oauth_token_refresh_failed",
+                "detail": str(error_response),
+            },
+        )
+
+    token_status = retrieve_token_status(
+        resolved_environment,
+        auth_record["access_token"],
+    )
+    return {
+        "refreshed": True,
+        "merchant_id": merchant_id,
+        "environment": resolved_environment,
+        "auth": _summarize_auth_record(auth_record),
+        "token_status": {
+            "merchant_id": token_status.merchant_id,
+            "client_id": token_status.client_id,
+            "expires_at": token_status.expires_at,
+            "scopes": token_status.scopes,
+        },
     }

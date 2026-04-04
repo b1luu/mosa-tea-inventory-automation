@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 from square import Square
 from square.environment import SquareEnvironment
 
-from app.client import create_square_client
 from app.config import (
     get_square_oauth_client_id,
     get_square_oauth_client_secret,
@@ -25,6 +24,17 @@ def _create_square_oauth_client(environment):
             if environment == "sandbox"
             else SquareEnvironment.PRODUCTION
         )
+    )
+
+
+def _create_square_merchant_client(environment, access_token):
+    return Square(
+        environment=(
+            SquareEnvironment.SANDBOX
+            if environment == "sandbox"
+            else SquareEnvironment.PRODUCTION
+        ),
+        token=access_token,
     )
 
 
@@ -52,19 +62,23 @@ def exchange_authorization_code(environment, code):
     )
 
 
-def retrieve_token_status(environment, access_token):
-    client = create_square_client(
-        access_token=access_token,
-        environment_name=environment,
+def refresh_authorization_token(environment, refresh_token):
+    client = _create_square_oauth_client(environment)
+    return client.o_auth.obtain_token(
+        client_id=get_square_oauth_client_id(),
+        client_secret=get_square_oauth_client_secret(),
+        grant_type="refresh_token",
+        refresh_token=refresh_token,
     )
+
+
+def retrieve_token_status(environment, access_token):
+    client = _create_square_merchant_client(environment, access_token)
     return client.o_auth.retrieve_token_status()
 
 
 def list_locations_for_merchant(environment, access_token):
-    client = create_square_client(
-        access_token=access_token,
-        environment_name=environment,
-    )
+    client = _create_square_merchant_client(environment, access_token)
     response = client.locations.list()
     return list(response.locations or [])
 

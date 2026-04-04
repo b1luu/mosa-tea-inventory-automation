@@ -2,7 +2,7 @@ from square import Square
 from square.environment import SquareEnvironment
 
 from app.config import get_square_access_token, get_square_environment_name
-from app.merchant_store import get_merchant_access_token
+from app.merchant_store import resolve_merchant_access_token
 
 
 def _resolve_square_access_token(access_token=None):
@@ -34,7 +34,7 @@ def create_square_client(access_token=None, environment_name=None):
 
 
 def create_square_client_for_merchant(environment, merchant_id):
-    access_token = get_merchant_access_token(environment, merchant_id)
+    access_token = resolve_merchant_access_token(environment, merchant_id)
     if not access_token:
         raise ValueError(
             f"No active Square access token found for merchant {merchant_id!r} "

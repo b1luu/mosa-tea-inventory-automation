@@ -153,6 +153,18 @@ class OAuthRouteTests(unittest.TestCase):
                     display_name="Tea Shop LLC",
                 )
             ],
+        ), patch(
+            "app.oauth_routes.get_merchant_auth_record",
+            return_value={
+                "access_token": "secret-access",
+                "refresh_token": "secret-refresh",
+                "source": "oauth",
+                "token_type": "bearer",
+                "expires_at": "2026-05-01T00:00:00Z",
+                "short_lived": False,
+                "scopes": ["ORDERS_READ"],
+                "updated_at": "2026-04-04T00:00:00Z",
+            },
         ):
             response = client.get("/oauth/square/status")
 
@@ -161,6 +173,55 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertEqual(len(merchants), 1)
         self.assertEqual(merchants[0]["merchant_id"], "merchant-1")
         self.assertEqual(merchants[0]["binding_version"], 3)
+        self.assertTrue(merchants[0]["auth"]["has_refresh_token"])
+        self.assertNotIn("access_token", merchants[0]["auth"])
+
+    def test_oauth_refresh_endpoint_returns_updated_status(self):
+        client = TestClient(server.app)
+
+        auth_record = {
+            "environment": "production",
+            "merchant_id": "merchant-1",
+            "access_token": "access-2",
+            "refresh_token": "refresh-1",
+            "token_type": "bearer",
+            "expires_at": "2026-05-01T00:00:00Z",
+            "short_lived": False,
+            "scopes": ["ORDERS_READ", "INVENTORY_WRITE"],
+            "source": "oauth",
+            "created_at": "2026-04-04T00:00:00Z",
+            "updated_at": "2026-04-04T00:01:00Z",
+        }
+        token_status = type(
+            "TokenStatus",
+            (),
+            {
+                "merchant_id": "merchant-1",
+                "client_id": "sq0idp-app",
+                "expires_at": "2026-05-01T00:00:00Z",
+                "scopes": ["ORDERS_READ", "INVENTORY_WRITE"],
+            },
+        )()
+
+        with (
+            patch(
+                "app.oauth_routes.refresh_oauth_merchant_access_token",
+                return_value=auth_record,
+            ) as mock_refresh,
+            patch(
+                "app.oauth_routes.retrieve_token_status",
+                return_value=token_status,
+            ),
+        ):
+            response = client.post("/oauth/square/refresh/merchant-1?environment=production")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["refreshed"])
+        self.assertEqual(body["merchant_id"], "merchant-1")
+        self.assertTrue(body["auth"]["has_refresh_token"])
+        self.assertNotIn("access_token", body["auth"])
+        mock_refresh.assert_called_once_with("production", "merchant-1", force=True)
 
 
 if __name__ == "__main__":
