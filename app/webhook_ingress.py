@@ -17,7 +17,11 @@ from app.config import (
     get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
-from app.merchant_store import get_merchant_context
+from app.merchant_store import (
+    disable_merchant_writes,
+    get_merchant_context,
+    revoke_merchant,
+)
 from app.order_processing_store import (
     clear_order_processing_reservation,
     get_order_processing_state,
@@ -62,6 +66,8 @@ class WebhookIngressDependencies:
     update_last_synced_at: Callable[[str], Any]
     get_square_environment_name: Callable[[], str]
     get_merchant_context: Callable[[str, str], Any]
+    disable_merchant_writes: Callable[[str, str], Any]
+    revoke_merchant: Callable[[str, str], Any]
 
 
 def default_webhook_ingress_dependencies():
@@ -84,6 +90,8 @@ def default_webhook_ingress_dependencies():
         update_last_synced_at=update_last_synced_at,
         get_square_environment_name=get_square_environment_name,
         get_merchant_context=get_merchant_context,
+        disable_merchant_writes=disable_merchant_writes,
+        revoke_merchant=revoke_merchant,
     )
 
 
@@ -237,6 +245,95 @@ def _log_catalog_webhook_disabled(event_id):
     )
 
 
+def _process_oauth_revoked_event(payload, deps, *, existing_event=None):
+    event_id = payload.get("event_id")
+    event_type = payload.get("type")
+    merchant_id = payload.get("merchant_id")
+    runtime_environment = deps.get_square_environment_name()
+
+    duplicate_event = bool(
+        existing_event and existing_event.get("status") != EVENT_STATUS_FAILED
+    )
+    if duplicate_event:
+        print("oauth_revocation_webhook_duplicate:")
+        print(json.dumps({"event_id": event_id, "event_type": event_type}, indent=2))
+        return
+
+    if event_id:
+        if existing_event is None:
+            created = _create_square_webhook_event(
+                payload,
+                {},
+                EVENT_STATUS_RECEIVED,
+                deps,
+            )
+            if not created:
+                existing_event = deps.get_webhook_event(event_id)
+                duplicate_event = bool(
+                    existing_event and existing_event.get("status") != EVENT_STATUS_FAILED
+                )
+                if duplicate_event:
+                    print("oauth_revocation_webhook_duplicate:")
+                    print(
+                        json.dumps(
+                            {"event_id": event_id, "event_type": event_type},
+                            indent=2,
+                        )
+                    )
+                    return
+        elif existing_event.get("status") == EVENT_STATUS_FAILED:
+            deps.set_webhook_event_status(event_id, EVENT_STATUS_RECEIVED)
+
+    merchant_context = (
+        deps.get_merchant_context(runtime_environment, merchant_id)
+        if merchant_id
+        else None
+    )
+
+    try:
+        if merchant_context:
+            deps.disable_merchant_writes(runtime_environment, merchant_id)
+            deps.revoke_merchant(runtime_environment, merchant_id)
+        if event_id:
+            deps.set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
+    except Exception as exc:
+        if event_id:
+            deps.set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
+        print("oauth_revocation_webhook_failed:")
+        print(
+            json.dumps(
+                {
+                    "event_id": event_id,
+                    "event_type": event_type,
+                    "merchant_id": merchant_id,
+                    "environment": runtime_environment,
+                    "error": str(exc),
+                },
+                indent=2,
+            )
+        )
+        raise
+
+    print("oauth_revocation_webhook:")
+    print(
+        json.dumps(
+            {
+                "event_id": event_id,
+                "event_type": event_type,
+                "merchant_id": merchant_id,
+                "environment": runtime_environment,
+                "merchant_status_before": (
+                    getattr(merchant_context, "status", None) if merchant_context else None
+                ),
+                "had_local_merchant": bool(merchant_context),
+                "writes_disabled": bool(merchant_context),
+                "marked_revoked": bool(merchant_context),
+            },
+            indent=2,
+        )
+    )
+
+
 def handle_square_webhook_request(
     request_body,
     signature_header,
@@ -375,6 +472,14 @@ def handle_square_webhook_request(
                 },
                 indent=2,
             )
+        )
+        return WebhookIngressResponse(status_code=200, body={"ok": True})
+
+    if event_type == "oauth.authorization.revoked":
+        _process_oauth_revoked_event(
+            payload,
+            deps,
+            existing_event=existing_event,
         )
         return WebhookIngressResponse(status_code=200, body={"ok": True})
 

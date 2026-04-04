@@ -16,7 +16,7 @@ from app.config import (
     get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
-from app.merchant_store import get_merchant_context
+from app.merchant_store import disable_merchant_writes, get_merchant_context, revoke_merchant
 from app.oauth_routes import oauth_router
 from app.order_processing_store import (
     clear_order_processing_reservation,
@@ -65,6 +65,8 @@ def _build_webhook_ingress_dependencies():
         update_last_synced_at=update_last_synced_at,
         get_square_environment_name=get_square_environment_name,
         get_merchant_context=get_merchant_context,
+        disable_merchant_writes=disable_merchant_writes,
+        revoke_merchant=revoke_merchant,
     )
 
 

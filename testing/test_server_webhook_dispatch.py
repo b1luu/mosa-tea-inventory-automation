@@ -45,6 +45,20 @@ def _build_catalog_updated_payload():
     }
 
 
+def _build_oauth_revoked_payload():
+    return {
+        "merchant_id": "merchant-1",
+        "type": "oauth.authorization.revoked",
+        "event_id": "oauth-evt-1",
+        "created_at": "2026-03-31T12:00:00Z",
+        "data": {
+            "type": "oauth_authorization_revoked",
+            "id": "oauth-data-1",
+            "object": {},
+        },
+    }
+
+
 class ServerWebhookDispatchTests(unittest.TestCase):
     def setUp(self):
         self.signature_key_patcher = patch(
@@ -409,6 +423,65 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         )
         mock_status.assert_not_called()
         mock_get_checkpoint.assert_not_called()
+
+    def test_oauth_revoked_event_marks_merchant_revoked_and_processed(self):
+        client = TestClient(server.app)
+        payload = _build_oauth_revoked_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_webhook_event", return_value=None):
+                with patch(
+                    "server.create_webhook_event", return_value=True
+                ) as mock_create:
+                    with patch("server.disable_merchant_writes") as mock_disable_writes:
+                        with patch("server.revoke_merchant") as mock_revoke:
+                            with patch(
+                                "server.set_webhook_event_status"
+                            ) as mock_status:
+                                response = client.post(
+                                    "/webhook/square",
+                                    data=json.dumps(payload),
+                                    headers={"x-square-hmacsha256-signature": "ok"},
+                                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+        )
+        mock_disable_writes.assert_called_once_with("sandbox", "merchant-1")
+        mock_revoke.assert_called_once_with("sandbox", "merchant-1")
+        mock_status.assert_called_once_with("oauth-evt-1", server.EVENT_STATUS_PROCESSED)
+
+    def test_oauth_revoked_event_noops_cleanly_for_unknown_merchant(self):
+        client = TestClient(server.app)
+        payload = _build_oauth_revoked_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_merchant_context", return_value=None):
+                with patch("server.get_webhook_event", return_value=None):
+                    with patch(
+                        "server.create_webhook_event", return_value=True
+                    ) as mock_create:
+                        with patch(
+                            "server.disable_merchant_writes"
+                        ) as mock_disable_writes:
+                            with patch("server.revoke_merchant") as mock_revoke:
+                                with patch(
+                                    "server.set_webhook_event_status"
+                                ) as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+        )
+        mock_disable_writes.assert_not_called()
+        mock_revoke.assert_not_called()
+        mock_status.assert_called_once_with("oauth-evt-1", server.EVENT_STATUS_PROCESSED)
 
     def test_duplicate_catalog_event_is_not_re_recorded_when_catalog_sync_is_disabled(self):
         client = TestClient(server.app)

@@ -337,3 +337,44 @@ class WebhookWorkerTests(unittest.TestCase):
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
         )
         self.assertEqual(result, "blocked")
+
+    def test_process_webhook_job_blocks_when_merchant_is_revoked(self):
+        merchant_context = MerchantContext(
+            environment="sandbox",
+            merchant_id="ML9M9XX0HM717",
+            status="revoked",
+            auth_mode="oauth",
+            location_id="location-1",
+            writes_enabled=False,
+            binding_version=2,
+            display_name="Default Test Account",
+        )
+
+        with patch("app.webhook_worker.claim_order_processing", return_value=True):
+            with patch(
+                "app.webhook_worker.get_merchant_context",
+                return_value=merchant_context,
+            ):
+                with patch(
+                    "app.webhook_worker.get_active_catalog_binding"
+                ) as mock_binding:
+                    with patch(
+                        "app.webhook_worker.create_square_client_for_merchant"
+                    ) as mock_client:
+                        with patch("app.webhook_worker.process_orders") as mock_process:
+                            with patch(
+                                "app.webhook_worker.mark_order_blocked",
+                                return_value=True,
+                            ):
+                                with patch(
+                                    "app.webhook_worker.set_webhook_event_status"
+                                ) as mock_status:
+                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        mock_binding.assert_called_once_with("sandbox", "ML9M9XX0HM717", "location-1")
+        mock_client.assert_not_called()
+        mock_process.assert_not_called()
+        mock_status.assert_called_once_with(
+            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
+        )
+        self.assertEqual(result, "blocked")
