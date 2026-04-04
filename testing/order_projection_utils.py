@@ -1,10 +1,7 @@
 import json
 from pathlib import Path
 
-from app.order_inventory_projection import (
-    combine_projected_usage,
-    project_line_item_usage,
-)
+from app.inventory_plan import build_inventory_plan_from_order_summary
 from scripts.inspect_order import summarize_order
 from testing.create_live_test_order import _build_order_payload, _load_scenarios
 
@@ -50,33 +47,8 @@ def summarize_live_order(order):
 
 
 def project_order_summary(order_summary):
-    projected_line_items = []
-
-    for line_item in order_summary.get("line_items", []):
-        sold_variation_id = line_item.get("catalog_object_id")
-        if not sold_variation_id:
-            continue
-
-        projected = project_line_item_usage(
-            sold_variation_id,
-            line_item["quantity"],
-            [
-                modifier["catalog_object_id"]
-                for modifier in line_item.get("modifiers", [])
-                if modifier.get("catalog_object_id")
-            ],
-        )
-        projected_line_items.append(
-            {
-                "uid": line_item.get("uid"),
-                "name": line_item.get("name"),
-                "quantity": line_item.get("quantity"),
-                **projected,
-            }
-        )
-
-    combined_usage = combine_projected_usage(projected_line_items)
-    return projected_line_items, combined_usage
+    plan = build_inventory_plan_from_order_summary(order_summary)
+    return plan.projected_line_items, plan.combined_usage
 
 
 def usage_by_inventory_key(combined_usage):
