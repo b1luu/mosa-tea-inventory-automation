@@ -11,10 +11,12 @@ from app.catalog_change_search import (
 )
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
+    get_square_environment_name,
     get_square_webhook_notification_url,
     get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
+from app.merchant_store import get_merchant_context
 from app.oauth_routes import oauth_router
 from app.order_processing_store import (
     clear_order_processing_reservation,
@@ -61,6 +63,8 @@ def _build_webhook_ingress_dependencies():
         get_latest_updated_at=get_latest_updated_at,
         summarize_changed_object=summarize_changed_object,
         update_last_synced_at=update_last_synced_at,
+        get_square_environment_name=get_square_environment_name,
+        get_merchant_context=get_merchant_context,
     )
 
 

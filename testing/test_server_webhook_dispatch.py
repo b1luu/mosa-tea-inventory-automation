@@ -5,6 +5,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import server
+from app.merchant_store import MerchantContext
 
 
 def _build_order_updated_payload():
@@ -54,10 +55,31 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             "server.get_square_webhook_notification_url",
             return_value="https://example.com/webhook/square",
         )
+        self.environment_patcher = patch(
+            "server.get_square_environment_name",
+            return_value="sandbox",
+        )
+        self.merchant_context_patcher = patch(
+            "server.get_merchant_context",
+            return_value=MerchantContext(
+                environment="sandbox",
+                merchant_id="merchant-1",
+                status="active",
+                auth_mode="oauth",
+                location_id="location-1",
+                writes_enabled=False,
+                binding_version=None,
+                display_name="Test Merchant",
+            ),
+        )
         self.signature_key_patcher.start()
         self.notification_url_patcher.start()
+        self.environment_patcher.start()
+        self.merchant_context_patcher.start()
 
     def tearDown(self):
+        self.merchant_context_patcher.stop()
+        self.environment_patcher.stop()
         self.notification_url_patcher.stop()
         self.signature_key_patcher.stop()
 
@@ -98,7 +120,17 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.assertEqual(
             mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
         )
-        mock_dispatch.assert_called_once()
+        mock_dispatch.assert_called_once_with(
+            {
+                "event_id": "evt-1",
+                "merchant_id": "merchant-1",
+                "environment": "sandbox",
+                "event_type": "order.updated",
+                "order_id": "order-1",
+                "location_id": "location-1",
+            },
+            background_tasks=unittest.mock.ANY,
+        )
         mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
 
     def test_marks_event_failed_and_clears_reservation_when_dispatch_raises(self):
@@ -181,6 +213,32 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                                     data=json.dumps(payload),
                                     headers={"x-square-hmacsha256-signature": "ok"},
                                 )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+        )
+        mock_dispatch.assert_not_called()
+        mock_status.assert_not_called()
+
+    def test_ignores_completed_order_when_merchant_context_is_missing(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_merchant_context", return_value=None):
+                with patch("server.get_webhook_event", return_value=None):
+                    with patch("server.get_order_processing_state", return_value=None):
+                        with patch(
+                            "server.create_webhook_event", return_value=True
+                        ) as mock_create:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status") as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(

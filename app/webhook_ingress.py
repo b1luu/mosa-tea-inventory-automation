@@ -12,10 +12,12 @@ from app.catalog_change_search import (
 )
 from app.catalog_sync_state import get_or_create_last_synced_at, update_last_synced_at
 from app.config import (
+    get_square_environment_name,
     get_square_webhook_notification_url,
     get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
+from app.merchant_store import get_merchant_context
 from app.order_processing_store import (
     clear_order_processing_reservation,
     get_order_processing_state,
@@ -58,6 +60,8 @@ class WebhookIngressDependencies:
     get_latest_updated_at: Callable[[list[Any]], str | None]
     summarize_changed_object: Callable[[Any], Any]
     update_last_synced_at: Callable[[str], Any]
+    get_square_environment_name: Callable[[], str]
+    get_merchant_context: Callable[[str, str], Any]
 
 
 def default_webhook_ingress_dependencies():
@@ -78,6 +82,8 @@ def default_webhook_ingress_dependencies():
         get_latest_updated_at=get_latest_updated_at,
         summarize_changed_object=summarize_changed_object,
         update_last_synced_at=update_last_synced_at,
+        get_square_environment_name=get_square_environment_name,
+        get_merchant_context=get_merchant_context,
     )
 
 
@@ -213,6 +219,10 @@ def _process_catalog_webhook_event(event_id, deps):
         deps.set_webhook_event_status(event_id, EVENT_STATUS_PROCESSED)
 
 
+def _is_active_merchant_context(merchant_context):
+    return bool(merchant_context and getattr(merchant_context, "status", None) == "active")
+
+
 def _log_catalog_webhook_disabled(event_id):
     print("catalog_webhook_disabled:")
     print(
@@ -251,6 +261,13 @@ def handle_square_webhook_request(
     payload = json.loads(request_body)
     event_type = _get_event_type(payload)
     order_event_data = _get_order_event_data(payload)
+    merchant_id = payload.get("merchant_id")
+    runtime_environment = deps.get_square_environment_name()
+    merchant_context = (
+        deps.get_merchant_context(runtime_environment, merchant_id)
+        if merchant_id
+        else None
+    )
     order_id = _get_order_id_from_payload(payload)
     order_state = order_event_data.get("state")
     location_id = order_event_data.get("location_id")
@@ -271,10 +288,12 @@ def handle_square_webhook_request(
         current_processing_state = (
             deps.get_order_processing_state(order_id) if order_id else None
         )
+        merchant_allows_processing = _is_active_merchant_context(merchant_context)
         should_attempt_processing = (
             order_state == "COMPLETED"
             and order_id is not None
             and current_processing_state is None
+            and merchant_allows_processing
         )
         initial_event_status = (
             EVENT_STATUS_RECEIVED
@@ -319,9 +338,11 @@ def handle_square_webhook_request(
             _dispatch_order_webhook_job(
                 {
                     "event_id": event_id,
-                    "merchant_id": payload.get("merchant_id"),
+                    "merchant_id": merchant_id,
+                    "environment": runtime_environment,
                     "event_type": event_type,
                     "order_id": order_id,
+                    "location_id": location_id,
                 },
                 event_id,
                 background_tasks,
@@ -343,6 +364,11 @@ def handle_square_webhook_request(
                     "updated_at": updated_at,
                     "version": version,
                     "event_id": event_id,
+                    "merchant_id": merchant_id,
+                    "environment": runtime_environment,
+                    "merchant_status": (
+                        getattr(merchant_context, "status", None) if merchant_context else None
+                    ),
                     "current_processing_state": current_processing_state,
                     "marked_pending": should_start_processing,
                     "processing_state_after": processing_state_after,

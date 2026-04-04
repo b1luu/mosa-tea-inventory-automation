@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from app.merchant_store import MerchantContext
 from app.webhook_worker import RetryableWebhookJobError, process_webhook_job, replay_order_job
 
 
@@ -9,6 +10,12 @@ REAL_SUCCESS_JOB = {
     "merchant_id": "ML9M9XX0HM717",
     "event_type": "order.updated",
     "order_id": "2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY",
+}
+
+MERCHANT_BOUND_JOB = {
+    **REAL_SUCCESS_JOB,
+    "environment": "sandbox",
+    "location_id": "location-1",
 }
 
 
@@ -176,3 +183,157 @@ class WebhookWorkerTests(unittest.TestCase):
         mock_status.assert_called_once_with(
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "failed"
         )
+
+    def test_process_webhook_job_uses_merchant_scoped_client_and_binding(self):
+        merchant_context = MerchantContext(
+            environment="sandbox",
+            merchant_id="ML9M9XX0HM717",
+            status="active",
+            auth_mode="oauth",
+            location_id="location-1",
+            writes_enabled=True,
+            binding_version=2,
+            display_name="Default Test Account",
+        )
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+
+        with patch("app.webhook_worker.claim_order_processing", return_value=True):
+            with patch(
+                "app.webhook_worker.get_merchant_context",
+                return_value=merchant_context,
+            ):
+                with patch(
+                    "app.webhook_worker.get_active_catalog_binding",
+                    return_value=binding,
+                ):
+                    with patch(
+                        "app.webhook_worker.create_square_client_for_merchant",
+                        return_value="merchant-client",
+                    ) as mock_client:
+                        with patch(
+                            "app.webhook_worker.process_orders",
+                            return_value={
+                                "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                                "skipped_orders": [],
+                                "skipped_line_items": [],
+                                "inventory_response": {"ok": True},
+                            },
+                        ) as mock_process:
+                            with patch(
+                                "app.webhook_worker.mark_order_applied",
+                                return_value=True,
+                            ):
+                                with patch(
+                                    "app.webhook_worker.set_webhook_event_status"
+                                ):
+                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        mock_client.assert_called_once_with("sandbox", "ML9M9XX0HM717")
+        mock_process.assert_called_once_with(
+            ["2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY"],
+            apply_changes=True,
+            client="merchant-client",
+            binding=binding,
+        )
+        self.assertEqual(result, "applied")
+
+    def test_process_webhook_job_blocks_when_writes_are_disabled(self):
+        merchant_context = MerchantContext(
+            environment="sandbox",
+            merchant_id="ML9M9XX0HM717",
+            status="active",
+            auth_mode="oauth",
+            location_id="location-1",
+            writes_enabled=False,
+            binding_version=2,
+            display_name="Default Test Account",
+        )
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+
+        with patch("app.webhook_worker.claim_order_processing", return_value=True):
+            with patch(
+                "app.webhook_worker.get_merchant_context",
+                return_value=merchant_context,
+            ):
+                with patch(
+                    "app.webhook_worker.get_active_catalog_binding",
+                    return_value=binding,
+                ):
+                    with patch(
+                        "app.webhook_worker.create_square_client_for_merchant",
+                        return_value="merchant-client",
+                    ):
+                        with patch(
+                            "app.webhook_worker.process_orders",
+                            return_value={
+                                "mode": {"apply": False},
+                                "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                                "skipped_orders": [],
+                                "skipped_line_items": [],
+                                "projected_line_items": [],
+                                "combined_usage": [],
+                                "display_usage": [],
+                                "inventory_request": {},
+                                "inventory_response": None,
+                            },
+                        ) as mock_process:
+                            with patch(
+                                "app.webhook_worker.mark_order_blocked",
+                                return_value=True,
+                            ):
+                                with patch(
+                                    "app.webhook_worker.set_webhook_event_status"
+                                ) as mock_status:
+                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        mock_process.assert_called_once_with(
+            ["2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY"],
+            apply_changes=False,
+            client="merchant-client",
+            binding=binding,
+        )
+        mock_status.assert_called_once_with(
+            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
+        )
+        self.assertEqual(result, "blocked")
+
+    def test_process_webhook_job_blocks_when_binding_is_missing(self):
+        merchant_context = MerchantContext(
+            environment="sandbox",
+            merchant_id="ML9M9XX0HM717",
+            status="active",
+            auth_mode="oauth",
+            location_id="location-1",
+            writes_enabled=True,
+            binding_version=None,
+            display_name="Default Test Account",
+        )
+
+        with patch("app.webhook_worker.claim_order_processing", return_value=True):
+            with patch(
+                "app.webhook_worker.get_merchant_context",
+                return_value=merchant_context,
+            ):
+                with patch(
+                    "app.webhook_worker.get_active_catalog_binding",
+                    return_value=None,
+                ):
+                    with patch(
+                        "app.webhook_worker.create_square_client_for_merchant"
+                    ) as mock_client:
+                        with patch("app.webhook_worker.process_orders") as mock_process:
+                            with patch(
+                                "app.webhook_worker.mark_order_blocked",
+                                return_value=True,
+                            ):
+                                with patch(
+                                    "app.webhook_worker.set_webhook_event_status"
+                                ) as mock_status:
+                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        mock_client.assert_not_called()
+        mock_process.assert_not_called()
+        mock_status.assert_called_once_with(
+            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
+        )
+        self.assertEqual(result, "blocked")
