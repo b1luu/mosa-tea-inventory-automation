@@ -171,6 +171,10 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
                 },
             ),
             patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.get_active_catalog_binding",
+                return_value=None,
+            ),
+            patch(
                 "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.list_merchant_catalog_bindings",
                 return_value=[],
             ),
