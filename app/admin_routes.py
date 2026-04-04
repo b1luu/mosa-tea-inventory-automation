@@ -6,11 +6,13 @@ from app.order_processing_store import (
     get_order_processing_state,
     list_order_processing_rows,
 )
+from app.webhook_event_store import list_webhook_events
 from app.webhook_worker import replay_order_job
 
 
 admin_router = APIRouter()
 TEMPLATE_FILE = Path("templates/admin/order_processing.html")
+RUNTIME_TEMPLATE_FILE = Path("templates/admin/runtime_console.html")
 
 
 @admin_router.get("/admin/api/order-processing")
@@ -18,9 +20,19 @@ async def admin_order_processing_api():
     return list_order_processing_rows()
 
 
+@admin_router.get("/admin/api/webhook-events")
+async def admin_webhook_events_api():
+    return list_webhook_events()
+
+
 @admin_router.get("/admin/order-processing", response_class=HTMLResponse)
 async def admin_order_processing_page():
     return HTMLResponse(content=TEMPLATE_FILE.read_text(encoding="utf-8"))
+
+
+@admin_router.get("/admin/console", response_class=HTMLResponse)
+async def admin_runtime_console_page():
+    return HTMLResponse(content=RUNTIME_TEMPLATE_FILE.read_text(encoding="utf-8"))
 
 
 @admin_router.post("/admin/api/replay-order/{order_id}")

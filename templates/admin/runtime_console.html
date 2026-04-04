@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mosa Tea Backend Console</title>
+</head>
+<body>
+  <main>
+    <h1>Mosa Tea Backend Console</h1>
+    <p>Minimal live view. Auto-refreshes every 5 seconds.</p>
+    <p id="meta">Loading...</p>
+
+    <h2>Backend Flow</h2>
+    <pre id="diagram">Loading...</pre>
+
+    <h2>Merchants</h2>
+    <pre id="merchants">Loading...</pre>
+
+    <h2>Recent Order Processing</h2>
+    <pre id="orders">Loading...</pre>
+
+    <h2>Recent Webhook Events</h2>
+    <pre id="events">Loading...</pre>
+  </main>
+
+  <script>
+    function safe(value, fallback = "-") {
+      return value == null || value === "" ? fallback : String(value);
+    }
+
+    function countBy(rows, key) {
+      const counts = { total: rows.length };
+      for (const row of rows) {
+        const value = row?.[key] ?? "unknown";
+        counts[value] = (counts[value] || 0) + 1;
+      }
+      return counts;
+    }
+
+    function formatCounts(counts) {
+      return Object.entries(counts)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ");
+    }
+
+    function formatMerchant(merchant) {
+      return [
+        `${safe(merchant.display_name, merchant.merchant_id)} (${safe(merchant.environment)})`,
+        `  merchant_id: ${safe(merchant.merchant_id)}`,
+        `  status: ${safe(merchant.status)}`,
+        `  location: ${safe(merchant.selected_location_id)}`,
+        `  binding_version: ${safe(merchant.binding_version)}`,
+        `  writes_enabled: ${safe(merchant.writes_enabled)}`,
+        `  scopes: ${safe((merchant.auth?.scopes || []).join(", "), "none")}`,
+      ].join("\n");
+    }
+
+    function formatOrder(order) {
+      return [
+        `${safe(order.square_order_id)}`,
+        `  state: ${safe(order.processing_state)}`,
+        `  applied_at: ${safe(order.applied_at)}`,
+      ].join("\n");
+    }
+
+    function formatEvent(event) {
+      return [
+        `${safe(event.event_id)}`,
+        `  type: ${safe(event.event_type || event.data_type)}`,
+        `  status: ${safe(event.status)}`,
+        `  order_id: ${safe(event.order_id || event.data_id)}`,
+        `  received_at: ${safe(event.received_at)}`,
+      ].join("\n");
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`${url} returned ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function setText(id, text) {
+      document.getElementById(id).textContent = text;
+    }
+
+    async function refresh() {
+      const [merchantResult, orderResult, eventResult] = await Promise.allSettled([
+        fetchJson("/oauth/square/status"),
+        fetchJson("/admin/api/order-processing"),
+        fetchJson("/admin/api/webhook-events"),
+      ]);
+
+      const merchants = merchantResult.status === "fulfilled"
+        ? (merchantResult.value.merchants || [])
+        : [];
+      const orders = orderResult.status === "fulfilled" ? orderResult.value : [];
+      const events = eventResult.status === "fulfilled" ? eventResult.value : [];
+
+      const latestOrder = orders[0] || null;
+      const diagram = [
+        "Square",
+        "  |",
+        `  | completed orders: ${orders.filter((row) => row.processing_state === "applied").length}`,
+        "  v",
+        `Ingress / webhook-events (${formatCounts(countBy(events, "status"))})`,
+        "  |",
+        "  v",
+        `SQS / worker -> latest order state: ${safe(latestOrder?.processing_state, "none")}`,
+        "  |",
+        "  v",
+        `Order processing store (${formatCounts(countBy(orders, "processing_state"))})`,
+        "  |",
+        "  v",
+        `Merchant runtime ready: ${merchants.some((m) => m.writes_enabled && m.binding_version) ? "yes" : "no"}`,
+      ].join("\n");
+
+      setText("diagram", diagram);
+      setText(
+        "merchants",
+        merchants.length ? merchants.map(formatMerchant).join("\n\n") : "No merchants found.",
+      );
+      setText(
+        "orders",
+        orders.length ? orders.slice(0, 12).map(formatOrder).join("\n\n") : "No order-processing rows found.",
+      );
+      setText(
+        "events",
+        eventResult.status === "fulfilled"
+          ? (events.length ? events.slice(0, 12).map(formatEvent).join("\n\n") : "No webhook events found.")
+          : `Webhook events unavailable: ${eventResult.reason.message}`,
+      );
+
+      const errorNotes = [
+        merchantResult.status === "rejected" ? `merchants failed: ${merchantResult.reason.message}` : null,
+        orderResult.status === "rejected" ? `orders failed: ${orderResult.reason.message}` : null,
+        eventResult.status === "rejected" ? `events failed: ${eventResult.reason.message}` : null,
+      ].filter(Boolean);
+
+      setText(
+        "meta",
+        `Updated ${new Date().toLocaleTimeString()}${errorNotes.length ? " | " + errorNotes.join(" | ") : ""}`,
+      );
+    }
+
+    async function tick() {
+      try {
+        await refresh();
+      } catch (error) {
+        setText("meta", `Refresh failed: ${error.message}`);
+      }
+    }
+
+    tick();
+    setInterval(tick, 5000);
+  </script>
+</body>
+</html>
