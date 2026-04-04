@@ -15,3 +15,5 @@ data/oauth_state.db
 data/order_processing.db
 data/webhook_events.db
 data/processed_orders.json
+frontend/node_modules/
+frontend/dist/

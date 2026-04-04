@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  padding: 24px;
+  font-family: sans-serif;
+  line-height: 1.4;
+}
+
+main {
+  max-width: 960px;
+}
+
+pre {
+  white-space: pre-wrap;
+}
