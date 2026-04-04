@@ -10,6 +10,8 @@ __pycache__/
 
 data/catalog_sync_state.json
 data/merchant_auth.db
+data/merchant_store.db
+data/oauth_state.db
 data/order_processing.db
 data/webhook_events.db
 data/processed_orders.json
