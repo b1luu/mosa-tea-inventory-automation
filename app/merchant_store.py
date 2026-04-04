@@ -37,6 +37,22 @@ def get_merchant_context(environment, merchant_id):
     )
 
 
+def list_merchant_contexts(status=None):
+    return [
+        MerchantContext(
+            environment=connection["environment"],
+            merchant_id=connection["merchant_id"],
+            status=connection["status"],
+            auth_mode=connection["auth_mode"],
+            location_id=connection["selected_location_id"],
+            writes_enabled=connection["writes_enabled"],
+            binding_version=connection["active_binding_version"],
+            display_name=connection["display_name"],
+        )
+        for connection in merchant_store_db.list_merchant_connections(status=status)
+    ]
+
+
 def get_merchant_access_token(environment, merchant_id):
     return merchant_store_db.get_merchant_access_token(environment, merchant_id)
 

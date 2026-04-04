@@ -24,6 +24,49 @@ def get_square_environment_name():
     return environment_name
 
 
+def get_square_oauth_client_id():
+    client_id = os.getenv("SQUARE_OAUTH_CLIENT_ID")
+    if not client_id:
+        raise ValueError(
+            "Missing required environment variable: SQUARE_OAUTH_CLIENT_ID. "
+            "Set it before using Square OAuth onboarding."
+        )
+    return client_id.strip()
+
+
+def get_square_oauth_client_secret():
+    client_secret = os.getenv("SQUARE_OAUTH_CLIENT_SECRET")
+    if not client_secret:
+        raise ValueError(
+            "Missing required environment variable: SQUARE_OAUTH_CLIENT_SECRET. "
+            "Set it before using Square OAuth onboarding."
+        )
+    return client_secret.strip()
+
+
+def get_square_oauth_redirect_uri():
+    redirect_uri = os.getenv("SQUARE_OAUTH_REDIRECT_URI")
+    if not redirect_uri:
+        raise ValueError(
+            "Missing required environment variable: SQUARE_OAUTH_REDIRECT_URI. "
+            "Set it before using Square OAuth onboarding."
+        )
+    return redirect_uri.strip()
+
+
+def get_square_oauth_scopes():
+    scopes_value = os.getenv(
+        "SQUARE_OAUTH_SCOPES",
+        "MERCHANT_PROFILE_READ,ORDERS_READ,INVENTORY_READ,INVENTORY_WRITE,ITEMS_READ",
+    )
+    scopes = [scope.strip() for scope in scopes_value.split(",") if scope.strip()]
+    if not scopes:
+        raise ValueError(
+            "SQUARE_OAUTH_SCOPES must define at least one scope."
+        )
+    return scopes
+
+
 def get_webhook_dispatch_mode():
     dispatch_mode = os.getenv("WEBHOOK_DISPATCH_MODE", "local").strip().lower()
     if dispatch_mode not in {"local", "sqs"}:

@@ -15,6 +15,7 @@ from app.config import (
     get_square_webhook_signature_key,
 )
 from app.job_dispatcher import dispatch_webhook_job
+from app.oauth_routes import oauth_router
 from app.order_processing_store import (
     clear_order_processing_reservation,
     get_order_processing_state,
@@ -39,6 +40,7 @@ from app.webhook_ingress import (
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(admin_router)
+app.include_router(oauth_router)
 
 
 def _build_webhook_ingress_dependencies():
