@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from square.core.api_error import ApiError
 
 from app.config import get_square_environment_name
@@ -51,6 +51,22 @@ def _summarize_auth_record(auth_record):
     }
 
 
+def _render_oauth_page(title, lines, *, status_code=200):
+    line_html = "".join(f"<li>{line}</li>" for line in lines)
+    return HTMLResponse(
+        status_code=status_code,
+        content=(
+            "<!doctype html>"
+            "<html><head><meta charset='utf-8'><title>"
+            f"{title}"
+            "</title></head><body style='font-family: sans-serif; max-width: 720px; margin: 40px auto;'>"
+            f"<h1>{title}</h1>"
+            f"<ul>{line_html}</ul>"
+            "</body></html>"
+        ),
+    )
+
+
 @oauth_router.get("/oauth/square/start")
 async def square_oauth_start(environment: str | None = Query(default=None)):
     resolved_environment = _resolve_environment(environment)
@@ -70,55 +86,64 @@ async def square_oauth_callback(
     error_description: str | None = None,
 ):
     if error:
-        return JSONResponse(
+        return _render_oauth_page(
+            "Square OAuth Error",
+            [
+                f"error: {error}",
+                f"error_description: {error_description or 'none'}",
+            ],
             status_code=400,
-            content={
-                "error": error,
-                "error_description": error_description,
-            },
         )
 
     if not code or not state:
-        raise HTTPException(
+        return _render_oauth_page(
+            "Square OAuth Error",
+            ["OAuth callback requires both code and state."],
             status_code=400,
-            detail="OAuth callback requires both 'code' and 'state'.",
         )
 
     state_record = consume_oauth_state(state)
     if not state_record:
-        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state.")
+        return _render_oauth_page(
+            "Square OAuth Error",
+            ["Invalid or expired OAuth state."],
+            status_code=400,
+        )
 
     environment = state_record["environment"]
     try:
         token_response = exchange_authorization_code(environment, code)
     except ApiError as error_response:
-        return JSONResponse(
+        return _render_oauth_page(
+            "Square OAuth Error",
+            [
+                "oauth_token_exchange_failed",
+                str(error_response),
+            ],
             status_code=400,
-            content={
-                "error": "oauth_token_exchange_failed",
-                "detail": str(error_response),
-            },
         )
 
     if not token_response.access_token or not token_response.merchant_id:
-        return JSONResponse(
+        return _render_oauth_page(
+            "Square OAuth Error",
+            [
+                "oauth_token_exchange_failed",
+                "Square did not return an access token and merchant_id.",
+            ],
             status_code=400,
-            content={
-                "error": "oauth_token_exchange_failed",
-                "detail": "Square did not return an access token and merchant_id.",
-            },
         )
 
     try:
         token_status = retrieve_token_status(environment, token_response.access_token)
         locations = list_locations_for_merchant(environment, token_response.access_token)
     except ApiError as error_response:
-        return JSONResponse(
+        return _render_oauth_page(
+            "Square OAuth Error",
+            [
+                "oauth_post_connect_validation_failed",
+                str(error_response),
+            ],
             status_code=400,
-            content={
-                "error": "oauth_post_connect_validation_failed",
-                "detail": str(error_response),
-            },
         )
 
     selected_location_id = choose_default_location_id(locations)
@@ -146,25 +171,20 @@ async def square_oauth_callback(
         writes_enabled=False,
     )
 
-    return {
-        "connected": True,
-        "merchant": {
-            "environment": merchant_context.environment,
-            "merchant_id": merchant_context.merchant_id,
-            "status": merchant_context.status,
-            "auth_mode": merchant_context.auth_mode,
-            "display_name": merchant_context.display_name,
-            "selected_location_id": merchant_context.location_id,
-            "writes_enabled": merchant_context.writes_enabled,
-        },
-        "token_status": {
-            "merchant_id": token_status.merchant_id,
-            "client_id": token_status.client_id,
-            "expires_at": token_status.expires_at,
-            "scopes": token_status.scopes,
-        },
-        "locations": [summarize_location(location) for location in locations],
-    }
+    return _render_oauth_page(
+        "Square OAuth Connected",
+        [
+            f"merchant_id: {merchant_context.merchant_id}",
+            f"environment: {merchant_context.environment}",
+            f"display_name: {merchant_context.display_name or 'unknown'}",
+            f"selected_location_id: {merchant_context.location_id or 'none'}",
+            f"writes_enabled: {merchant_context.writes_enabled}",
+            f"expires_at: {token_status.expires_at}",
+            f"scopes: {', '.join(token_status.scopes or []) or 'none'}",
+            f"location_count: {len(locations)}",
+        ],
+        status_code=200,
+    )
 
 
 @oauth_router.get("/oauth/square/status")

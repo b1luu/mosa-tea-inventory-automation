@@ -34,6 +34,37 @@ def summarize_order(order):
         "state": order.state,
         "created_at": order.created_at,
         "updated_at": order.updated_at,
+        "fulfillments": [
+            {
+                "uid": fulfillment.uid,
+                "type": fulfillment.type,
+                "state": fulfillment.state,
+                "pickup_details": {
+                    "pickup_at": (
+                        fulfillment.pickup_details.pickup_at
+                        if getattr(fulfillment, "pickup_details", None)
+                        else None
+                    ),
+                    "recipient": {
+                        "customer_id": (
+                            fulfillment.pickup_details.recipient.customer_id
+                            if getattr(fulfillment, "pickup_details", None)
+                            and getattr(fulfillment.pickup_details, "recipient", None)
+                            else None
+                        ),
+                        "display_name": (
+                            fulfillment.pickup_details.recipient.display_name
+                            if getattr(fulfillment, "pickup_details", None)
+                            and getattr(fulfillment.pickup_details, "recipient", None)
+                            else None
+                        ),
+                    },
+                }
+                if getattr(fulfillment, "pickup_details", None)
+                else None,
+            }
+            for fulfillment in (getattr(order, "fulfillments", None) or [])
+        ],
         "line_items": [
             summarize_line_item(line_item)
             for line_item in (order.line_items or [])

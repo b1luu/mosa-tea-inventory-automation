@@ -38,7 +38,8 @@ class OAuthRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["error"], "access_denied")
+        self.assertIn("Square OAuth Error", response.text)
+        self.assertIn("access_denied", response.text)
 
     def test_oauth_callback_rejects_invalid_state(self):
         client = TestClient(server.app)
@@ -50,7 +51,7 @@ class OAuthRouteTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["detail"], "Invalid or expired OAuth state.")
+        self.assertIn("Invalid or expired OAuth state.", response.text)
 
     def test_oauth_callback_stores_connected_merchant_summary(self):
         client = TestClient(server.app)
@@ -129,11 +130,9 @@ class OAuthRouteTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertTrue(body["connected"])
-        self.assertEqual(body["merchant"]["merchant_id"], "merchant-1")
-        self.assertEqual(body["merchant"]["selected_location_id"], "LOC-1")
-        self.assertEqual(body["locations"][0]["id"], "LOC-1")
+        self.assertIn("Square OAuth Connected", response.text)
+        self.assertIn("merchant_id: merchant-1", response.text)
+        self.assertIn("selected_location_id: LOC-1", response.text)
         mock_upsert.assert_called_once()
 
     def test_oauth_status_lists_connected_merchants(self):
