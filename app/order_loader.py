@@ -1,5 +1,6 @@
 from square.core.api_error import ApiError
 
+from app.catalog_binding_resolver import canonicalize_order_summary
 from app.client import create_square_client
 from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
@@ -33,7 +34,7 @@ def normalize_square_order_for_inventory_plan(order):
     }
 
 
-def load_order_summaries_for_processing(order_ids, client=None):
+def load_order_summaries_for_processing(order_ids, client=None, binding=None):
     client = client or create_square_client()
     order_summaries = []
     skipped_orders = []
@@ -80,6 +81,12 @@ def load_order_summaries_for_processing(order_ids, client=None):
             )
             continue
 
-        order_summaries.append(normalize_square_order_for_inventory_plan(order))
+        normalized_order_summary = normalize_square_order_for_inventory_plan(order)
+        if binding is not None:
+            normalized_order_summary = canonicalize_order_summary(
+                normalized_order_summary,
+                binding,
+            )
+        order_summaries.append(normalized_order_summary)
 
     return order_summaries, skipped_orders

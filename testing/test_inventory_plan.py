@@ -99,6 +99,59 @@ class InventoryPlanTests(unittest.TestCase):
 
         self.assertEqual(result, {"ok": True})
 
+    def test_apply_inventory_plan_rewrites_inventory_ids_with_binding(self):
+        order_summary = load_scenario_order("tgy_tea_100_sugar")
+        plan = build_inventory_plan_from_order_summary(
+            order_summary,
+            occurred_at="2026-04-03T20:00:00Z",
+        )
+        captured = {}
+
+        inventory_client = type(
+            "Inventory",
+            (),
+            {
+                "batch_create_changes": staticmethod(
+                    lambda **kwargs: (
+                        captured.setdefault("request", kwargs),
+                        type(
+                            "Response",
+                            (),
+                            {"model_dump": staticmethod(lambda mode="json": {"ok": True})},
+                        )(),
+                    )[1]
+                )
+            },
+        )()
+        client = type("Client", (), {"inventory": inventory_client})()
+        binding = {
+            "mapping": {
+                "inventory_variation_ids": {
+                    "tgy": "LIVE-TGY",
+                    "sugar_syrup": "LIVE-SUGAR",
+                    "u600_cup": "LIVE-CUP",
+                    "small_straw": "LIVE-STRAW",
+                }
+            }
+        }
+
+        apply_inventory_plan(
+            plan,
+            apply_changes=True,
+            client=client,
+            binding=binding,
+        )
+
+        request = captured["request"]
+        catalog_object_ids = [
+            change["adjustment"]["catalog_object_id"]
+            for change in request["changes"]
+        ]
+        self.assertEqual(
+            catalog_object_ids,
+            ["LIVE-TGY", "LIVE-SUGAR", "LIVE-CUP", "LIVE-STRAW"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -159,6 +159,59 @@ class OrderLoaderTests(unittest.TestCase):
         self.assertEqual(order_summaries, [])
         self.assertEqual(skipped_orders[0]["reason"], "Order is not COMPLETED")
 
+    def test_load_order_summaries_for_processing_canonicalizes_ids_with_binding(self):
+        client = type(
+            "Client",
+            (),
+            {
+                "orders": type(
+                    "Orders",
+                    (),
+                    {
+                        "get": staticmethod(
+                            lambda order_id: type(
+                                "Response",
+                                (),
+                                {
+                                    "order": _build_order(order_id=order_id),
+                                },
+                            )()
+                        )
+                    },
+                )()
+            },
+        )()
+        binding = {
+            "mapping": {
+                "sold_variation_aliases": {
+                    "72KIPS2KHWEK6RAT452MAB2P": "CANONICAL-SOLD-ID",
+                },
+                "modifier_aliases": {
+                    "VEDNAO6LH5WQET6TQTJGSPOB": "CANONICAL-MOD-ID",
+                },
+            }
+        }
+
+        with patch(
+            "app.order_loader.get_order_processing_state",
+            return_value=None,
+        ):
+            order_summaries, skipped_orders = load_order_summaries_for_processing(
+                ["order-1"],
+                client=client,
+                binding=binding,
+            )
+
+        self.assertEqual(skipped_orders, [])
+        self.assertEqual(
+            order_summaries[0]["line_items"][0]["catalog_object_id"],
+            "CANONICAL-SOLD-ID",
+        )
+        self.assertEqual(
+            order_summaries[0]["line_items"][0]["modifiers"][0]["catalog_object_id"],
+            "CANONICAL-MOD-ID",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
