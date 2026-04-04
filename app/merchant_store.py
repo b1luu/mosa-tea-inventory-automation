@@ -173,6 +173,48 @@ def get_active_catalog_binding(environment, merchant_id, location_id):
     )
 
 
+def list_catalog_bindings(environment, merchant_id, *, location_id=None, status=None):
+    return merchant_store_db.list_merchant_catalog_bindings(
+        environment,
+        merchant_id,
+        location_id=location_id,
+        status=status,
+    )
+
+
+def get_merchant_write_readiness(environment, merchant_id):
+    merchant_context = get_merchant_context(environment, merchant_id)
+    auth_record = get_merchant_auth_record(environment, merchant_id)
+    location_id = merchant_context.location_id if merchant_context else None
+    active_binding = (
+        get_active_catalog_binding(environment, merchant_id, location_id)
+        if location_id
+        else None
+    )
+
+    reasons = []
+    if merchant_context is None:
+        reasons.append("merchant_not_found")
+    else:
+        if merchant_context.status != merchant_store_db.MERCHANT_STATUS_ACTIVE:
+            reasons.append(f"merchant_status_{merchant_context.status}")
+        if not merchant_context.location_id:
+            reasons.append("missing_selected_location")
+
+    if auth_record is None:
+        reasons.append("missing_auth_record")
+    if active_binding is None:
+        reasons.append("missing_approved_binding")
+
+    return {
+        "merchant_context": merchant_context,
+        "auth_record": auth_record,
+        "active_binding": active_binding,
+        "ready": not reasons,
+        "reasons": reasons,
+    }
+
+
 def upsert_manual_merchant(
     environment,
     merchant_id,
@@ -327,3 +369,18 @@ def approve_catalog_binding(environment, merchant_id, location_id, version):
         version,
     )
     return True
+
+
+def enable_merchant_writes_if_ready(environment, merchant_id):
+    readiness = get_merchant_write_readiness(environment, merchant_id)
+    if not readiness["ready"]:
+        return {
+            "enabled": False,
+            "readiness": readiness,
+        }
+
+    enabled = merchant_store_db.set_writes_enabled(environment, merchant_id, True)
+    return {
+        "enabled": enabled,
+        "readiness": get_merchant_write_readiness(environment, merchant_id),
+    }

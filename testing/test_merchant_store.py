@@ -123,6 +123,54 @@ class MerchantStoreTests(unittest.TestCase):
             "access-2",
         )
 
+    def test_enable_merchant_writes_if_ready_refuses_missing_binding(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+
+        result = merchant_store.enable_merchant_writes_if_ready(
+            "production",
+            "merchant-1",
+        )
+
+        self.assertFalse(result["enabled"])
+        self.assertIn("missing_approved_binding", result["readiness"]["reasons"])
+        self.assertFalse(
+            merchant_store.get_merchant_context("production", "merchant-1").writes_enabled
+        )
+
+    def test_enable_merchant_writes_if_ready_succeeds_after_binding_approval(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+
+        result = merchant_store.enable_merchant_writes_if_ready(
+            "production",
+            "merchant-1",
+        )
+
+        self.assertTrue(result["enabled"])
+        self.assertTrue(result["readiness"]["ready"])
+        self.assertTrue(
+            merchant_store.get_merchant_context("production", "merchant-1").writes_enabled
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
