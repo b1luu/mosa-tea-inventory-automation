@@ -1,7 +1,10 @@
+from dataclasses import asdict, is_dataclass
 from decimal import Decimal
 
 
 def to_jsonable(value):
+    if is_dataclass(value) and not isinstance(value, type):
+        return to_jsonable(asdict(value))
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, dict):
