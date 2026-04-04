@@ -182,6 +182,17 @@ def _put_secret_payload(secret_name, payload):
         client.create_secret(Name=secret_name, SecretString=secret_string)
 
 
+def _delete_secret_payload(secret_name):
+    client = _create_secrets_manager_client()
+    try:
+        client.delete_secret(SecretId=secret_name, ForceDeleteWithoutRecovery=True)
+    except ClientError as error:
+        if _is_not_found(error):
+            return False
+        raise
+    return True
+
+
 def _build_connection_item(
     environment,
     merchant_id,
@@ -405,6 +416,39 @@ def set_active_binding_version(environment, merchant_id, active_binding_version)
         active_binding_version=active_binding_version,
     )
     return True
+
+
+def delete_merchant(environment, merchant_id):
+    connection = get_merchant_connection(environment, merchant_id)
+    auth_record = get_merchant_auth(environment, merchant_id)
+    bindings = list_merchant_catalog_bindings(environment, merchant_id)
+
+    for binding in bindings:
+        _get_binding_table().delete_item(
+            Key=_build_binding_key(
+                environment,
+                merchant_id,
+                binding["location_id"],
+                binding["version"],
+            )
+        )
+
+    if connection is not None:
+        _get_connection_table().delete_item(
+            Key={"environment_merchant_id": _get_connection_pk(environment, merchant_id)}
+        )
+
+    secret_deleted = False
+    if auth_record is not None:
+        secret_deleted = _delete_secret_payload(_get_secret_name(environment, merchant_id))
+
+    return {
+        "environment": environment,
+        "merchant_id": merchant_id,
+        "merchant_connection_deleted": connection is not None,
+        "auth_deleted": secret_deleted,
+        "binding_count_deleted": len(bindings),
+    }
 
 
 def upsert_merchant_auth(

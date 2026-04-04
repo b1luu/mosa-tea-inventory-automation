@@ -169,3 +169,41 @@ class WebhookEventDynamoDbTests(unittest.TestCase):
 
         self.assertEqual(rows[0]["event_id"], "evt-2")
         self.assertEqual(rows[1]["event_id"], "evt-1")
+
+    def test_list_webhook_events_tolerates_legacy_rows_without_merchant_id(self):
+        table = MagicMock()
+        table.scan.return_value = {
+            "Items": [
+                {
+                    "event_id": "evt-legacy",
+                    "event_type": "order.updated",
+                    "status": "received",
+                    "received_at": "2026-04-01T00:00:00+00:00",
+                    "updated_at": "2026-04-01T00:00:00+00:00",
+                }
+            ]
+        }
+
+        with patch("app.webhook_event_dynamodb._get_table", return_value=table):
+            rows = webhook_event_dynamodb.list_webhook_events()
+
+        self.assertEqual(rows[0]["event_id"], "evt-legacy")
+        self.assertIsNone(rows[0]["merchant_id"])
+
+    def test_list_webhook_events_tolerates_sparse_legacy_rows(self):
+        table = MagicMock()
+        table.scan.return_value = {
+            "Items": [
+                {
+                    "event_id": "evt-sparse",
+                    "received_at": "2026-04-01T00:00:00+00:00",
+                }
+            ]
+        }
+
+        with patch("app.webhook_event_dynamodb._get_table", return_value=table):
+            rows = webhook_event_dynamodb.list_webhook_events()
+
+        self.assertEqual(rows[0]["event_id"], "evt-sparse")
+        self.assertIsNone(rows[0]["event_type"])
+        self.assertIsNone(rows[0]["status"])

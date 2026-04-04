@@ -222,9 +222,9 @@ def list_webhook_events(status=None):
 
     return [
         {
-            "event_id": item["event_id"],
-            "merchant_id": item["merchant_id"],
-            "event_type": item["event_type"],
+            "event_id": item.get("event_id"),
+            "merchant_id": item.get("merchant_id"),
+            "event_type": item.get("event_type"),
             "event_created_at": item.get("event_created_at"),
             "data_type": item.get("data_type"),
             "data_id": item.get("data_id"),
@@ -232,9 +232,9 @@ def list_webhook_events(status=None):
             "order_state": item.get("order_state"),
             "location_id": item.get("location_id"),
             "version": item.get("version"),
-            "status": item["status"],
-            "received_at": item["received_at"],
-            "updated_at": item["updated_at"],
+            "status": item.get("status"),
+            "received_at": item.get("received_at"),
+            "updated_at": item.get("updated_at"),
         }
         for item in items
     ]

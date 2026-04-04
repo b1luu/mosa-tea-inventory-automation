@@ -288,6 +288,40 @@ def set_active_binding_version(environment, merchant_id, active_binding_version)
     return cursor.rowcount == 1
 
 
+def delete_merchant(environment, merchant_id):
+    ensure_db()
+    with sqlite3.connect(DB_FILE) as connection:
+        binding_cursor = connection.execute(
+            """
+            DELETE FROM merchant_catalog_binding
+            WHERE environment = ? AND merchant_id = ?
+            """,
+            (environment, merchant_id),
+        )
+        auth_cursor = connection.execute(
+            """
+            DELETE FROM merchant_auth
+            WHERE environment = ? AND merchant_id = ?
+            """,
+            (environment, merchant_id),
+        )
+        connection_cursor = connection.execute(
+            """
+            DELETE FROM merchant_connection
+            WHERE environment = ? AND merchant_id = ?
+            """,
+            (environment, merchant_id),
+        )
+
+    return {
+        "environment": environment,
+        "merchant_id": merchant_id,
+        "merchant_connection_deleted": connection_cursor.rowcount == 1,
+        "auth_deleted": auth_cursor.rowcount > 0,
+        "binding_count_deleted": binding_cursor.rowcount,
+    }
+
+
 def upsert_merchant_auth(
     environment,
     merchant_id,

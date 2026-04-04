@@ -90,6 +90,31 @@ class MerchantStoreTests(unittest.TestCase):
         )
         self.assertEqual(binding["version"], 2)
 
+    def test_delete_merchant_removes_connection_auth_and_bindings(self):
+        merchant_store.upsert_manual_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            selected_location_id="LOC-1",
+            display_name="Store A",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            1,
+            {"inventory_variation_ids": {"tgy": "INV-1"}},
+        )
+
+        result = merchant_store.delete_merchant("production", "merchant-1")
+
+        self.assertTrue(result["merchant_connection_deleted"])
+        self.assertTrue(result["auth_deleted"])
+        self.assertEqual(result["binding_count_deleted"], 1)
+        self.assertIsNone(merchant_store.get_merchant_context("production", "merchant-1"))
+        self.assertIsNone(merchant_store.get_merchant_auth_record("production", "merchant-1"))
+        self.assertEqual(merchant_store.list_catalog_bindings("production", "merchant-1"), [])
+
     def test_refresh_oauth_merchant_access_token_persists_new_access_token(self):
         merchant_store.upsert_oauth_merchant(
             "production",

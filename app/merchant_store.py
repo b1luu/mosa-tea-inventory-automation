@@ -337,6 +337,10 @@ def disable_merchant(environment, merchant_id):
     )
 
 
+def delete_merchant(environment, merchant_id):
+    return _get_store_backend().delete_merchant(environment, merchant_id)
+
+
 def upsert_catalog_binding(
     environment,
     merchant_id,

@@ -235,6 +235,86 @@ class MerchantStoreDynamoDbTests(unittest.TestCase):
         self.assertEqual(binding["version"], 2)
         self.assertEqual(binding["mapping"]["inventory_variation_ids"]["tgy"], "INV-2")
 
+    def test_delete_merchant_removes_connection_bindings_and_secret(self):
+        connection_table = MagicMock()
+        binding_table = MagicMock()
+        secrets_client = MagicMock()
+
+        with (
+            patch(
+                "app.merchant_store_dynamodb.get_merchant_connection",
+                return_value={
+                    "environment": "production",
+                    "merchant_id": "merchant-1",
+                    "status": "active",
+                    "auth_mode": "oauth",
+                    "display_name": "Store A",
+                    "selected_location_id": "LOC-1",
+                    "writes_enabled": False,
+                    "active_binding_version": None,
+                },
+            ),
+            patch(
+                "app.merchant_store_dynamodb.get_merchant_auth",
+                return_value={
+                    "environment": "production",
+                    "merchant_id": "merchant-1",
+                    "access_token": "access-1",
+                },
+            ),
+            patch(
+                "app.merchant_store_dynamodb.list_merchant_catalog_bindings",
+                return_value=[
+                    {
+                        "environment": "production",
+                        "merchant_id": "merchant-1",
+                        "location_id": "LOC-1",
+                        "version": 2,
+                        "status": "approved",
+                        "mapping": {"inventory_variation_ids": {"tgy": "INV-2"}},
+                    }
+                ],
+            ),
+            patch(
+                "app.merchant_store_dynamodb._get_connection_table",
+                return_value=connection_table,
+            ),
+            patch(
+                "app.merchant_store_dynamodb._get_binding_table",
+                return_value=binding_table,
+            ),
+            patch(
+                "app.merchant_store_dynamodb._binding_table_has_sort_key",
+                return_value=True,
+            ),
+            patch(
+                "app.merchant_store_dynamodb._create_secrets_manager_client",
+                return_value=secrets_client,
+            ),
+            patch(
+                "app.merchant_store_dynamodb.get_merchant_secret_prefix",
+                return_value="mosa-tea/merchant-auth",
+            ),
+        ):
+            result = merchant_store_dynamodb.delete_merchant("production", "merchant-1")
+
+        self.assertTrue(result["merchant_connection_deleted"])
+        self.assertTrue(result["auth_deleted"])
+        self.assertEqual(result["binding_count_deleted"], 1)
+        connection_table.delete_item.assert_called_once_with(
+            Key={"environment_merchant_id": "production#merchant-1"}
+        )
+        binding_table.delete_item.assert_called_once_with(
+            Key={
+                "environment_merchant_location_id": "production#merchant-1#LOC-1",
+                "version": 2,
+            }
+        )
+        secrets_client.delete_secret.assert_called_once_with(
+            SecretId="mosa-tea/merchant-auth/production/merchant-1",
+            ForceDeleteWithoutRecovery=True,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

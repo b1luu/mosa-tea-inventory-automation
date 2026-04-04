@@ -14,6 +14,16 @@ class AdminRoutesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Mosa Tea Backend Console", response.text)
+        self.assertIn("Hidden Placeholder/Test Merchants", response.text)
+        self.assertIn('/static/admin/runtime_console.js', response.text)
+
+    def test_runtime_console_javascript_is_served(self):
+        client = TestClient(server.app)
+
+        response = client.get("/static/admin/runtime_console.js")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("async function refresh()", response.text)
 
     def test_webhook_events_api_returns_store_rows(self):
         client = TestClient(server.app)
