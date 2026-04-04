@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from functools import lru_cache
 
 from botocore.exceptions import ClientError
 
@@ -48,12 +49,57 @@ def _get_binding_table():
     )
 
 
+@lru_cache(maxsize=None)
+def _get_binding_table_key_schema(table_name):
+    client = _create_dynamodb_resource().meta.client
+    response = client.describe_table(TableName=table_name)
+    return tuple(
+        (item["AttributeName"], item["KeyType"])
+        for item in response["Table"]["KeySchema"]
+    )
+
+
+def _binding_table_has_sort_key():
+    key_schema = _get_binding_table_key_schema(
+        get_dynamodb_merchant_catalog_binding_table_name()
+    )
+    return any(
+        attribute_name == "version" and key_type == "RANGE"
+        for attribute_name, key_type in key_schema
+    )
+
+
+def _build_binding_key(environment, merchant_id, location_id, version):
+    if _binding_table_has_sort_key():
+        return {
+            "environment_merchant_location_id": _get_binding_pk(
+                environment,
+                merchant_id,
+                location_id,
+            ),
+            "version": version,
+        }
+
+    return {
+        "environment_merchant_location_id": _get_binding_single_key_pk(
+            environment,
+            merchant_id,
+            location_id,
+            version,
+        )
+    }
+
+
 def _get_connection_pk(environment, merchant_id):
     return f"{environment}#{merchant_id}"
 
 
 def _get_binding_pk(environment, merchant_id, location_id):
     return f"{environment}#{merchant_id}#{location_id}"
+
+
+def _get_binding_single_key_pk(environment, merchant_id, location_id, version):
+    return f"{_get_binding_pk(environment, merchant_id, location_id)}#v{version}"
 
 
 def _get_secret_name(environment, merchant_id):
@@ -74,6 +120,33 @@ def _serialize_secret_payload(payload):
 
 def _deserialize_secret_payload(secret_string):
     return json.loads(secret_string)
+
+
+def _normalize_auth_payload(payload):
+    if not payload:
+        return None
+
+    scopes = payload.get("scopes")
+    if isinstance(scopes, str):
+        scopes = [scope.strip() for scope in scopes.split(",") if scope.strip()]
+
+    short_lived = payload.get("short_lived")
+    if isinstance(short_lived, str):
+        short_lived = short_lived.strip().lower() in {"1", "true", "yes"}
+
+    return {
+        "environment": payload.get("environment"),
+        "merchant_id": payload.get("merchant_id"),
+        "access_token": payload.get("access_token"),
+        "refresh_token": payload.get("refresh_token"),
+        "token_type": payload.get("token_type"),
+        "expires_at": payload.get("expires_at"),
+        "short_lived": short_lived,
+        "scopes": scopes or [],
+        "source": payload.get("source", AUTH_SOURCE_OAUTH),
+        "created_at": payload.get("created_at"),
+        "updated_at": payload.get("updated_at"),
+    }
 
 
 def _is_not_found(error):
@@ -102,11 +175,11 @@ def _put_secret_payload(secret_name, payload):
     client = _create_secrets_manager_client()
     secret_string = _serialize_secret_payload(payload)
     try:
-        client.create_secret(Name=secret_name, SecretString=secret_string)
-    except ClientError as error:
-        if not _is_not_found(error) and error.response["Error"]["Code"] != "ResourceExistsException":
-            raise
         client.put_secret_value(SecretId=secret_name, SecretString=secret_string)
+    except ClientError as error:
+        if not _is_not_found(error):
+            raise
+        client.create_secret(Name=secret_name, SecretString=secret_string)
 
 
 def _build_connection_item(
@@ -151,15 +224,15 @@ def _build_binding_item(
 ):
     now = _utcnow()
     return {
-        "environment_merchant_location_id": _get_binding_pk(
-            environment,
-            merchant_id,
-            location_id,
+        "environment_merchant_location_id": (
+            _get_binding_pk(environment, merchant_id, location_id)
+            if _binding_table_has_sort_key()
+            else _get_binding_single_key_pk(environment, merchant_id, location_id, version)
         ),
-        "version": version,
         "environment": environment,
         "merchant_id": merchant_id,
         "location_id": location_id,
+        "version": version,
         "status": status,
         "mapping_json": json.dumps(mapping, sort_keys=True),
         "notes": notes,
@@ -369,7 +442,7 @@ def get_merchant_auth(environment, merchant_id):
     payload = _get_secret_payload(_get_secret_name(environment, merchant_id))
     if not payload:
         return None
-    return payload
+    return _normalize_auth_payload(payload)
 
 
 def get_merchant_access_token(environment, merchant_id):
@@ -408,20 +481,22 @@ def upsert_merchant_catalog_binding(
 
 def get_merchant_catalog_binding(environment, merchant_id, location_id, version):
     response = _get_binding_table().get_item(
-        Key={
-            "environment_merchant_location_id": _get_binding_pk(
-                environment,
-                merchant_id,
-                location_id,
-            ),
-            "version": version,
-        },
+        Key=_build_binding_key(environment, merchant_id, location_id, version),
         ConsistentRead=True,
     )
     return _normalize_binding_item(response.get("Item"))
 
 
 def get_active_catalog_binding(environment, merchant_id, location_id):
+    if not _binding_table_has_sort_key():
+        bindings = list_merchant_catalog_bindings(
+            environment,
+            merchant_id,
+            location_id=location_id,
+            status=BINDING_STATUS_APPROVED,
+        )
+        return bindings[0] if bindings else None
+
     from boto3.dynamodb.conditions import Key
 
     response = _get_binding_table().query(
@@ -453,7 +528,7 @@ def list_merchant_catalog_bindings(environment, merchant_id, location_id=None, s
     items = []
     table = _get_binding_table()
 
-    if location_id is not None:
+    if location_id is not None and _binding_table_has_sort_key():
         from boto3.dynamodb.conditions import Key
 
         response = table.query(
@@ -475,20 +550,20 @@ def list_merchant_catalog_bindings(environment, merchant_id, location_id=None, s
     else:
         from boto3.dynamodb.conditions import Attr
 
-        response = table.scan(
-            FilterExpression=(
-                Attr("environment").eq(environment)
-                & Attr("merchant_id").eq(merchant_id)
-            )
+        filter_expression = (
+            Attr("environment").eq(environment) & Attr("merchant_id").eq(merchant_id)
         )
+        if location_id is not None:
+            filter_expression = filter_expression & Attr("location_id").eq(location_id)
+        if status is not None:
+            filter_expression = filter_expression & Attr("status").eq(status)
+
+        response = table.scan(FilterExpression=filter_expression)
         items.extend(response.get("Items", []))
         while "LastEvaluatedKey" in response:
             response = table.scan(
                 ExclusiveStartKey=response["LastEvaluatedKey"],
-                FilterExpression=(
-                    Attr("environment").eq(environment)
-                    & Attr("merchant_id").eq(merchant_id)
-                ),
+                FilterExpression=filter_expression,
             )
             items.extend(response.get("Items", []))
 

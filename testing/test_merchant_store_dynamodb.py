@@ -71,6 +71,38 @@ class MerchantStoreDynamoDbTests(unittest.TestCase):
         self.assertEqual(record["refresh_token"], "refresh-1")
         self.assertEqual(record["scopes"], ["ORDERS_READ"])
 
+    def test_get_merchant_auth_normalizes_console_style_string_scopes(self):
+        client = MagicMock()
+        client.get_secret_value.return_value = {
+            "SecretString": json.dumps(
+                {
+                    "environment": "sandbox",
+                    "merchant_id": "merchant-1",
+                    "access_token": "access-1",
+                    "refresh_token": "refresh-1",
+                    "token_type": "bearer",
+                    "expires_at": "2026-05-01T00:00:00Z",
+                    "short_lived": False,
+                    "scopes": "ORDERS_READ, INVENTORY_WRITE",
+                }
+            )
+        }
+
+        with (
+            patch(
+                "app.merchant_store_dynamodb._create_secrets_manager_client",
+                return_value=client,
+            ),
+            patch(
+                "app.merchant_store_dynamodb.get_merchant_secret_prefix",
+                return_value="mosa-tea/merchant-auth",
+            ),
+        ):
+            record = merchant_store_dynamodb.get_merchant_auth("sandbox", "merchant-1")
+
+        self.assertEqual(record["source"], "oauth")
+        self.assertEqual(record["scopes"], ["ORDERS_READ", "INVENTORY_WRITE"])
+
     def test_get_active_catalog_binding_returns_latest_approved_binding(self):
         table = MagicMock()
         table.query.return_value = {
@@ -105,7 +137,95 @@ class MerchantStoreDynamoDbTests(unittest.TestCase):
             ]
         }
 
-        with patch("app.merchant_store_dynamodb._get_binding_table", return_value=table):
+        with (
+            patch("app.merchant_store_dynamodb._get_binding_table", return_value=table),
+            patch(
+                "app.merchant_store_dynamodb._binding_table_has_sort_key",
+                return_value=True,
+            ),
+        ):
+            binding = merchant_store_dynamodb.get_active_catalog_binding(
+                "production",
+                "merchant-1",
+                "LOC-1",
+            )
+
+        self.assertEqual(binding["version"], 2)
+        self.assertEqual(binding["mapping"]["inventory_variation_ids"]["tgy"], "INV-2")
+
+    def test_get_merchant_catalog_binding_supports_single_key_tables(self):
+        table = MagicMock()
+        table.get_item.return_value = {
+            "Item": {
+                "environment_merchant_location_id": "production#merchant-1#LOC-1#v2",
+                "environment": "production",
+                "merchant_id": "merchant-1",
+                "location_id": "LOC-1",
+                "version": 2,
+                "status": "approved",
+                "mapping_json": json.dumps({"inventory_variation_ids": {"tgy": "INV-2"}}),
+                "created_at": "2026-04-04T00:00:00+00:00",
+                "updated_at": "2026-04-04T00:02:00+00:00",
+            }
+        }
+
+        with (
+            patch("app.merchant_store_dynamodb._get_binding_table", return_value=table),
+            patch(
+                "app.merchant_store_dynamodb._binding_table_has_sort_key",
+                return_value=False,
+            ),
+        ):
+            binding = merchant_store_dynamodb.get_merchant_catalog_binding(
+                "production",
+                "merchant-1",
+                "LOC-1",
+                2,
+            )
+
+        table.get_item.assert_called_once_with(
+            Key={"environment_merchant_location_id": "production#merchant-1#LOC-1#v2"},
+            ConsistentRead=True,
+        )
+        self.assertEqual(binding["version"], 2)
+
+    def test_get_active_catalog_binding_supports_single_key_tables(self):
+        table = MagicMock()
+        table.scan.return_value = {
+            "Items": [
+                {
+                    "environment_merchant_location_id": "production#merchant-1#LOC-1#v3",
+                    "environment": "production",
+                    "merchant_id": "merchant-1",
+                    "location_id": "LOC-1",
+                    "version": 3,
+                    "status": "draft",
+                    "mapping_json": json.dumps({"inventory_variation_ids": {"tgy": "INV-3"}}),
+                    "created_at": "2026-04-04T00:00:00+00:00",
+                    "updated_at": "2026-04-04T00:03:00+00:00",
+                },
+                {
+                    "environment_merchant_location_id": "production#merchant-1#LOC-1#v2",
+                    "environment": "production",
+                    "merchant_id": "merchant-1",
+                    "location_id": "LOC-1",
+                    "version": 2,
+                    "status": "approved",
+                    "mapping_json": json.dumps({"inventory_variation_ids": {"tgy": "INV-2"}}),
+                    "approved_at": "2026-04-04T00:02:00+00:00",
+                    "created_at": "2026-04-04T00:00:00+00:00",
+                    "updated_at": "2026-04-04T00:02:00+00:00",
+                },
+            ]
+        }
+
+        with (
+            patch("app.merchant_store_dynamodb._get_binding_table", return_value=table),
+            patch(
+                "app.merchant_store_dynamodb._binding_table_has_sort_key",
+                return_value=False,
+            ),
+        ):
             binding = merchant_store_dynamodb.get_active_catalog_binding(
                 "production",
                 "merchant-1",

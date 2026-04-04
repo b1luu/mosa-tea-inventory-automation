@@ -11,8 +11,14 @@ class MerchantStoreTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.original_db_file = merchant_store_db.DB_FILE
         merchant_store_db.DB_FILE = Path(self.temp_dir.name) / "merchant_store.db"
+        self.store_mode_patcher = patch(
+            "app.merchant_store.get_merchant_store_mode",
+            return_value="sqlite",
+        )
+        self.store_mode_patcher.start()
 
     def tearDown(self):
+        self.store_mode_patcher.stop()
         merchant_store_db.DB_FILE = self.original_db_file
         self.temp_dir.cleanup()
 
