@@ -191,3 +191,13 @@ def get_square_webhook_notification_url():
             "Set it in your environment or .env file before running the webhook server."
         )
     return notification_url
+
+
+def get_operator_api_token():
+    token = os.getenv("OPERATOR_API_TOKEN")
+    if not token:
+        raise ValueError(
+            "Missing required environment variable: OPERATOR_API_TOKEN. "
+            "Set it before using admin or OAuth operator routes."
+        )
+    return token.strip()

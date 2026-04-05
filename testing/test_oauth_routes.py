@@ -1,4 +1,5 @@
 import unittest
+import os
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -8,9 +9,19 @@ from app.merchant_store import MerchantContext
 
 
 class OAuthRouteTests(unittest.TestCase):
-    def test_oauth_start_redirects_to_square_authorization_url(self):
-        client = TestClient(server.app)
+    def setUp(self):
+        self.env_patch = patch.dict(
+            os.environ,
+            {"OPERATOR_API_TOKEN": "test-operator-token"},
+            clear=False,
+        )
+        self.env_patch.start()
+        self.client = TestClient(server.app)
 
+    def tearDown(self):
+        self.env_patch.stop()
+
+    def test_oauth_start_redirects_to_square_authorization_url(self):
         with (
             patch("app.oauth_routes.create_oauth_state", return_value="state-123"),
             patch(
@@ -18,7 +29,11 @@ class OAuthRouteTests(unittest.TestCase):
                 return_value="https://square.example/authorize?state=state-123",
             ),
         ):
-            response = client.get("/oauth/square/start", follow_redirects=False)
+            response = self.client.get(
+                "/oauth/square/start",
+                params={"operator_token": "test-operator-token"},
+                follow_redirects=False,
+            )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
@@ -26,10 +41,17 @@ class OAuthRouteTests(unittest.TestCase):
             "https://square.example/authorize?state=state-123",
         )
 
-    def test_oauth_callback_returns_error_when_square_returns_error(self):
-        client = TestClient(server.app)
+    def test_oauth_start_requires_operator_token(self):
+        response = self.client.get("/oauth/square/start", follow_redirects=False)
 
-        response = client.get(
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.json()["detail"],
+            "Invalid or missing operator token.",
+        )
+
+    def test_oauth_callback_returns_error_when_square_returns_error(self):
+        response = self.client.get(
             "/oauth/square/callback",
             params={
                 "error": "access_denied",
@@ -42,10 +64,8 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertIn("access_denied", response.text)
 
     def test_oauth_callback_rejects_invalid_state(self):
-        client = TestClient(server.app)
-
         with patch("app.oauth_routes.consume_oauth_state", return_value=None):
-            response = client.get(
+            response = self.client.get(
                 "/oauth/square/callback",
                 params={"code": "code-123", "state": "bad-state"},
             )
@@ -54,8 +74,6 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertIn("Invalid or expired OAuth state.", response.text)
 
     def test_oauth_callback_stores_connected_merchant_summary(self):
-        client = TestClient(server.app)
-
         token_response = type(
             "TokenResponse",
             (),
@@ -124,7 +142,7 @@ class OAuthRouteTests(unittest.TestCase):
                 return_value=merchant_context,
             ) as mock_upsert,
         ):
-            response = client.get(
+            response = self.client.get(
                 "/oauth/square/callback",
                 params={"code": "code-123", "state": "state-123"},
             )
@@ -136,8 +154,6 @@ class OAuthRouteTests(unittest.TestCase):
         mock_upsert.assert_called_once()
 
     def test_oauth_status_lists_connected_merchants(self):
-        client = TestClient(server.app)
-
         with patch(
             "app.oauth_routes.list_merchant_contexts",
             return_value=[
@@ -165,7 +181,10 @@ class OAuthRouteTests(unittest.TestCase):
                 "updated_at": "2026-04-04T00:00:00Z",
             },
         ):
-            response = client.get("/oauth/square/status")
+            response = self.client.get(
+                "/oauth/square/status",
+                headers={"X-Operator-Token": "test-operator-token"},
+            )
 
         self.assertEqual(response.status_code, 200)
         merchants = response.json()["merchants"]
@@ -175,9 +194,16 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertTrue(merchants[0]["auth"]["has_refresh_token"])
         self.assertNotIn("access_token", merchants[0]["auth"])
 
-    def test_oauth_refresh_endpoint_returns_updated_status(self):
-        client = TestClient(server.app)
+    def test_oauth_status_requires_operator_token(self):
+        response = self.client.get("/oauth/square/status")
 
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.json()["detail"],
+            "Invalid or missing operator token.",
+        )
+
+    def test_oauth_refresh_endpoint_returns_updated_status(self):
         auth_record = {
             "environment": "production",
             "merchant_id": "merchant-1",
@@ -212,7 +238,10 @@ class OAuthRouteTests(unittest.TestCase):
                 return_value=token_status,
             ),
         ):
-            response = client.post("/oauth/square/refresh/merchant-1?environment=production")
+            response = self.client.post(
+                "/oauth/square/refresh/merchant-1?environment=production",
+                headers={"X-Operator-Token": "test-operator-token"},
+            )
 
         self.assertEqual(response.status_code, 200)
         body = response.json()
@@ -221,6 +250,15 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertTrue(body["auth"]["has_refresh_token"])
         self.assertNotIn("access_token", body["auth"])
         mock_refresh.assert_called_once_with("production", "merchant-1", force=True)
+
+    def test_oauth_refresh_requires_operator_token(self):
+        response = self.client.post("/oauth/square/refresh/merchant-1")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.json()["detail"],
+            "Invalid or missing operator token.",
+        )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 "use strict";
 
+const operatorToken = new URLSearchParams(window.location.search).get("operator_token");
+
 function safe(value, fallback = "-") {
   return value == null || value === "" ? fallback : String(value);
 }
@@ -82,9 +84,13 @@ function formatEvent(event) {
 }
 
 async function fetchJson(url) {
-  const response = await fetch(url);
+  const resolvedUrl = new URL(url, window.location.origin);
+  if (operatorToken) {
+    resolvedUrl.searchParams.set("operator_token", operatorToken);
+  }
+  const response = await fetch(resolvedUrl);
   if (!response.ok) {
-    throw new Error(`${url} returned ${response.status}`);
+    throw new Error(`${resolvedUrl.pathname} returned ${response.status}`);
   }
   return response.json();
 }

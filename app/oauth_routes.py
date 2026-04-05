@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from square.core.api_error import ApiError
 
@@ -10,6 +10,7 @@ from app.merchant_store import (
     upsert_oauth_merchant,
 )
 from app.oauth_state_db import consume_oauth_state, create_oauth_state
+from app.operator_auth import require_operator_access
 from app.square_oauth import (
     build_square_oauth_authorization_url,
     choose_default_location_id,
@@ -67,7 +68,7 @@ def _render_oauth_page(title, lines, *, status_code=200):
     )
 
 
-@oauth_router.get("/oauth/square/start")
+@oauth_router.get("/oauth/square/start", dependencies=[Depends(require_operator_access)])
 async def square_oauth_start(environment: str | None = Query(default=None)):
     resolved_environment = _resolve_environment(environment)
     state = create_oauth_state(resolved_environment)
@@ -187,7 +188,7 @@ async def square_oauth_callback(
     )
 
 
-@oauth_router.get("/oauth/square/status")
+@oauth_router.get("/oauth/square/status", dependencies=[Depends(require_operator_access)])
 async def square_oauth_status():
     contexts = list_merchant_contexts()
     return {
@@ -213,7 +214,10 @@ async def square_oauth_status():
     }
 
 
-@oauth_router.post("/oauth/square/refresh/{merchant_id}")
+@oauth_router.post(
+    "/oauth/square/refresh/{merchant_id}",
+    dependencies=[Depends(require_operator_access)],
+)
 async def square_oauth_refresh(
     merchant_id: str,
     environment: str | None = Query(default=None),

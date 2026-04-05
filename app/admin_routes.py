@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 
+from app.operator_auth import require_operator_access
 from app.order_processing_store import (
     get_order_processing_state,
     list_order_processing_rows,
@@ -10,7 +11,7 @@ from app.webhook_event_store import list_webhook_events
 from app.webhook_worker import replay_order_job
 
 
-admin_router = APIRouter()
+admin_router = APIRouter(dependencies=[Depends(require_operator_access)])
 TEMPLATE_FILE = Path("templates/admin/order_processing.html")
 RUNTIME_TEMPLATE_FILE = Path("templates/admin/runtime_console.html")
 
