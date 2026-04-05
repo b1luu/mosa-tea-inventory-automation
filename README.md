@@ -6,69 +6,108 @@ This project exists because POS sales are not the same thing as inventory consum
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    subgraph Square["Square"]
-        SW[Order Webhooks]
-        SO[Orders API]
-        SI[Inventory API]
-        SA[OAuth / Merchant Consent]
-    end
-
-    subgraph Edge["Ingress"]
-        API[API Gateway / FastAPI Webhook Ingress]
-        WE[Webhook Event Store<br/>SQLite or DynamoDB]
-        OP[Order Processing Store<br/>SQLite or DynamoDB]
-        Q[SQS Webhook Jobs Queue]
-        DLQ[Dead-Letter Queue]
-    end
-
-    subgraph Worker["Async Worker"]
-        W[Lambda / Worker]
-        CFG[Recipe + Inventory JSON]
-    end
-
-    subgraph MerchantControl["Merchant Control Plane"]
-        O[Operator / Admin Flow]
-        OR[OAuth Routes]
-        MS[Merchant Store<br/>SQLite local or DynamoDB + Secrets Manager]
-        MB[Approved Binding Versions]
-    end
-
-    SW --> API
-    API --> WE
-    API --> OP
-    API --> Q
-    Q --> W
-    Q --> DLQ
-    W --> SO
-    W --> CFG
-    W --> MS
-    W --> MB
-    W --> OP
-    W --> WE
-    W --> SI
-    O --> OR
-    SA --> OR
-    OR --> MS
-    O --> MB
+```text
+                                   +---------------------------+
+                                   |          Square           |
+                                   |---------------------------|
+                                   | OAuth / Consent           |
+                                   | Orders API                |
+                                   | Inventory API             |
+                                   | Order Webhooks            |
+                                   +-------------+-------------+
+                                                 |
+                                                 v
++-------------------------------------------------------------------------------------------+
+|                      FastAPI / API Gateway Webhook Ingress                                |
+|-------------------------------------------------------------------------------------------|
+| verify signature | normalize payload | record event | reserve order | acknowledge Square  |
++---------------------------+--------------------------------+------------------------------+
+                            |                                |
+                            | writes state                   | enqueues async job
+                            v                                v
+                +---------------------------+      +------------------------------+
+                | Webhook Event Store       |      | SQS Webhook Jobs Queue       |
+                | SQLite or DynamoDB        |      | retries + redrive to DLQ     |
+                +---------------------------+      +---------------+--------------+
+                                                                   |
+                                                                   v
+                                                      +----------------------------+
+                                                      | Lambda / Worker            |
+                                                      |----------------------------|
+                                                      | fetch full order           |
+                                                      | resolve merchant auth      |
+                                                      | resolve approved binding   |
+                                                      | project recipe usage       |
+                                                      | write Square inventory     |
+                                                      +-----+-----------+----------+
+                                                            |           |
+                                                            | reads     | updates
+                                                            v           v
+                                  +---------------------------+   +--------------------------+
+                                  | Merchant Store            |   | Order Processing Store   |
+                                  | SQLite local or           |   | SQLite or DynamoDB       |
+                                  | DynamoDB + Secrets        |   +--------------------------+
+                                  +-------------+-------------+
+                                                |
+                             +------------------+------------------+
+                             |                                     |
+                             v                                     v
+                 +---------------------------+         +---------------------------+
+                 | Approved Bindings         |         | Recipe + Inventory JSON   |
+                 | merchant/location mapping |         | canonical recipe rules     |
+                 +---------------------------+         +---------------------------+
 ```
 
 ### Runtime Flow
 
-```mermaid
-flowchart LR
-    A[Square order.completed webhook]
-    B[Verify signature and record event]
-    C[Reserve / mark order pending]
-    D[Enqueue SQS job]
-    E[Worker fetches full order]
-    F[Resolve merchant token + approved binding]
-    G[Project ingredient and packaging usage]
-    H[Write inventory adjustments to Square]
-    I[Mark order applied]
-
-    A --> B --> C --> D --> E --> F --> G --> H --> I
+```text
++------------------------------+
+| Square order.completed event |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Verify signature + record    |
+| webhook event                |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Reserve order / mark pending |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Enqueue SQS job              |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Worker fetches full order    |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Resolve merchant token +     |
+| approved binding             |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Project ingredient +         |
+| packaging usage              |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Write Square inventory       |
+| adjustments                  |
++--------------+---------------+
+               |
+               v
++------------------------------+
+| Mark order applied           |
++------------------------------+
 ```
 ## Current Shape
 
