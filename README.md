@@ -6,67 +6,76 @@ This project exists because POS sales are not the same thing as inventory consum
 
 ## Architecture
 
-┌──────────────┐
-│    Square    │
-│   Webhooks   │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│ API Gateway / Webhook Ingress│
-│ - verify signature           │
-│ - validate payload           │
-│ - fast ack to Square         │
-└──────────────┬───────────────┘
-               │ enqueue job
-               ▼
-┌──────────────────────────────┐
-│          SQS Queue           │
-│ async decoupling + retries   │
-└──────┬─────────────────┬─────┘
-       │                 │ retry on failure
-       │                 ▼
-       │       ┌──────────────────┐
-       │       │       DLQ        │
-       │       │ failed messages  │
-       │       │ for replay/debug │
-       │       └──────────────────┘
-       ▼
-┌──────────────────────────────┐
-│       Lambda Worker          │
-│ - fetch full order           │
-│ - resolve recipe rules       │
-│ - project ingredient usage   │
-│ - apply inventory updates    │
-└──────┬──────────────┬────────┘
-       │              │
-       │              │ reads config
-       │              ▼
-       │    ┌──────────────────────┐
-       │    │ Recipe / Inventory   │
-       │    │ JSON mappings        │
-       │    └──────────────────────┘
-       │
-       │ persists state
-       ▼
-┌──────────────────────────────┐
-│ Idempotency / Processing     │
-│ State Store                  │
-│ SQLite (local) / DynamoDB    │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│      Square APIs             │
-│ Orders API + Inventory API   │
-└──────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Square["Square"]
+        SW[Order Webhooks]
+        SO[Orders API]
+        SI[Inventory API]
+        SA[OAuth / Merchant Consent]
+    end
+
+    subgraph Edge["Ingress"]
+        API[API Gateway / FastAPI Webhook Ingress]
+        API --> WE[Webhook Event Store<br/>SQLite or DynamoDB]
+        API --> OP[Order Processing Store<br/>SQLite or DynamoDB]
+        API --> Q[SQS Webhook Jobs Queue]
+        Q --> DLQ[Dead-Letter Queue]
+    end
+
+    subgraph Worker["Async Worker"]
+        W[Lambda / Worker]
+        W --> SO
+        W --> CFG[Recipe + Inventory JSON]
+        W --> BIND[Merchant Catalog Binding]
+        W --> MC[Merchant Context + Auth]
+        W --> OP
+        W --> WE
+        W --> SI
+    end
+
+    subgraph MerchantControl["Merchant Control Plane"]
+        O[Operator / Admin Flow]
+        O --> OR[OAuth Routes]
+        SA --> OR
+        OR --> MC
+        O --> BIND
+    end
+
+    subgraph MerchantState["Merchant State"]
+        MC[Merchant Store<br/>SQLite local or DynamoDB + Secrets Manager]
+        BIND[Approved Binding Versions]
+    end
+
+    SW --> API
+    Q --> W
+```
+
+### Runtime Flow
+
+```mermaid
+flowchart LR
+    A[Square order.completed webhook]
+    B[Verify signature and record event]
+    C[Reserve / mark order pending]
+    D[Enqueue SQS job]
+    E[Worker fetches full order]
+    F[Resolve merchant token + approved binding]
+    G[Project ingredient and packaging usage]
+    H[Write inventory adjustments to Square]
+    I[Mark order applied]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I
+```
 ## Current Shape
 
 - Config-driven recipe and inventory modeling in JSON
 - Idempotent order processing with persisted state
 - Webhook event ledger for duplicate/retry control
+- OAuth merchant onboarding with token refresh and revoke handling
+- Merchant-aware runtime with approved binding and write-enable gates
 - Local mode with SQLite
-- AWS-backed mode with SQS, Lambda, DynamoDB, and DLQ
+- AWS-backed mode with SQS, Lambda, DynamoDB, Secrets Manager, and DLQ
 - GitHub Actions CI plus manual Lambda deploy workflow
 
 ## Stack
