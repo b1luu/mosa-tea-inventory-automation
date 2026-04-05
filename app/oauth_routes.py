@@ -1,3 +1,5 @@
+from html import escape
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from square.core.api_error import ApiError
@@ -53,15 +55,16 @@ def _summarize_auth_record(auth_record):
 
 
 def _render_oauth_page(title, lines, *, status_code=200):
-    line_html = "".join(f"<li>{line}</li>" for line in lines)
+    escaped_title = escape(str(title))
+    line_html = "".join(f"<li>{escape(str(line))}</li>" for line in lines)
     return HTMLResponse(
         status_code=status_code,
         content=(
             "<!doctype html>"
             "<html><head><meta charset='utf-8'><title>"
-            f"{title}"
+            f"{escaped_title}"
             "</title></head><body style='font-family: sans-serif; max-width: 720px; margin: 40px auto;'>"
-            f"<h1>{title}</h1>"
+            f"<h1>{escaped_title}</h1>"
             f"<ul>{line_html}</ul>"
             "</body></html>"
         ),

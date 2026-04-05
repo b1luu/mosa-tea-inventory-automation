@@ -63,6 +63,20 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertIn("Square OAuth Error", response.text)
         self.assertIn("access_denied", response.text)
 
+    def test_oauth_callback_escapes_error_content(self):
+        response = self.client.get(
+            "/oauth/square/callback",
+            params={
+                "error": "<script>alert(1)</script>",
+                "error_description": "<b>bad</b>",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("<script>alert(1)</script>", response.text)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", response.text)
+        self.assertIn("&lt;b&gt;bad&lt;/b&gt;", response.text)
+
     def test_oauth_callback_rejects_invalid_state(self):
         with patch("app.oauth_routes.consume_oauth_state", return_value=None):
             response = self.client.get(

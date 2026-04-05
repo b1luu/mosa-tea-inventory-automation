@@ -106,12 +106,6 @@ Start the server:
 uvicorn server:app --reload --port 8000
 ```
 
-Admin console:
-
-```text
-http://127.0.0.1:8000/admin/order-processing
-```
-
 ## Useful Commands
 
 ```bash

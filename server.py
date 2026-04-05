@@ -1,6 +1,5 @@
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from square.utils.webhooks_helper import verify_signature
 
 from app.admin_routes import admin_router
@@ -40,7 +39,6 @@ from app.webhook_ingress import (
 )
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(admin_router)
 app.include_router(oauth_router)
 
