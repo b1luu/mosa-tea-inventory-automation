@@ -17,38 +17,41 @@ flowchart TD
 
     subgraph Edge["Ingress"]
         API[API Gateway / FastAPI Webhook Ingress]
-        API --> WE[Webhook Event Store<br/>SQLite or DynamoDB]
-        API --> OP[Order Processing Store<br/>SQLite or DynamoDB]
-        API --> Q[SQS Webhook Jobs Queue]
-        Q --> DLQ[Dead-Letter Queue]
+        WE[Webhook Event Store<br/>SQLite or DynamoDB]
+        OP[Order Processing Store<br/>SQLite or DynamoDB]
+        Q[SQS Webhook Jobs Queue]
+        DLQ[Dead-Letter Queue]
     end
 
     subgraph Worker["Async Worker"]
         W[Lambda / Worker]
-        W --> SO
-        W --> CFG[Recipe + Inventory JSON]
-        W --> BIND[Merchant Catalog Binding]
-        W --> MC[Merchant Context + Auth]
-        W --> OP
-        W --> WE
-        W --> SI
+        CFG[Recipe + Inventory JSON]
     end
 
     subgraph MerchantControl["Merchant Control Plane"]
         O[Operator / Admin Flow]
-        O --> OR[OAuth Routes]
-        SA --> OR
-        OR --> MC
-        O --> BIND
-    end
-
-    subgraph MerchantState["Merchant State"]
-        MC[Merchant Store<br/>SQLite local or DynamoDB + Secrets Manager]
-        BIND[Approved Binding Versions]
+        OR[OAuth Routes]
+        MS[Merchant Store<br/>SQLite local or DynamoDB + Secrets Manager]
+        MB[Approved Binding Versions]
     end
 
     SW --> API
+    API --> WE
+    API --> OP
+    API --> Q
     Q --> W
+    Q --> DLQ
+    W --> SO
+    W --> CFG
+    W --> MS
+    W --> MB
+    W --> OP
+    W --> WE
+    W --> SI
+    O --> OR
+    SA --> OR
+    OR --> MS
+    O --> MB
 ```
 
 ### Runtime Flow
