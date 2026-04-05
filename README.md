@@ -58,57 +58,7 @@ This project exists because POS sales are not the same thing as inventory consum
                  +---------------------------+         +---------------------------+
 ```
 
-### Runtime Flow
 
-```text
-+------------------------------+
-| Square order.completed event |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Verify signature + record    |
-| webhook event                |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Reserve order / mark pending |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Enqueue SQS job              |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Worker fetches full order    |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Resolve merchant token +     |
-| approved binding             |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Project ingredient +         |
-| packaging usage              |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Write Square inventory       |
-| adjustments                  |
-+--------------+---------------+
-               |
-               v
-+------------------------------+
-| Mark order applied           |
-+------------------------------+
-```
 ## Current Shape
 
 - Config-driven recipe and inventory modeling in JSON
