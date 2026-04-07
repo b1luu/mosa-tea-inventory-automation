@@ -182,6 +182,60 @@ class ManualCountSyncTests(unittest.TestCase):
                     apply_changes=True,
                 )
 
+    def test_dry_run_accepts_all_supported_tea_inventory_keys(self):
+        tea_keys = [
+            "black_tea",
+            "green_tea",
+            "tgy",
+            "4s",
+            "barley",
+            "buckwheat",
+            "genmai",
+        ]
+
+        for inventory_key in tea_keys:
+            client = _FakeClient([_FakeCount("IN_STOCK", "80")])
+            with self.subTest(inventory_key=inventory_key):
+                with (
+                    patch(
+                        "app.manual_count_sync.get_merchant_context",
+                        return_value=type(
+                            "MerchantContext",
+                            (),
+                            {"status": "active", "writes_enabled": True},
+                        )(),
+                    ),
+                    patch(
+                        "app.manual_count_sync.get_active_catalog_binding",
+                        return_value={
+                            "mapping": {
+                                "inventory_variation_ids": {
+                                    inventory_key: f"VAR-{inventory_key.upper()}",
+                                }
+                            }
+                        },
+                    ),
+                    patch(
+                        "app.manual_count_sync.create_square_client_for_merchant",
+                        return_value=client,
+                    ),
+                ):
+                    result = sync_manual_inventory_count(
+                        environment="sandbox",
+                        merchant_id="merchant-1",
+                        location_id="LOC-1",
+                        inventory_key=inventory_key,
+                        counted_quantity="75",
+                        counted_unit="bag",
+                        apply_changes=False,
+                    )
+
+                self.assertEqual(result["inventory_key"], inventory_key)
+                self.assertEqual(
+                    str(result["inventory_request"]["changes"][0]["physical_count"]["quantity"]),
+                    "75.00000",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

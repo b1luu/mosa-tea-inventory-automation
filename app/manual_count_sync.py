@@ -10,7 +10,15 @@ from app.merchant_store import get_active_catalog_binding, get_merchant_context
 from app.order_inventory_projection import load_inventory_item_map
 
 DEFAULT_STATES = ("IN_STOCK", "WASTE")
-SUPPORTED_INVENTORY_KEYS = {"black_tea"}
+SUPPORTED_INVENTORY_KEYS = {
+    "black_tea",
+    "green_tea",
+    "tgy",
+    "4s",
+    "barley",
+    "buckwheat",
+    "genmai",
+}
 
 
 def _utcnow_rfc3339():
