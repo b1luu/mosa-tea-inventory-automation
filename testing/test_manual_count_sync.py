@@ -191,6 +191,7 @@ class ManualCountSyncTests(unittest.TestCase):
             "barley",
             "buckwheat",
             "genmai",
+            "boba",
         ]
 
         for inventory_key in tea_keys:

@@ -18,6 +18,7 @@ SUPPORTED_INVENTORY_KEYS = {
     "barley",
     "buckwheat",
     "genmai",
+    "boba",
 }
 
 
