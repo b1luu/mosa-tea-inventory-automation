@@ -19,6 +19,9 @@ SUPPORTED_INVENTORY_KEYS = {
     "buckwheat",
     "genmai",
     "boba",
+    "non_dairy_creamer",
+    "lychee_jelly",
+    "cream_foam_powder"
 }
 
 
