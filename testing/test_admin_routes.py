@@ -73,6 +73,42 @@ class AdminRoutesTests(unittest.TestCase):
             [{"square_order_id": "order-1", "processing_state": "applied"}],
         )
 
+    def test_manual_count_sync_endpoint_returns_service_result(self):
+        with patch(
+            "app.admin_routes.sync_manual_inventory_count",
+            return_value={
+                "inventory_key": "black_tea",
+                "counted_quantity": "75.00000",
+                "mode": {"apply": False},
+            },
+        ) as mock_sync:
+            response = self.client.post(
+                "/admin/api/manual-count-sync",
+                headers={"X-Operator-Token": "test-operator-token"},
+                json={
+                    "environment": "sandbox",
+                    "merchant_id": "merchant-1",
+                    "location_id": "LOC-1",
+                    "inventory_key": "black_tea",
+                    "counted_quantity": 75,
+                    "counted_unit": "bag",
+                    "apply_changes": False,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["inventory_key"], "black_tea")
+        mock_sync.assert_called_once_with(
+            environment="sandbox",
+            merchant_id="merchant-1",
+            location_id="LOC-1",
+            inventory_key="black_tea",
+            counted_quantity=75,
+            counted_unit="bag",
+            apply_changes=False,
+            source_reference=None,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

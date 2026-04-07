@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from app.manual_count_sync import sync_manual_inventory_count
 from app.operator_auth import require_operator_access
 from app.order_processing_store import (
     get_order_processing_state,
@@ -20,6 +21,28 @@ async def admin_order_processing_api():
 @admin_router.get("/admin/api/webhook-events")
 async def admin_webhook_events_api():
     return list_webhook_events()
+
+
+@admin_router.post("/admin/api/manual-count-sync")
+async def admin_manual_count_sync(body: dict = Body(...)):
+    try:
+        return sync_manual_inventory_count(
+            environment=body["environment"],
+            merchant_id=body["merchant_id"],
+            location_id=body["location_id"],
+            inventory_key=body["inventory_key"],
+            counted_quantity=body["counted_quantity"],
+            counted_unit=body.get("counted_unit", "bag"),
+            apply_changes=bool(body.get("apply_changes", False)),
+            source_reference=body.get("source_reference"),
+        )
+    except KeyError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field: {error.args[0]}",
+        ) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @admin_router.post("/admin/api/replay-order/{order_id}")
