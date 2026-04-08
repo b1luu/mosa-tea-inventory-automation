@@ -26,6 +26,7 @@ SUPPORTED_INVENTORY_KEYS = {
     "tj_powder",
     "hk_powder",
     "osmanthus_honey",
+    "orange_syrup",
 
 }
 

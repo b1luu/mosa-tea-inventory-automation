@@ -199,6 +199,7 @@ class ManualCountSyncTests(unittest.TestCase):
             "brown_sugar",
             "tj_powder",
             "hk_powder",
+            "orange_syrup",
         ]
 
         for inventory_key in tea_keys:

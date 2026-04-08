@@ -110,6 +110,16 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for mango syrup."
     },
+    "orange_syrup": {
+      "square_variation_id": "7O5OG45AB2XVFCKJCS4L5CN2",
+      "name": "Orange Syrup",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for orange syrup."
+    },
     "frozen_mango": {
       "square_variation_id": "752YPSPEVSL34NNXAE5SIKER",
       "name": "Frozen Mango",
