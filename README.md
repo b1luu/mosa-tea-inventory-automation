@@ -162,6 +162,62 @@ Expected success signals:
 - SQS shows `ApproximateNumberOfMessages=0` and `ApproximateNumberOfMessagesNotVisible=0`.
 - `inspect_inventory_count` matches the canary's `inventory_after` values.
 
+Sanitized example output:
+
+```text
+$ ./.venv/bin/python -m testing.run_live_cloud_canary tgy_tea_100_sugar
+canary_started | scenario_name="tgy_tea_100_sugar" | location_id="LOCATION_DEMO" | timeout_seconds=120 | poll_seconds=3
+order_created | order_id="order_demo_123" | payment_id="payment_demo_123" | payment_status="COMPLETED"
+waiting_for_aws_pipeline | attempt=1 | order_id="order_demo_123" | processing_state=null | processed_count=0 | failed_count=0 | total_events=0
+waiting_for_aws_pipeline | attempt=2 | order_id="order_demo_123" | processing_state="pending" | processed_count=0 | failed_count=0 | total_events=3
+waiting_for_aws_pipeline | attempt=3 | order_id="order_demo_123" | processing_state="processing" | processed_count=0 | failed_count=0 | total_events=4
+aws_pipeline_settled | order_id="order_demo_123" | processing_state="applied" | webhook_event_summary={"failed_count": 0, "processed_count": 1, "status_counts": {"ignored": 3, "processed": 1}, "total": 4}
+inventory_counts_settled | inventory_keys=["small_straw", "sugar_syrup", "tgy", "u600_cup"]
+canary_complete | order_id="order_demo_123" | success=true
+```
+
+```text
+$ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-ingress --since 15m
+... START RequestId: req_demo_ingress_1 Version: $LATEST
+... order_webhook:
+... {
+...   "event_type": "order.updated",
+...   "order_id": "order_demo_123",
+...   "state": "COMPLETED",
+...   "merchant_status": "active",
+...   "current_processing_state": "pending",
+...   "processing_state_after": "pending"
+... }
+... END RequestId: req_demo_ingress_1
+```
+
+```text
+$ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 15m
+... START RequestId: req_demo_worker_1 Version: $LATEST
+... END RequestId: req_demo_worker_1
+... REPORT RequestId: req_demo_worker_1 Duration: 6200.00 ms Billed Duration: 7300 ms
+```
+
+```text
+$ aws --no-cli-pager sqs get-queue-attributes --queue-url ... --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "0",
+    "ApproximateNumberOfMessagesNotVisible": "0"
+  }
+}
+```
+
+```text
+$ ./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy
+summary:
+{
+  "inventory_key": "tgy",
+  "in_stock_quantity": "111.98667",
+  "waste_quantity": "0.31552"
+}
+```
+
 ## Key Files
 
 - `server.py`: Square webhook entrypoint
