@@ -21,7 +21,11 @@ SUPPORTED_INVENTORY_KEYS = {
     "boba",
     "non_dairy_creamer",
     "lychee_jelly",
-    "cream_foam_powder"
+    "cream_foam_powder",
+    "brown_sugar",
+    "tj_powder"
+    "hk_powder",
+
 }
 
 
