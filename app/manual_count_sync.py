@@ -23,7 +23,7 @@ SUPPORTED_INVENTORY_KEYS = {
     "lychee_jelly",
     "cream_foam_powder",
     "brown_sugar",
-    "tj_powder"
+    "tj_powder",
     "hk_powder",
 
 }

@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.manual_count_sync import sync_manual_inventory_count
+from app.order_inventory_projection import load_inventory_item_map
 
 
 class _FakeCount:
@@ -192,10 +193,17 @@ class ManualCountSyncTests(unittest.TestCase):
             "buckwheat",
             "genmai",
             "boba",
+            "non_dairy_creamer",
+            "lychee_jelly",
+            "cream_foam_powder",
+            "brown_sugar",
+            "tj_powder",
+            "hk_powder",
         ]
 
         for inventory_key in tea_keys:
             client = _FakeClient([_FakeCount("IN_STOCK", "80")])
+            counted_unit = load_inventory_item_map()[inventory_key]["stock_unit"]
             with self.subTest(inventory_key=inventory_key):
                 with (
                     patch(
@@ -227,7 +235,7 @@ class ManualCountSyncTests(unittest.TestCase):
                         location_id="LOC-1",
                         inventory_key=inventory_key,
                         counted_quantity="75",
-                        counted_unit="bag",
+                        counted_unit=counted_unit,
                         apply_changes=False,
                     )
 
