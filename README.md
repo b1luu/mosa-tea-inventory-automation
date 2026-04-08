@@ -117,6 +117,51 @@ uvicorn server:app --reload --port 8000
 ./.venv/bin/python -m testing.create_live_test_order --pay roasted_buckwheat_barley_milk_tea_100_sugar
 ```
 
+## Live Demo
+
+Use one real Sandbox order to watch the event-driven path end to end.
+
+1. Tail ingress logs:
+
+```bash
+aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-ingress --since 15m --follow
+```
+
+2. Tail worker logs:
+
+```bash
+aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 15m --follow
+```
+
+3. Run one live canary:
+
+```bash
+./.venv/bin/python -m testing.run_live_cloud_canary tgy_tea_100_sugar
+```
+
+4. Check the queue is drained after processing:
+
+```bash
+aws --no-cli-pager sqs get-queue-attributes \
+  --queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs \
+  --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
+```
+
+5. Verify the updated Square inventory directly:
+
+```bash
+./.venv/bin/python -m scripts.inspect_inventory_count --inventory-key tgy
+```
+
+Expected success signals:
+
+- Ingress logs show `order.created` / `order.updated` webhook receipts, then duplicate deliveries being ignored.
+- Worker logs show one invocation for the completed order.
+- Canary output moves `processing_state` from `null` to `pending` to `processing` to `applied`.
+- Canary ends with `canary_complete | success=true`.
+- SQS shows `ApproximateNumberOfMessages=0` and `ApproximateNumberOfMessagesNotVisible=0`.
+- `inspect_inventory_count` matches the canary's `inventory_after` values.
+
 ## Key Files
 
 - `server.py`: Square webhook entrypoint
