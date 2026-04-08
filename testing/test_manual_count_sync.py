@@ -183,8 +183,8 @@ class ManualCountSyncTests(unittest.TestCase):
                     apply_changes=True,
                 )
 
-    def test_dry_run_accepts_all_supported_tea_inventory_keys(self):
-        tea_keys = [
+    def test_dry_run_accepts_all_supported_manual_sync_inventory_keys(self):
+        inventory_keys = [
             "black_tea",
             "green_tea",
             "tgy",
@@ -200,9 +200,14 @@ class ManualCountSyncTests(unittest.TestCase):
             "tj_powder",
             "hk_powder",
             "orange_syrup",
+            "grapefruit_syrup",
+            "apple_syrup",
+            "lemon_syrup",
+            "strawberry_syrup",
+            "sample_cup",
         ]
 
-        for inventory_key in tea_keys:
+        for inventory_key in inventory_keys:
             client = _FakeClient([_FakeCount("IN_STOCK", "80")])
             counted_unit = load_inventory_item_map()[inventory_key]["stock_unit"]
             with self.subTest(inventory_key=inventory_key):

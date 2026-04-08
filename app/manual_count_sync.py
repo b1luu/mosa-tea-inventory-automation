@@ -27,6 +27,11 @@ SUPPORTED_INVENTORY_KEYS = {
     "hk_powder",
     "osmanthus_honey",
     "orange_syrup",
+    "grapefruit_syrup",
+    "apple_syrup",
+    "lemon_syrup",
+    "strawberry_syrup",
+    "sample_cup",
 
 }
 

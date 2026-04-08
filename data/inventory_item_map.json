@@ -120,6 +120,46 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for orange syrup."
     },
+    "grapefruit_syrup": {
+      "square_variation_id": "77MOU7MAIMPY3LNKTQXIAQDD",
+      "name": "Grapefruit Syrup",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for grapefruit syrup."
+    },
+    "apple_syrup": {
+      "square_variation_id": "IJ7TLOH6IHI6KNTWDCJUOMOU",
+      "name": "Apple Syrup",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for apple syrup."
+    },
+    "lemon_syrup": {
+      "square_variation_id": "TO3NAKG5S4Q7WGOQJLYWRZSA",
+      "name": "Lemon Syrup",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for lemon syrup."
+    },
+    "strawberry_syrup": {
+      "square_variation_id": "YSGAL2HGDIITJP3E4A2GZBJI",
+      "name": "Strawberry Syrup",
+      "unit": "g",
+      "stock_unit": "bottle",
+      "stock_unit_size": 4000,
+      "stock_unit_size_unit": "g",
+      "category": "INV - Syrup",
+      "notes": "Internal inventory ledger item for strawberry syrup."
+    },
     "frozen_mango": {
       "square_variation_id": "752YPSPEVSL34NNXAE5SIKER",
       "name": "Frozen Mango",
@@ -367,6 +407,16 @@
       "stock_unit_size_unit": "lid",
       "category": "INV - Packaging",
       "notes": "Cold cup lid used for drinks with cream foam modifiers."
+    },
+    "sample_cup": {
+      "square_variation_id": "3LKL6XU2LY2VBIKQT63XTJ4O",
+      "name": "Sample Cup",
+      "unit": "cup",
+      "stock_unit": "box",
+      "stock_unit_size": 100,
+      "stock_unit_size_unit": "cup",
+      "category": "INV - Packaging",
+      "notes": "Manual-count-only sample cup packaging item. Adjust stock_unit_size if the real box count differs."
     }
   }
 }
