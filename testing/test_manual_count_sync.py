@@ -143,6 +143,74 @@ class ManualCountSyncTests(unittest.TestCase):
         self.assertEqual(len(client.inventory.applied_requests), 1)
         self.assertTrue(result["inventory_response"]["changes_applied"])
 
+    def test_idempotency_key_changes_between_manual_sync_invocations(self):
+        client = _FakeClient(
+            [
+                _FakeCount("IN_STOCK", "80"),
+                _FakeCount("WASTE", "5"),
+            ]
+        )
+        with (
+            patch(
+                "app.manual_count_sync.get_merchant_context",
+                return_value=type(
+                    "MerchantContext",
+                    (),
+                    {"status": "active", "writes_enabled": True},
+                )(),
+            ),
+            patch(
+                "app.manual_count_sync.get_active_catalog_binding",
+                return_value={
+                    "mapping": {
+                        "inventory_variation_ids": {
+                            "black_tea": "VAR-BLACK-TEA",
+                        }
+                    }
+                },
+            ),
+            patch(
+                "app.manual_count_sync.create_square_client_for_merchant",
+                return_value=client,
+            ),
+            patch(
+                "app.manual_count_sync._utcnow_rfc3339",
+                side_effect=[
+                    "2026-04-09T00:00:00Z",
+                    "2026-04-09T00:05:00Z",
+                ],
+            ),
+        ):
+            first = sync_manual_inventory_count(
+                environment="sandbox",
+                merchant_id="merchant-1",
+                location_id="LOC-1",
+                inventory_key="black_tea",
+                counted_quantity="75",
+                counted_unit="bag",
+                apply_changes=False,
+                source_reference="sheet:Sheet1!D2",
+            )
+            second = sync_manual_inventory_count(
+                environment="sandbox",
+                merchant_id="merchant-1",
+                location_id="LOC-1",
+                inventory_key="black_tea",
+                counted_quantity="75",
+                counted_unit="bag",
+                apply_changes=False,
+                source_reference="sheet:Sheet1!D2",
+            )
+
+        self.assertEqual(
+            first["inventory_request"]["changes"][0]["physical_count"]["reference_id"],
+            second["inventory_request"]["changes"][0]["physical_count"]["reference_id"],
+        )
+        self.assertNotEqual(
+            first["inventory_request"]["idempotency_key"],
+            second["inventory_request"]["idempotency_key"],
+        )
+
     def test_apply_requires_writes_enabled(self):
         client = _FakeClient([_FakeCount("IN_STOCK", "80")])
         with (
@@ -201,10 +269,22 @@ class ManualCountSyncTests(unittest.TestCase):
             "hk_powder",
             "orange_syrup",
             "grapefruit_syrup",
+            "grapefruit_can",
             "apple_syrup",
             "lemon_syrup",
             "strawberry_syrup",
+            "mango_syrup",
+            "sugar_syrup",
+            "small_straw",
+            "big_straw",
+            "u600_cup",
+            "cold_cup_lid",
+            "hot_cup",
+            "hot_lid",
+            "pistachio",
             "sample_cup",
+            "matcha",
+            "matcha_jelly_matcha",
         ]
 
         for inventory_key in inventory_keys:

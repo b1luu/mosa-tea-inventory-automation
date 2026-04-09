@@ -130,6 +130,16 @@
       "category": "INV - Syrup",
       "notes": "Internal inventory ledger item for grapefruit syrup."
     },
+    "grapefruit_can": {
+      "square_variation_id": "CCT3GW7IDLHS43WAWK6TPION",
+      "name": "Grapefruit Can",
+      "unit": "can",
+      "stock_unit": "can",
+      "stock_unit_size": 1,
+      "stock_unit_size_unit": "can",
+      "category": "INV - Fruit",
+      "notes": "Internal inventory ledger item for canned grapefruit."
+    },
     "apple_syrup": {
       "square_variation_id": "IJ7TLOH6IHI6KNTWDCJUOMOU",
       "name": "Apple Syrup",

@@ -28,10 +28,22 @@ SUPPORTED_INVENTORY_KEYS = {
     "osmanthus_honey",
     "orange_syrup",
     "grapefruit_syrup",
+    "grapefruit_can",
     "apple_syrup",
     "lemon_syrup",
     "strawberry_syrup",
+    "mango_syrup",
+    "sugar_syrup",
+    "small_straw",
+    "big_straw",
+    "u600_cup",
+    "cold_cup_lid",
+    "hot_cup",
+    "hot_lid",
+    "pistachio",
     "sample_cup",
+    "matcha",
+    "matcha_jelly_matcha",
 
 }
 
@@ -80,8 +92,10 @@ def _build_reference_id(
     return f"manual-count:{inventory_key}:{digest}"
 
 
-def _build_idempotency_key(reference_id):
-    digest = hashlib.sha256(reference_id.encode("utf-8")).hexdigest()
+def _build_idempotency_key(reference_id, occurred_at):
+    digest = hashlib.sha256(
+        "|".join([reference_id, occurred_at]).encode("utf-8")
+    ).hexdigest()
     return f"manual-count-sync:{digest}"
 
 
@@ -121,7 +135,7 @@ def _build_physical_count_request(
     occurred_at,
 ):
     return {
-        "idempotency_key": _build_idempotency_key(reference_id),
+        "idempotency_key": _build_idempotency_key(reference_id, occurred_at),
         "changes": [
             {
                 "type": "PHYSICAL_COUNT",
