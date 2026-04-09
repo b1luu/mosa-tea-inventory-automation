@@ -109,6 +109,70 @@ class AdminRoutesTests(unittest.TestCase):
             source_reference=None,
         )
 
+    def test_manual_count_sync_batch_endpoint_returns_service_result(self):
+        with patch(
+            "app.admin_routes.sync_manual_inventory_counts_batch",
+            return_value={
+                "summary": {
+                    "total_rows": 2,
+                    "changed_rows": 1,
+                    "unchanged_rows": 1,
+                },
+                "rows": [
+                    {"inventory_key": "black_tea", "result": "changed"},
+                    {"inventory_key": "green_tea", "result": "unchanged"},
+                ],
+                "mode": {"apply": True},
+            },
+        ) as mock_sync:
+            response = self.client.post(
+                "/admin/api/manual-count-sync-batch",
+                headers={"X-Operator-Token": "test-operator-token"},
+                json={
+                    "environment": "sandbox",
+                    "merchant_id": "merchant-1",
+                    "location_id": "LOC-1",
+                    "apply_changes": True,
+                    "rows": [
+                        {
+                            "inventory_key": "black_tea",
+                            "counted_quantity": 75,
+                            "counted_unit": "bag",
+                            "source_reference": "Sheet1!AG2",
+                        },
+                        {
+                            "inventory_key": "green_tea",
+                            "counted_quantity": 12,
+                            "counted_unit": "bag",
+                            "source_reference": "Sheet1!AG3",
+                        },
+                    ],
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["summary"]["total_rows"], 2)
+        mock_sync.assert_called_once_with(
+            environment="sandbox",
+            merchant_id="merchant-1",
+            location_id="LOC-1",
+            rows=[
+                {
+                    "inventory_key": "black_tea",
+                    "counted_quantity": 75,
+                    "counted_unit": "bag",
+                    "source_reference": "Sheet1!AG2",
+                },
+                {
+                    "inventory_key": "green_tea",
+                    "counted_quantity": 12,
+                    "counted_unit": "bag",
+                    "source_reference": "Sheet1!AG3",
+                },
+            ],
+            apply_changes=True,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

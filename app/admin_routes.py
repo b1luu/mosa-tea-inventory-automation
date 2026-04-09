@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 
-from app.manual_count_sync import sync_manual_inventory_count
+from app.manual_count_sync import (
+    sync_manual_inventory_count,
+    sync_manual_inventory_counts_batch,
+)
 from app.operator_auth import require_operator_access
 from app.order_processing_store import (
     get_order_processing_state,
@@ -24,7 +27,7 @@ async def admin_webhook_events_api():
 
 
 @admin_router.post("/admin/api/manual-count-sync")
-async def admin_manual_count_sync(body: dict = Body(...)):
+def admin_manual_count_sync(body: dict = Body(...)):
     try:
         return sync_manual_inventory_count(
             environment=body["environment"],
@@ -35,6 +38,34 @@ async def admin_manual_count_sync(body: dict = Body(...)):
             counted_unit=body.get("counted_unit", "bag"),
             apply_changes=bool(body.get("apply_changes", False)),
             source_reference=body.get("source_reference"),
+        )
+    except KeyError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field: {error.args[0]}",
+        ) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@admin_router.post("/admin/api/manual-count-sync-batch")
+def admin_manual_count_sync_batch(body: dict = Body(...)):
+    try:
+        rows = [
+            {
+                "inventory_key": row["inventory_key"],
+                "counted_quantity": row["counted_quantity"],
+                "counted_unit": row["counted_unit"],
+                "source_reference": row.get("source_reference"),
+            }
+            for row in body["rows"]
+        ]
+        return sync_manual_inventory_counts_batch(
+            environment=body["environment"],
+            merchant_id=body["merchant_id"],
+            location_id=body["location_id"],
+            rows=rows,
+            apply_changes=bool(body.get("apply_changes", False)),
         )
     except KeyError as error:
         raise HTTPException(
