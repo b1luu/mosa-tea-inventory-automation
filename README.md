@@ -64,6 +64,7 @@ This project exists because POS sales are not the same thing as inventory consum
 - Config-driven recipe and inventory modeling in JSON
 - Idempotent order processing with persisted state
 - Webhook event ledger for duplicate/retry control
+- Google Sheets batch manual inventory sync through API Gateway + Lambda
 - OAuth merchant onboarding with token refresh and revoke handling
 - Merchant-aware runtime with approved binding and write-enable gates
 - Local mode with SQLite
@@ -74,7 +75,9 @@ This project exists because POS sales are not the same thing as inventory consum
 
 - Python
 - FastAPI
+- Google Apps Script
 - Square Orders / Inventory APIs
+- API Gateway
 - SQS
 - Lambda
 - DynamoDB
@@ -218,9 +221,80 @@ summary:
 }
 ```
 
+## Manual Inventory Sync
+
+The project also supports operator-driven inventory recount sync from Google Sheets.
+
+```text
+Google Sheets button -> Apps Script batch request -> API Gateway -> manual count sync Lambda -> Square Inventory API
+```
+
+Manual sync is intentionally separate from the order webhook pipeline:
+
+- order automation handles depletion caused by completed drink sales
+- manual sync handles physical recount reconciliation from the sheet
+
+Current operator model:
+
+- `Sheet1` stores item names, canonical `inventory_key` values, and dated inventory history columns
+- the Apps Script reads all tracked rows in one pass
+- highlighted "added stock" cells are ignored
+- the latest non-highlighted count per row is used as the physical count source
+- blank `inventory_key` rows are skipped so intentionally untracked items can stay in the sheet
+
+AWS path:
+
+- API route:
+  - `POST /admin/api/manual-count-sync-batch`
+- Lambda handler:
+  - `app.lambda_manual_count_sync.lambda_handler`
+- auth:
+  - `X-Operator-Token`
+
+Google Sheets setup:
+
+- store `SYNC_URL` in Script Properties and point it at the full API Gateway route
+- store `SYNC_TOKEN` in Script Properties and keep it aligned with the Lambda `OPERATOR_API_TOKEN`
+- assign the sheet button to:
+  - `syncAllTeasParallel`
+
+Expected success behavior:
+
+- the Apps Script popup reports one batch summary plus per-row outcomes
+- unchanged rows report that Square already matches the sheet count
+- changed rows report the updated counted quantity and unit
+- the Lambda completes in one request rather than one request per inventory row
+
+Useful verification commands:
+
+```bash
+aws --no-cli-pager logs tail /aws/lambda/mosa-tea-manual-count-sync --since 10m --follow
+```
+
+```bash
+curl -i -X POST "https://YOUR_API_ID.execute-api.us-west-2.amazonaws.com/admin/api/manual-count-sync-batch" \
+  -H "Content-Type: application/json" \
+  -H "X-Operator-Token: YOUR_OPERATOR_TOKEN" \
+  -d '{
+    "environment": "sandbox",
+    "merchant_id": "ML9M9XX0HM717",
+    "location_id": "LB1MECVA7EZ8Z",
+    "apply_changes": false,
+    "rows": [
+      {
+        "inventory_key": "black_tea",
+        "counted_quantity": "80",
+        "counted_unit": "bag",
+        "source_reference": "Sheet1!AG2"
+      }
+    ]
+  }'
+```
+
 ## Key Files
 
 - `server.py`: Square webhook entrypoint
+- `app/lambda_manual_count_sync.py`: Lambda handler for Google Sheets batch recount sync
 - `app/order_processor.py`: shared processing pipeline
 - `app/webhook_worker.py`: queue job execution
 - `app/lambda_sqs_worker.py`: Lambda handler
