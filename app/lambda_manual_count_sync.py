@@ -1,4 +1,5 @@
 import base64
+from decimal import Decimal
 import json
 from secrets import compare_digest
 
@@ -39,10 +40,16 @@ def _json_response(status_code, body, headers=None):
     response_headers = {"content-type": "application/json"}
     if headers:
         response_headers.update(headers)
+
+    def _json_default(value):
+        if isinstance(value, Decimal):
+            return str(value)
+        raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")
+
     return {
         "statusCode": status_code,
         "headers": response_headers,
-        "body": json.dumps(body),
+        "body": json.dumps(body, default=_json_default),
     }
 
 
