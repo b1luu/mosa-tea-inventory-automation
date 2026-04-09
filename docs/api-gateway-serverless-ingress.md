@@ -6,14 +6,22 @@ This project now supports a fully serverless webhook path:
 Square -> API Gateway -> webhook ingress Lambda -> SQS -> worker Lambda
 ```
 
+Manual inventory sync can also use a serverless admin path:
+
+```text
+Google Sheets -> Apps Script -> API Gateway -> manual count sync Lambda -> Square Inventory API
+```
+
 ## Lambdas
 
 - Worker Lambda handler:
   - `app.lambda_sqs_worker.lambda_handler`
 - Webhook ingress Lambda handler:
   - `app.lambda_webhook_ingress.lambda_handler`
+- Manual count sync Lambda handler:
+  - `app.lambda_manual_count_sync.lambda_handler`
 
-Both functions can deploy from the same package because they share the same `app/` code.
+All three functions can deploy from the same package because they share the same `app/` code.
 
 ## GitHub Actions Deploy Variables
 
@@ -22,6 +30,7 @@ Set these repository variables:
 - `AWS_REGION`
 - `WORKER_LAMBDA_FUNCTION_NAME`
 - `WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME`
+- `MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME`
 
 Legacy compatibility:
 
@@ -31,7 +40,7 @@ Set this repository secret:
 
 - `AWS_ROLE_TO_ASSUME`
 
-The workflow in [deploy-lambda.yml](../.github/workflows/deploy-lambda.yml) builds a Linux-compatible package and deploys it to both functions.
+The workflow in [deploy-lambda.yml](../.github/workflows/deploy-lambda.yml) builds a Linux-compatible package and deploys it to all configured functions.
 
 ## Webhook Ingress Lambda Environment
 
@@ -70,6 +79,21 @@ The worker Lambda does not need:
 - `SQUARE_WEBHOOK_SIGNATURE_KEY`
 - `SQUARE_WEBHOOK_NOTIFICATION_URL`
 
+## Manual Count Sync Lambda Environment
+
+Set:
+
+- `OPERATOR_API_TOKEN`
+- `MERCHANT_STORE_MODE=dynamodb`
+- `DYNAMODB_MERCHANT_CONNECTION_TABLE`
+- `DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE`
+- `MERCHANT_SECRET_PREFIX`
+- `SQUARE_ENVIRONMENT`
+
+Lambda already provides:
+
+- `AWS_REGION`
+
 ## API Gateway Setup
 
 Use an HTTP API.
@@ -80,6 +104,15 @@ Create:
   - `POST /webhook/square`
 - Integration:
   - webhook ingress Lambda
+- Payload format version:
+  - `2.0`
+
+For manual inventory sync, create:
+
+- Route:
+  - `POST /admin/api/manual-count-sync-batch`
+- Integration:
+  - manual count sync Lambda
 - Payload format version:
   - `2.0`
 
@@ -107,6 +140,15 @@ Worker Lambda execution role needs:
 - DynamoDB read/write on:
   - order-processing table
   - webhook-events table
+
+Manual count sync Lambda execution role needs:
+
+- CloudWatch Logs
+- DynamoDB read access on:
+  - merchant-connections table
+  - merchant-catalog-bindings table
+- Secrets Manager read access on merchant auth secrets under:
+  - `MERCHANT_SECRET_PREFIX`
 
 ## Verification Rules
 
