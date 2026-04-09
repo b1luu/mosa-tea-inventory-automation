@@ -277,8 +277,8 @@ curl -i -X POST "https://YOUR_API_ID.execute-api.us-west-2.amazonaws.com/admin/a
   -H "X-Operator-Token: YOUR_OPERATOR_TOKEN" \
   -d '{
     "environment": "sandbox",
-    "merchant_id": "ML9M9XX0HM717",
-    "location_id": "LB1MECVA7EZ8Z",
+    "merchant_id": "YOUR_MERCHANT_ID",
+    "location_id": "YOUR_LOCATION_ID",
     "apply_changes": false,
     "rows": [
       {
