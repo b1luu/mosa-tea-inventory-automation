@@ -148,7 +148,7 @@ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 15m --f
 
 ```bash
 aws --no-cli-pager sqs get-queue-attributes \
-  --queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs \
+  --queue-url https://sqs.us-west-2.amazonaws.com/account#/mosa-tea-webhook-jobs \
   --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
 ```
 
