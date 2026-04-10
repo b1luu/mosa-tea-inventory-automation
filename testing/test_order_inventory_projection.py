@@ -10,6 +10,8 @@ from app.order_inventory_projection import (
 
 
 FIXTURE_DIR = Path("testing/fixtures/orders")
+FULL_SUGAR_MODIFIER_ID = "VEDNAO6LH5WQET6TQTJGSPOB"
+FOUR_SEASONS_TEA_BASE_MODIFIER_ID = "76GJNMZXVLFOXRDRE23MR3FF"
 
 
 def load_fixture(name):
@@ -244,7 +246,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         projected = project_line_item_usage(
             "72KIPS2KHWEK6RAT452MAB2P",
             "1",
-            ["VEDNAO6LH5WQET6TQTJGSPOB"],
+            [FULL_SUGAR_MODIFIER_ID],
         )
 
         usage = projected["usage"][0]
@@ -257,7 +259,7 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         projected = project_line_item_usage(
             "72KIPS2KHWEK6RAT452MAB2P",
             "1",
-            ["VEDNAO6LH5WQET6TQTJGSPOB"],
+            [FULL_SUGAR_MODIFIER_ID],
         )
 
         combined_usage = combine_projected_usage([projected])
@@ -277,9 +279,33 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["tgy"], 8.0)
-        self.assertEqual(combined_by_key["osmanthus_honey"], 35.0)
+        self.assertEqual(combined_by_key["osmanthus_honey"], 37.0)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
+
+    def test_tgy_milk_tea_with_osmanthus_honey_uses_37_grams(self):
+        projected = project_line_item_usage(
+            "5QYGSH5A7D3EOYGTBZMVEC7D",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["osmanthus_honey"], 37.0)
+
+    def test_tgy_au_lait_with_osmanthus_honey_uses_37_grams(self):
+        projected = project_line_item_usage(
+            "YBWRTRH3ZE2OHQ5PL3V662WE",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["osmanthus_honey"], 37.0)
 
     def test_modifier_aware_fresh_fruit_tea_fixture(self):
         order_fixture = load_fixture("completed_fresh_fruit_tea_four_seasons.json")
@@ -322,11 +348,71 @@ class OrderInventoryProjectionTests(unittest.TestCase):
             usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
         }
         self.assertEqual(combined_by_key["4s"], 8.0)
-        self.assertEqual(combined_by_key["mango_syrup"], 35.0)
+        self.assertEqual(combined_by_key["mango_syrup"], 37.0)
         self.assertEqual(combined_by_key["frozen_mango"], 30.0)
         self.assertEqual(combined_by_key["sugar_syrup"], 27.0)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
+
+    def test_fresh_orange_tea_adds_orange_syrup(self):
+        projected = project_line_item_usage(
+            "KESNSNPZO3QYTJHW4STNDJNR",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID, FOUR_SEASONS_TEA_BASE_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["orange_syrup"], 37.0)
+
+    def test_fresh_lemon_tea_adds_lemon_syrup(self):
+        projected = project_line_item_usage(
+            "GL4SND76TJYPY6RBUU32N4HF",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID, FOUR_SEASONS_TEA_BASE_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["lemon_syrup"], 37.0)
+
+    def test_fresh_strawberry_tea_adds_strawberry_syrup(self):
+        projected = project_line_item_usage(
+            "QFNOAWWK3VZXJTZJAU4JRCFO",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID, FOUR_SEASONS_TEA_BASE_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["strawberry_syrup"], 37.0)
+
+    def test_fresh_grapefruit_tea_adds_grapefruit_syrup(self):
+        projected = project_line_item_usage(
+            "GWLUEE5JMJLJITJRR42G6GHV",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID, FOUR_SEASONS_TEA_BASE_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["grapefruit_syrup"], 37.0)
+
+    def test_fresh_apple_tea_adds_apple_syrup(self):
+        projected = project_line_item_usage(
+            "EN2VSTOAJGNMPKU5LMXF3MR6",
+            "1",
+            [FULL_SUGAR_MODIFIER_ID, FOUR_SEASONS_TEA_BASE_MODIFIER_ID],
+        )
+
+        combined_by_key = {
+            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
+        }
+        self.assertEqual(combined_by_key["apple_syrup"], 37.0)
 
     def test_strawberry_matcha_latte_fixture_adds_frozen_strawberry(self):
         order_fixture = load_fixture("completed_strawberry_matcha_latte.json")

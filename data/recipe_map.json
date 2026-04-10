@@ -414,7 +414,7 @@
         },
         {
           "inventory_key": "osmanthus_honey",
-          "amount": 35,
+          "amount": 37,
           "unit": "g",
           "notes": "Standard osmanthus honey usage per drink."
         }
@@ -444,7 +444,7 @@
         },
         {
           "inventory_key": "osmanthus_honey",
-          "amount": 35,
+          "amount": 37,
           "unit": "g",
           "notes": "Standard osmanthus honey usage per drink."
         }
@@ -772,7 +772,7 @@
         },
         {
           "inventory_key": "osmanthus_honey",
-          "amount": 35,
+          "amount": 37,
           "unit": "g",
           "notes": "Standard osmanthus honey usage per drink."
         }
@@ -945,6 +945,12 @@
       },
       "ingredients": [
         {
+          "inventory_key": "strawberry_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard strawberry syrup usage per fresh strawberry tea."
+        },
+        {
           "inventory_key": "frozen_strawberry",
           "amount": 30,
           "unit": "g",
@@ -982,6 +988,14 @@
         "full_amount": 54,
         "unit": "g"
       },
+      "ingredients": [
+        {
+          "inventory_key": "grapefruit_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard grapefruit syrup usage per fresh grapefruit tea."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -1013,6 +1027,14 @@
         "full_amount": 54,
         "unit": "g"
       },
+      "ingredients": [
+        {
+          "inventory_key": "lemon_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard lemon syrup usage per fresh lemon tea."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -1047,7 +1069,7 @@
       "ingredients": [
         {
           "inventory_key": "mango_syrup",
-          "amount": 35,
+          "amount": 37,
           "unit": "g",
           "notes": "Standard mango syrup usage per fresh mango tea."
         },
@@ -1089,6 +1111,14 @@
         "full_amount": 54,
         "unit": "g"
       },
+      "ingredients": [
+        {
+          "inventory_key": "orange_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard orange syrup usage per fresh orange tea."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
@@ -1120,6 +1150,14 @@
         "full_amount": 54,
         "unit": "g"
       },
+      "ingredients": [
+        {
+          "inventory_key": "apple_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard apple syrup usage per fresh apple tea."
+        }
+      ],
       "modifier_overrides": {
         "76GJNMZXVLFOXRDRE23MR3FF": {
           "ingredients": [
