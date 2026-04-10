@@ -69,6 +69,7 @@ This project exists because POS sales are not the same thing as inventory consum
 - Merchant-aware runtime with approved binding and write-enable gates
 - Local mode with SQLite
 - AWS-backed mode with SQS, Lambda, DynamoDB, Secrets Manager, and DLQ
+- Public-safe Terraform scaffold for the AWS footprint
 - GitHub Actions CI plus manual Lambda deploy workflow
 
 ## Stack
@@ -82,6 +83,7 @@ This project exists because POS sales are not the same thing as inventory consum
 - Lambda
 - DynamoDB
 - SQLite
+- Terraform
 - `unittest`
 
 ## Run Locally
@@ -310,6 +312,7 @@ curl -i -X POST "https://YOUR_API_ID.execute-api.us-west-2.amazonaws.com/admin/a
 - [API Gateway serverless ingress](docs/api-gateway-serverless-ingress.md)
 - [AWS cost analysis](docs/aws-cost-analysis.md)
 - [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
+- [Terraform infrastructure](docs/terraform-infrastructure.md)
 
 ## Status
 

@@ -1,0 +1,35 @@
+aws_region = "us-west-2"
+
+project_name     = "mosa-tea"
+environment_name = "sandbox"
+
+square_environment = "sandbox"
+
+# Keep this at python3.13 for Terraform until the AWS provider supports python3.14.
+lambda_runtime = "python3.13"
+
+worker_lambda_function_name          = "mosa-tea-webhook-worker"
+webhook_ingress_lambda_function_name = "mosa-tea-webhook-ingress"
+manual_count_sync_lambda_function_name = "mosa-tea-manual-count-sync"
+
+# Optional: set these to the current live IAM role names before importing existing Lambdas.
+# webhook_ingress_lambda_role_name = "your-existing-webhook-ingress-role-name"
+# worker_lambda_role_name          = "your-existing-webhook-worker-role-name"
+# manual_count_sync_lambda_role_name = "your-existing-manual-count-sync-role-name"
+
+webhook_api_name     = "mosa-tea-webhook-api"
+manual_sync_api_name = "mosa-tea-manual-sync-api"
+
+order_processing_table_name    = "mosa-tea-order-processing"
+webhook_event_table_name       = "mosa-tea-webhook-events"
+merchant_connection_table_name = "mosa-tea-merchant-connections"
+merchant_binding_table_name    = "mosa-tea-merchant-bindings"
+merchant_secret_prefix         = "mosa-tea/merchant-auth"
+
+webhook_jobs_queue_name = "mosa-tea-webhook-jobs"
+webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq"
+
+# Supply real secrets out of band. Do not commit your filled-in tfvars file.
+square_access_token          = "replace_me"
+square_webhook_signature_key = "replace_me"
+operator_api_token           = "replace_me"

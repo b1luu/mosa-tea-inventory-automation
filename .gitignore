@@ -2,6 +2,10 @@
 .env
 .venv
 .build/
+infra/.terraform/
+infra/*.tfvars
+infra/*.tfstate
+infra/*.tfstate.*
 
 #Python
 __pycache__/
