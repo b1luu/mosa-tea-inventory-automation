@@ -114,12 +114,38 @@ uvicorn server:app --reload --port 8000
 ## Useful Commands
 
 ```bash
+./scripts/sanity_check.sh
 ./.venv/bin/python -m unittest discover -s testing -p 'test_*.py'
 ./.venv/bin/python -m scripts.search_orders
 ./.venv/bin/python -m scripts.inspect_order ORDER_ID
 ./.venv/bin/python -m scripts.process_sqs_webhook_job
 ./.venv/bin/python -m scripts.replay_order ORDER_ID
 ./.venv/bin/python -m testing.create_live_test_order --pay roasted_buckwheat_barley_milk_tea_100_sugar
+```
+
+## Sanity Check
+
+Use one command before pushing or after infra changes:
+
+```bash
+./scripts/sanity_check.sh
+```
+
+It does two things by default:
+
+- bytecode compile check for `app/`, `scripts/`, and `server.py`
+- full `unittest` suite
+
+For an infra-aware version after `terraform -chdir=infra init`, run:
+
+```bash
+./scripts/sanity_check.sh --with-terraform
+```
+
+The default sanity check does not run a live AWS drift check and does not apply infrastructure. If you want to confirm the imported AWS stack still matches Terraform, run:
+
+```bash
+terraform -chdir=infra plan -var-file=terraform.tfvars
 ```
 
 ## Live Demo
