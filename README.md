@@ -148,7 +148,7 @@ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 15m --f
 
 ```bash
 aws --no-cli-pager sqs get-queue-attributes \
-  --queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs \
+  --queue-url https://sqs.us-west-2.amazonaws.com/YOUR_AWS_ACCOUNT_ID/mosa-tea-webhook-jobs \
   --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
 ```
 
@@ -314,6 +314,18 @@ curl -i -X POST "https://YOUR_API_ID.execute-api.us-west-2.amazonaws.com/admin/a
 - [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
 - [Terraform infrastructure](docs/terraform-infrastructure.md)
 
+## Terraform Adoption
+
+The live AWS stack has been imported into Terraform state and reconciled until `terraform plan` returns no changes.
+
+That means:
+
+- the deployed Lambdas, API Gateway resources, SQS queues, DynamoDB tables, IAM roles, log groups, and event source mapping are now tracked as code
+- infrastructure drift can be detected with `terraform -chdir=infra plan -var-file=terraform.tfvars`
+- secrets stay out of the public repo by living only in ignored local `terraform.tfvars`
+
+This was done as an import-first adoption, not by recreating the stack from scratch.
+
 ## Status
 
-This is no longer just a local script project. It now has a production-shaped event pipeline, live AWS integration, CI, deploy workflow, DLQ handling, and real end-to-end sandbox validation.
+This is no longer just a local script project. It now has a production-shaped event pipeline, live AWS integration, CI, deploy workflow, DLQ handling, public-safe Terraform coverage, and real end-to-end sandbox validation.
