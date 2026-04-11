@@ -244,14 +244,6 @@ Current operator model:
 - the latest non-highlighted count per row is used as the physical count source
 - blank `inventory_key` rows are skipped so intentionally untracked items can stay in the sheet
 
-AWS path:
-
-- API route:
-  - `POST /admin/api/manual-count-sync-batch`
-- Lambda handler:
-  - `app.lambda_manual_count_sync.lambda_handler`
-- auth:
-  - `X-Operator-Token`
 
 Google Sheets setup:
 
@@ -267,31 +259,6 @@ Expected success behavior:
 - changed rows report the updated counted quantity and unit
 - the Lambda completes in one request rather than one request per inventory row
 
-Useful verification commands:
-
-```bash
-aws --no-cli-pager logs tail /aws/lambda/mosa-tea-manual-count-sync --since 10m --follow
-```
-
-```bash
-curl -i -X POST "https://YOUR_API_ID.execute-api.us-west-2.amazonaws.com/admin/api/manual-count-sync-batch" \
-  -H "Content-Type: application/json" \
-  -H "X-Operator-Token: YOUR_OPERATOR_TOKEN" \
-  -d '{
-    "environment": "sandbox",
-    "merchant_id": "YOUR_MERCHANT_ID",
-    "location_id": "YOUR_LOCATION_ID",
-    "apply_changes": false,
-    "rows": [
-      {
-        "inventory_key": "black_tea",
-        "counted_quantity": "80",
-        "counted_unit": "bag",
-        "source_reference": "Sheet1!AG2"
-      }
-    ]
-  }'
-```
 
 ## Key Files
 
