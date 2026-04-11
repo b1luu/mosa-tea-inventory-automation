@@ -7,6 +7,10 @@ square_environment = "sandbox"
 
 # Keep this at python3.13 for Terraform until the AWS provider supports python3.14.
 lambda_runtime = "python3.13"
+lambda_role_path = "/service-role/"
+manage_lambda_role_policies = false
+manage_lambda_permissions = false
+manage_resource_tags = false
 
 worker_lambda_function_name          = "mosa-tea-webhook-worker"
 webhook_ingress_lambda_function_name = "mosa-tea-webhook-ingress"
@@ -28,6 +32,9 @@ merchant_secret_prefix         = "mosa-tea/merchant-auth"
 
 webhook_jobs_queue_name = "mosa-tea-webhook-jobs"
 webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq"
+webhook_queue_receive_wait_time_seconds = 20
+webhook_dlq_receive_wait_time_seconds   = 20
+sqs_max_message_size                    = 1048576
 
 # Supply real secrets out of band. Do not commit your filled-in tfvars file.
 square_access_token          = "replace_me"

@@ -1,3 +1,24 @@
+
+resource "aws_dynamodb_table" "merchant_bindings" {
+  name         = var.merchant_binding_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "environment_merchant_location_id"
+
+  attribute {
+    name = "environment_merchant_location_id"
+    type = "S"
+  }
+
+  tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
+}
+
 resource "aws_dynamodb_table" "order_processing" {
   name         = var.order_processing_table_name
   billing_mode = "PAY_PER_REQUEST"
@@ -9,6 +30,13 @@ resource "aws_dynamodb_table" "order_processing" {
   }
 
   tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_dynamodb_table" "webhook_events" {
@@ -22,6 +50,13 @@ resource "aws_dynamodb_table" "webhook_events" {
   }
 
   tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_dynamodb_table" "merchant_connections" {
@@ -35,23 +70,11 @@ resource "aws_dynamodb_table" "merchant_connections" {
   }
 
   tags = local.common_tags
-}
 
-resource "aws_dynamodb_table" "merchant_bindings" {
-  name         = var.merchant_binding_table_name
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "environment_merchant_location_id"
-  range_key    = "version"
-
-  attribute {
-    name = "environment_merchant_location_id"
-    type = "S"
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
   }
-
-  attribute {
-    name = "version"
-    type = "N"
-  }
-
-  tags = local.common_tags
 }

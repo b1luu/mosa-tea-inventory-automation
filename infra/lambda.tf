@@ -2,18 +2,42 @@ resource "aws_cloudwatch_log_group" "webhook_ingress" {
   name              = "/aws/lambda/${var.webhook_ingress_lambda_function_name}"
   retention_in_days = var.log_retention_in_days
   tags              = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      retention_in_days,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "webhook_worker" {
   name              = "/aws/lambda/${var.worker_lambda_function_name}"
   retention_in_days = var.log_retention_in_days
   tags              = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      retention_in_days,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "manual_count_sync" {
   name              = "/aws/lambda/${var.manual_count_sync_lambda_function_name}"
   retention_in_days = var.log_retention_in_days
   tags              = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      retention_in_days,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_lambda_function" "webhook_ingress" {
@@ -32,7 +56,15 @@ resource "aws_lambda_function" "webhook_ingress" {
     # The live Lambdas currently run python3.14, but the Terraform AWS provider
     # version used here validates only up to python3.13. Ignore runtime drift
     # during import/adoption until provider support catches up.
-    ignore_changes = [runtime]
+    ignore_changes = [
+      runtime,
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+      environment,
+    ]
   }
 
   environment {
@@ -64,7 +96,15 @@ resource "aws_lambda_function" "webhook_worker" {
   source_code_hash = filebase64sha256(var.lambda_package_path)
 
   lifecycle {
-    ignore_changes = [runtime]
+    ignore_changes = [
+      runtime,
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+      environment,
+    ]
   }
 
   environment {
@@ -92,7 +132,15 @@ resource "aws_lambda_function" "manual_count_sync" {
   source_code_hash = filebase64sha256(var.lambda_package_path)
 
   lifecycle {
-    ignore_changes = [runtime]
+    ignore_changes = [
+      runtime,
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+      environment,
+    ]
   }
 
   environment {
@@ -114,4 +162,11 @@ resource "aws_lambda_event_source_mapping" "webhook_worker_queue" {
   function_name    = aws_lambda_function.webhook_worker.arn
   batch_size       = var.webhook_job_batch_size
   enabled          = true
+  function_response_types = ["ReportBatchItemFailures"]
+
+  lifecycle {
+    ignore_changes = [
+      metrics_config,
+    ]
+  }
 }

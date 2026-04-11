@@ -105,6 +105,27 @@ To keep planning and import safe:
 
 This is a temporary compatibility shim for Terraform planning. Once the provider supports `python3.14`, you can remove the workaround and align the runtime in Terraform with the live AWS setting.
 
+## IAM Adoption Mode
+
+The current live Lambda execution roles were created outside Terraform and already have attached/inline policies. To avoid Terraform trying to replace or rewire those roles during the first import:
+
+- the scaffold defaults `lambda_role_path` to `/service-role/`
+- the role resources ignore drift for existing attached and inline policies
+- `manage_lambda_role_policies` defaults to `false`
+- `manage_lambda_permissions` defaults to `false`
+
+That means the first Terraform adoption phase focuses on importing the existing roles safely. After the imported state is stable, you can decide whether to model the role policies explicitly and turn policy management on later.
+
+## Tag And Queue Drift During Adoption
+
+The live stack already has some hand-applied tags and queue settings. To keep the first adoption plan safe:
+
+- `manage_resource_tags` defaults to `false`
+- SQS defaults are aligned with the current live queues
+- the merchant bindings table is modeled as a hash-only table, matching the live schema
+
+That reduces noisy drift and avoids dangerous replacement of the bindings table during import.
+
 ## Notes
 
 - The Terraform scaffold uses a shared Lambda package, matching the current GitHub Actions deploy model.

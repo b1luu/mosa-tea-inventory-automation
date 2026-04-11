@@ -46,10 +46,34 @@ variable "lambda_timeout_seconds" {
   default     = 30
 }
 
+variable "lambda_role_path" {
+  description = "IAM path for Lambda execution roles. Existing console-created Lambda roles commonly live under /service-role/."
+  type        = string
+  default     = "/service-role/"
+}
+
+variable "manage_lambda_role_policies" {
+  description = "Whether Terraform should create and attach inline/basic-execution policies for the Lambda roles. Keep false during initial import/adoption of existing roles."
+  type        = bool
+  default     = false
+}
+
+variable "manage_lambda_permissions" {
+  description = "Whether Terraform should manage API Gateway invoke permissions on the Lambdas. Keep false during initial import/adoption when those statements already exist."
+  type        = bool
+  default     = false
+}
+
 variable "log_retention_in_days" {
   description = "CloudWatch log retention for managed Lambda log groups."
   type        = number
   default     = 14
+}
+
+variable "manage_resource_tags" {
+  description = "Whether Terraform should actively manage tags on imported resources during initial adoption."
+  type        = bool
+  default     = false
 }
 
 variable "webhook_api_name" {
@@ -140,6 +164,24 @@ variable "webhook_dlq_message_retention_seconds" {
   description = "Message retention for the webhook DLQ."
   type        = number
   default     = 1209600
+}
+
+variable "sqs_max_message_size" {
+  description = "Maximum message size for the webhook queues."
+  type        = number
+  default     = 262144
+}
+
+variable "webhook_queue_receive_wait_time_seconds" {
+  description = "Receive wait time for the main webhook queue."
+  type        = number
+  default     = 20
+}
+
+variable "webhook_dlq_receive_wait_time_seconds" {
+  description = "Receive wait time for the webhook DLQ."
+  type        = number
+  default     = 20
 }
 
 variable "webhook_queue_max_receive_count" {

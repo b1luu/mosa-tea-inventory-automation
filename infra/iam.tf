@@ -15,33 +15,63 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 
 resource "aws_iam_role" "webhook_ingress" {
   name               = coalesce(var.webhook_ingress_lambda_role_name, "${var.webhook_ingress_lambda_function_name}-role")
+  path               = var.lambda_role_path
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
   tags               = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      inline_policy,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_iam_role" "webhook_worker" {
   name               = coalesce(var.worker_lambda_role_name, "${var.worker_lambda_function_name}-role")
+  path               = var.lambda_role_path
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
   tags               = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      inline_policy,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_iam_role" "manual_count_sync" {
   name               = coalesce(var.manual_count_sync_lambda_role_name, "${var.manual_count_sync_lambda_function_name}-role")
+  path               = var.lambda_role_path
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
   tags               = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      inline_policy,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "webhook_ingress_basic_execution" {
+  count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.webhook_ingress.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_role_policy_attachment" "webhook_worker_basic_execution" {
+  count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.webhook_worker.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_role_policy_attachment" "manual_count_sync_basic_execution" {
+  count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.manual_count_sync.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
@@ -105,6 +135,7 @@ data "aws_iam_policy_document" "webhook_ingress_runtime" {
 }
 
 resource "aws_iam_role_policy" "webhook_ingress_runtime" {
+  count  = var.manage_lambda_role_policies ? 1 : 0
   name   = "webhook-ingress-runtime-access"
   role   = aws_iam_role.webhook_ingress.id
   policy = data.aws_iam_policy_document.webhook_ingress_runtime.json
@@ -157,6 +188,7 @@ data "aws_iam_policy_document" "webhook_worker_runtime" {
 }
 
 resource "aws_iam_role_policy" "webhook_worker_runtime" {
+  count  = var.manage_lambda_role_policies ? 1 : 0
   name   = "webhook-worker-runtime-access"
   role   = aws_iam_role.webhook_worker.id
   policy = data.aws_iam_policy_document.webhook_worker_runtime.json
@@ -192,6 +224,7 @@ data "aws_iam_policy_document" "manual_count_sync_runtime" {
 }
 
 resource "aws_iam_role_policy" "manual_count_sync_runtime" {
+  count  = var.manage_lambda_role_policies ? 1 : 0
   name   = "manual-count-sync-runtime-access"
   role   = aws_iam_role.manual_count_sync.id
   policy = data.aws_iam_policy_document.manual_count_sync_runtime.json
