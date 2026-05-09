@@ -79,6 +79,15 @@ If the project were intentionally staying localhost-only for OAuth forever, SQLi
 
 That is not the chosen product direction.
 
+There is also a consistency and integration reason to keep DynamoDB here:
+
+- DynamoDB is already the project's deployed durable-state backbone
+- merchant connections, merchant bindings, webhook events, and order-processing state already follow this pattern
+- the codebase already supports the same `sqlite|dynamodb` backend switch model in multiple subsystems
+- keeping OAuth callback state in DynamoDB avoids introducing a separate state-management model just for OAuth
+
+So DynamoDB is not being added as a one-off special case. It is an extension of the project's existing cloud-state architecture.
+
 ## Consequences
 
 Because this decision is locked in:
