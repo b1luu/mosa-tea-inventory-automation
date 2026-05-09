@@ -58,6 +58,13 @@ resource "aws_iam_role" "manual_count_sync" {
   }
 }
 
+resource "aws_iam_role" "oauth" {
+  name               = coalesce(var.oauth_lambda_role_name, "${var.oauth_lambda_function_name}-role")
+  path               = var.lambda_role_path
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+  tags               = local.common_tags
+}
+
 resource "aws_iam_role_policy_attachment" "webhook_ingress_basic_execution" {
   count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.webhook_ingress.name
@@ -73,6 +80,11 @@ resource "aws_iam_role_policy_attachment" "webhook_worker_basic_execution" {
 resource "aws_iam_role_policy_attachment" "manual_count_sync_basic_execution" {
   count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.manual_count_sync.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "oauth_basic_execution" {
+  role       = aws_iam_role.oauth.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -228,4 +240,52 @@ resource "aws_iam_role_policy" "manual_count_sync_runtime" {
   name   = "manual-count-sync-runtime-access"
   role   = aws_iam_role.manual_count_sync.id
   policy = data.aws_iam_policy_document.manual_count_sync_runtime.json
+}
+
+data "aws_iam_policy_document" "oauth_runtime" {
+  statement {
+    sid    = "OAuthStateTable"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [aws_dynamodb_table.oauth_state.arn]
+  }
+
+  statement {
+    sid    = "MerchantConnectionTable"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:Query",
+      "dynamodb:Scan",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [aws_dynamodb_table.merchant_connections.arn]
+  }
+
+  statement {
+    sid    = "MerchantSecretsLifecycle"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:CreateSecret"
+    ]
+    resources = [
+      "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.merchant_secret_prefix}*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "oauth_runtime" {
+  name   = "oauth-runtime-access"
+  role   = aws_iam_role.oauth.id
+  policy = data.aws_iam_policy_document.oauth_runtime.json
 }

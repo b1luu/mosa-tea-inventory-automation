@@ -5,6 +5,7 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - webhook ingress Lambda
 - webhook worker Lambda
 - manual count sync Lambda
+- OAuth Lambda
 - webhook HTTP API
 - manual sync HTTP API
 - SQS main queue + DLQ
@@ -24,6 +25,7 @@ Safe to keep in git:
 - environment variable keys
 - queue wiring
 - timeout and memory settings
+- OAuth callback URL shape
 
 Do not commit:
 
@@ -94,6 +96,14 @@ When adopting the current live stack, make sure these variables match the IAM ro
 
 Without that, Terraform will assume it should create replacement roles with clean names, which is not what you want for a safe import-first rollout.
 
+For the new OAuth slice, Terraform also expects:
+
+- `square_oauth_client_id`
+- `square_oauth_client_secret`
+- `square_oauth_redirect_uri`
+
+Those are required for the deployed callback flow and should be supplied through your local ignored `terraform.tfvars`.
+
 ## Runtime Compatibility Note
 
 The current live Lambdas run `python3.14`, but the Terraform AWS provider version used by this scaffold currently validates Lambda runtimes only through `python3.13`.
@@ -130,4 +140,4 @@ That reduces noisy drift and avoids dangerous replacement of the bindings table 
 
 - The Terraform scaffold uses a shared Lambda package, matching the current GitHub Actions deploy model.
 - It parameterizes sensitive values but does not store them.
-- It models the merchant bindings table with a partition key plus `version` sort key, which matches the current DynamoDB code path.
+- It now includes a dedicated OAuth state table with TTL for short-lived callback state.

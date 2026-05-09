@@ -18,6 +18,16 @@ output "manual_sync_url" {
   value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/admin/api/manual-count-sync-batch"
 }
 
+output "oauth_start_url" {
+  description = "Full deployed OAuth start URL."
+  value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/oauth/square/start"
+}
+
+output "oauth_callback_url" {
+  description = "Full deployed OAuth callback URL."
+  value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/oauth/square/callback"
+}
+
 output "webhook_jobs_queue_url" {
   description = "SQS queue URL for webhook jobs."
   value       = aws_sqs_queue.webhook_jobs.id
@@ -34,15 +44,17 @@ output "lambda_function_names" {
     webhook_ingress = aws_lambda_function.webhook_ingress.function_name
     webhook_worker  = aws_lambda_function.webhook_worker.function_name
     manual_sync     = aws_lambda_function.manual_count_sync.function_name
+    oauth           = aws_lambda_function.oauth.function_name
   }
 }
 
 output "dynamodb_table_names" {
   description = "Managed DynamoDB table names."
   value = {
-    order_processing   = aws_dynamodb_table.order_processing.name
-    webhook_events     = aws_dynamodb_table.webhook_events.name
+    order_processing     = aws_dynamodb_table.order_processing.name
+    webhook_events       = aws_dynamodb_table.webhook_events.name
     merchant_connections = aws_dynamodb_table.merchant_connections.name
-    merchant_bindings  = aws_dynamodb_table.merchant_bindings.name
+    merchant_bindings    = aws_dynamodb_table.merchant_bindings.name
+    oauth_state          = aws_dynamodb_table.oauth_state.name
   }
 }

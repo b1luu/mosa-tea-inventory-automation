@@ -40,6 +40,12 @@ resource "aws_cloudwatch_log_group" "manual_count_sync" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "oauth" {
+  name              = "/aws/lambda/${var.oauth_lambda_function_name}"
+  retention_in_days = var.log_retention_in_days
+  tags              = local.common_tags
+}
+
 resource "aws_lambda_function" "webhook_ingress" {
   function_name = var.webhook_ingress_lambda_function_name
   role          = aws_iam_role.webhook_ingress.arn
@@ -71,10 +77,10 @@ resource "aws_lambda_function" "webhook_ingress" {
     variables = merge(
       local.common_store_env,
       {
-        WEBHOOK_DISPATCH_MODE          = "sqs"
-        WEBHOOK_JOB_QUEUE_URL          = aws_sqs_queue.webhook_jobs.id
-        SQUARE_ACCESS_TOKEN            = var.square_access_token
-        SQUARE_WEBHOOK_SIGNATURE_KEY   = var.square_webhook_signature_key
+        WEBHOOK_DISPATCH_MODE           = "sqs"
+        WEBHOOK_JOB_QUEUE_URL           = aws_sqs_queue.webhook_jobs.id
+        SQUARE_ACCESS_TOKEN             = var.square_access_token
+        SQUARE_WEBHOOK_SIGNATURE_KEY    = var.square_webhook_signature_key
         SQUARE_WEBHOOK_NOTIFICATION_URL = "${aws_apigatewayv2_stage.webhook.invoke_url}/webhook/square"
       }
     )
@@ -145,23 +151,52 @@ resource "aws_lambda_function" "manual_count_sync" {
 
   environment {
     variables = {
-      OPERATOR_API_TOKEN                 = var.operator_api_token
-      MERCHANT_STORE_MODE                = "dynamodb"
-      DYNAMODB_MERCHANT_CONNECTION_TABLE = aws_dynamodb_table.merchant_connections.name
+      OPERATOR_API_TOKEN                      = var.operator_api_token
+      MERCHANT_STORE_MODE                     = "dynamodb"
+      DYNAMODB_MERCHANT_CONNECTION_TABLE      = aws_dynamodb_table.merchant_connections.name
       DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE = aws_dynamodb_table.merchant_bindings.name
-      MERCHANT_SECRET_PREFIX             = var.merchant_secret_prefix
-      SQUARE_ENVIRONMENT                 = var.square_environment
+      MERCHANT_SECRET_PREFIX                  = var.merchant_secret_prefix
+      SQUARE_ENVIRONMENT                      = var.square_environment
     }
   }
 
   tags = local.common_tags
 }
 
+resource "aws_lambda_function" "oauth" {
+  function_name = var.oauth_lambda_function_name
+  role          = aws_iam_role.oauth.arn
+  handler       = "app.lambda_oauth.lambda_handler"
+  runtime       = var.lambda_runtime
+  architectures = var.lambda_architectures
+  memory_size   = var.lambda_memory_size_mb
+  timeout       = var.lambda_timeout_seconds
+
+  filename         = var.lambda_package_path
+  source_code_hash = filebase64sha256(var.lambda_package_path)
+
+  environment {
+    variables = merge(
+      local.merchant_store_env,
+      local.oauth_state_env,
+      {
+        OPERATOR_API_TOKEN         = var.operator_api_token
+        SQUARE_OAUTH_CLIENT_ID     = var.square_oauth_client_id
+        SQUARE_OAUTH_CLIENT_SECRET = var.square_oauth_client_secret
+        SQUARE_OAUTH_REDIRECT_URI  = var.square_oauth_redirect_uri
+        SQUARE_OAUTH_SCOPES        = var.square_oauth_scopes
+      }
+    )
+  }
+
+  tags = local.common_tags
+}
+
 resource "aws_lambda_event_source_mapping" "webhook_worker_queue" {
-  event_source_arn = aws_sqs_queue.webhook_jobs.arn
-  function_name    = aws_lambda_function.webhook_worker.arn
-  batch_size       = var.webhook_job_batch_size
-  enabled          = true
+  event_source_arn        = aws_sqs_queue.webhook_jobs.arn
+  function_name           = aws_lambda_function.webhook_worker.arn
+  batch_size              = var.webhook_job_batch_size
+  enabled                 = true
   function_response_types = ["ReportBatchItemFailures"]
 
   lifecycle {
