@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -132,27 +133,33 @@ class MerchantStoreTests(unittest.TestCase):
                 "refresh_token": "refresh-1",
                 "merchant_id": "merchant-1",
                 "token_type": "bearer",
-                "expires_at": "2099-05-01T00:00:00Z",
+                "expires_at": "2026-05-01T00:00:00Z",
                 "short_lived": False,
             },
         )()
+        fixed_now = datetime(2026, 4, 15, tzinfo=UTC)
 
-        with patch(
-            "app.merchant_store.refresh_authorization_token",
-            return_value=token_response,
-        ) as mock_refresh:
+        with (
+            patch(
+                "app.merchant_store.refresh_authorization_token",
+                return_value=token_response,
+            ) as mock_refresh,
+            patch("app.merchant_store.datetime", wraps=datetime) as mock_datetime,
+        ):
+            mock_datetime.now.return_value = fixed_now
             refreshed = merchant_store.refresh_oauth_merchant_access_token(
                 "production",
                 "merchant-1",
                 force=True,
             )
+            resolved_access_token = merchant_store.resolve_merchant_access_token(
+                "production",
+                "merchant-1",
+            )
 
         mock_refresh.assert_called_once_with("production", "refresh-1")
         self.assertEqual(refreshed["access_token"], "access-2")
-        self.assertEqual(
-            merchant_store.resolve_merchant_access_token("production", "merchant-1"),
-            "access-2",
-        )
+        self.assertEqual(resolved_access_token, "access-2")
 
     def test_enable_merchant_writes_if_ready_refuses_missing_binding(self):
         merchant_store.upsert_oauth_merchant(
