@@ -88,6 +88,12 @@ variable "manual_sync_api_name" {
   default     = "mosa-tea-manual-sync-api"
 }
 
+variable "oauth_api_name" {
+  description = "HTTP API name for OAuth onboarding and reconnect."
+  type        = string
+  default     = "mosa-tea-oauth-api"
+}
+
 variable "oauth_lambda_function_name" {
   description = "Lambda function name for OAuth control-plane routes."
   type        = string
@@ -102,6 +108,12 @@ variable "webhook_api_stage_name" {
 
 variable "manual_sync_api_stage_name" {
   description = "Stage name for the manual sync HTTP API."
+  type        = string
+  default     = "$default"
+}
+
+variable "oauth_api_stage_name" {
+  description = "Stage name for the OAuth HTTP API."
   type        = string
   default     = "$default"
 }

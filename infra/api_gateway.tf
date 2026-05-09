@@ -24,6 +24,19 @@ resource "aws_apigatewayv2_api" "manual_sync" {
   }
 }
 
+resource "aws_apigatewayv2_api" "oauth" {
+  name          = var.oauth_api_name
+  protocol_type = "HTTP"
+  tags          = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
+}
+
 resource "aws_apigatewayv2_integration" "webhook_ingress" {
   api_id                 = aws_apigatewayv2_api.webhook.id
   integration_type       = "AWS_PROXY"
@@ -39,7 +52,7 @@ resource "aws_apigatewayv2_integration" "manual_count_sync" {
 }
 
 resource "aws_apigatewayv2_integration" "oauth" {
-  api_id                 = aws_apigatewayv2_api.manual_sync.id
+  api_id                 = aws_apigatewayv2_api.oauth.id
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.oauth.arn
   payload_format_version = "2.0"
@@ -58,25 +71,25 @@ resource "aws_apigatewayv2_route" "manual_count_sync" {
 }
 
 resource "aws_apigatewayv2_route" "oauth_start" {
-  api_id    = aws_apigatewayv2_api.manual_sync.id
+  api_id    = aws_apigatewayv2_api.oauth.id
   route_key = "GET /oauth/square/start"
   target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
 }
 
 resource "aws_apigatewayv2_route" "oauth_callback" {
-  api_id    = aws_apigatewayv2_api.manual_sync.id
+  api_id    = aws_apigatewayv2_api.oauth.id
   route_key = "GET /oauth/square/callback"
   target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
 }
 
 resource "aws_apigatewayv2_route" "oauth_status" {
-  api_id    = aws_apigatewayv2_api.manual_sync.id
+  api_id    = aws_apigatewayv2_api.oauth.id
   route_key = "GET /oauth/square/status"
   target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
 }
 
 resource "aws_apigatewayv2_route" "oauth_refresh" {
-  api_id    = aws_apigatewayv2_api.manual_sync.id
+  api_id    = aws_apigatewayv2_api.oauth.id
   route_key = "POST /oauth/square/refresh/{merchant_id}"
   target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
 }
@@ -98,6 +111,20 @@ resource "aws_apigatewayv2_stage" "webhook" {
 resource "aws_apigatewayv2_stage" "manual_sync" {
   api_id      = aws_apigatewayv2_api.manual_sync.id
   name        = var.manual_sync_api_stage_name
+  auto_deploy = true
+  tags        = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
+}
+
+resource "aws_apigatewayv2_stage" "oauth" {
+  api_id      = aws_apigatewayv2_api.oauth.id
+  name        = var.oauth_api_stage_name
   auto_deploy = true
   tags        = local.common_tags
 
@@ -132,5 +159,5 @@ resource "aws_lambda_permission" "allow_oauth_api_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.oauth.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.manual_sync.execution_arn}/*/*"
+  source_arn    = "${aws_apigatewayv2_api.oauth.execution_arn}/*/*"
 }

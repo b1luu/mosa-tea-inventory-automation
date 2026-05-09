@@ -20,12 +20,12 @@ output "manual_sync_url" {
 
 output "oauth_start_url" {
   description = "Full deployed OAuth start URL."
-  value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/oauth/square/start"
+  value       = "${aws_apigatewayv2_stage.oauth.invoke_url}/oauth/square/start"
 }
 
 output "oauth_callback_url" {
   description = "Full deployed OAuth callback URL."
-  value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/oauth/square/callback"
+  value       = "${aws_apigatewayv2_stage.oauth.invoke_url}/oauth/square/callback"
 }
 
 output "webhook_jobs_queue_url" {

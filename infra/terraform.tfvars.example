@@ -23,6 +23,7 @@ manual_count_sync_lambda_function_name = "mosa-tea-manual-count-sync"
 
 webhook_api_name     = "mosa-tea-webhook-api"
 manual_sync_api_name = "mosa-tea-manual-sync-api"
+oauth_api_name       = "mosa-tea-oauth-api"
 oauth_lambda_function_name = "mosa-tea-oauth"
 
 order_processing_table_name    = "mosa-tea-order-processing"
@@ -44,4 +45,4 @@ square_webhook_signature_key = "replace_me"
 operator_api_token           = "replace_me"
 square_oauth_client_id       = "replace_me"
 square_oauth_client_secret   = "replace_me"
-square_oauth_redirect_uri    = "https://your-api-id.execute-api.us-west-2.amazonaws.com/oauth/square/callback"
+square_oauth_redirect_uri    = "https://your-oauth-api-id.execute-api.us-west-2.amazonaws.com/oauth/square/callback"

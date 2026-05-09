@@ -8,6 +8,7 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - OAuth Lambda
 - webhook HTTP API
 - manual sync HTTP API
+- OAuth HTTP API
 - SQS main queue + DLQ
 - DynamoDB tables
 - Lambda execution roles and runtime policies
