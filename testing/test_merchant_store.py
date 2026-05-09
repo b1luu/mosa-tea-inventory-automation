@@ -132,7 +132,7 @@ class MerchantStoreTests(unittest.TestCase):
                 "refresh_token": "refresh-1",
                 "merchant_id": "merchant-1",
                 "token_type": "bearer",
-                "expires_at": "2026-05-01T00:00:00Z",
+                "expires_at": "2099-05-01T00:00:00Z",
                 "short_lived": False,
             },
         )()

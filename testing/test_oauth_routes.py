@@ -96,7 +96,7 @@ class OAuthRouteTests(unittest.TestCase):
                 "refresh_token": "refresh-1",
                 "merchant_id": "merchant-1",
                 "token_type": "bearer",
-                "expires_at": "2026-05-01T00:00:00Z",
+                "expires_at": "2099-05-01T00:00:00Z",
                 "short_lived": False,
             },
         )()
@@ -106,7 +106,7 @@ class OAuthRouteTests(unittest.TestCase):
             {
                 "merchant_id": "merchant-1",
                 "client_id": "sq0idp-app",
-                "expires_at": "2026-05-01T00:00:00Z",
+                "expires_at": "2099-05-01T00:00:00Z",
                 "scopes": ["MERCHANT_PROFILE_READ", "ORDERS_READ"],
             },
         )()
@@ -189,7 +189,7 @@ class OAuthRouteTests(unittest.TestCase):
                 "refresh_token": "secret-refresh",
                 "source": "oauth",
                 "token_type": "bearer",
-                "expires_at": "2026-05-01T00:00:00Z",
+                "expires_at": "2099-05-01T00:00:00Z",
                 "short_lived": False,
                 "scopes": ["ORDERS_READ"],
                 "updated_at": "2026-04-04T00:00:00Z",
@@ -224,7 +224,7 @@ class OAuthRouteTests(unittest.TestCase):
             "access_token": "access-2",
             "refresh_token": "refresh-1",
             "token_type": "bearer",
-            "expires_at": "2026-05-01T00:00:00Z",
+            "expires_at": "2099-05-01T00:00:00Z",
             "short_lived": False,
             "scopes": ["ORDERS_READ", "INVENTORY_WRITE"],
             "source": "oauth",
@@ -237,7 +237,7 @@ class OAuthRouteTests(unittest.TestCase):
             {
                 "merchant_id": "merchant-1",
                 "client_id": "sq0idp-app",
-                "expires_at": "2026-05-01T00:00:00Z",
+                "expires_at": "2099-05-01T00:00:00Z",
                 "scopes": ["ORDERS_READ", "INVENTORY_WRITE"],
             },
         )()
