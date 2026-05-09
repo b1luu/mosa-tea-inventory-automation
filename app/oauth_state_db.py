@@ -3,6 +3,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from app.config import get_oauth_state_max_age_seconds
+
 
 DB_FILE = Path("data/oauth_state.db")
 
@@ -40,8 +42,15 @@ def create_oauth_state(environment):
     return state
 
 
-def consume_oauth_state(state, *, max_age_seconds=600):
+def _resolve_max_age_seconds(max_age_seconds):
+    if max_age_seconds is not None:
+        return max_age_seconds
+    return get_oauth_state_max_age_seconds()
+
+
+def consume_oauth_state(state, *, max_age_seconds=None):
     ensure_db()
+    resolved_max_age_seconds = _resolve_max_age_seconds(max_age_seconds)
     with sqlite3.connect(DB_FILE) as connection:
         row = connection.execute(
             """
@@ -60,7 +69,7 @@ def consume_oauth_state(state, *, max_age_seconds=600):
         if consumed_at is not None:
             return None
 
-        if _utcnow() - created_at > timedelta(seconds=max_age_seconds):
+        if _utcnow() - created_at > timedelta(seconds=resolved_max_age_seconds):
             return None
 
         now = _utcnow().isoformat()

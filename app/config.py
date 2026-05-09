@@ -103,6 +103,30 @@ def get_merchant_store_mode():
     return store_mode
 
 
+def get_oauth_state_store_mode():
+    store_mode = os.getenv("OAUTH_STATE_STORE_MODE", "sqlite").strip().lower()
+    if store_mode not in {"sqlite", "dynamodb"}:
+        raise ValueError(
+            "Invalid OAUTH_STATE_STORE_MODE value. Use 'sqlite' or 'dynamodb'."
+        )
+    return store_mode
+
+
+def get_oauth_state_max_age_seconds():
+    raw_value = os.getenv("OAUTH_STATE_MAX_AGE_SECONDS", "600").strip()
+    try:
+        value = int(raw_value)
+    except ValueError as error:
+        raise ValueError(
+            "Invalid OAUTH_STATE_MAX_AGE_SECONDS value. Use a positive integer."
+        ) from error
+    if value <= 0:
+        raise ValueError(
+            "Invalid OAUTH_STATE_MAX_AGE_SECONDS value. Use a positive integer."
+        )
+    return value
+
+
 def get_aws_region():
     region = os.getenv("AWS_REGION")
     if not region:
@@ -159,6 +183,16 @@ def get_dynamodb_merchant_catalog_binding_table_name():
         raise ValueError(
             "Missing required environment variable: DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE. "
             "Set it before using DynamoDB-backed merchant catalog bindings."
+        )
+    return table_name.strip()
+
+
+def get_dynamodb_oauth_state_table_name():
+    table_name = os.getenv("DYNAMODB_OAUTH_STATE_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_OAUTH_STATE_TABLE. "
+            "Set it before using DynamoDB-backed OAuth state."
         )
     return table_name.strip()
 

@@ -11,7 +11,7 @@ from app.merchant_store import (
     refresh_oauth_merchant_access_token,
     upsert_oauth_merchant,
 )
-from app.oauth_state_db import consume_oauth_state, create_oauth_state
+from app.oauth_state_store import consume_oauth_state, create_oauth_state
 from app.operator_auth import require_operator_access
 from app.square_oauth import (
     build_square_oauth_authorization_url,
