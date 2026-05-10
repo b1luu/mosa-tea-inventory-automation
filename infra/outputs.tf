@@ -5,7 +5,7 @@ output "webhook_api_invoke_url" {
 
 output "webhook_notification_url" {
   description = "Full Square webhook notification URL."
-  value       = "${aws_apigatewayv2_stage.webhook.invoke_url}/webhook/square"
+  value       = "${trimsuffix(aws_apigatewayv2_stage.webhook.invoke_url, "/")}/webhook/square"
 }
 
 output "manual_sync_api_invoke_url" {
@@ -15,17 +15,17 @@ output "manual_sync_api_invoke_url" {
 
 output "manual_sync_url" {
   description = "Full Google Sheets batch manual sync URL."
-  value       = "${aws_apigatewayv2_stage.manual_sync.invoke_url}/admin/api/manual-count-sync-batch"
+  value       = "${trimsuffix(aws_apigatewayv2_stage.manual_sync.invoke_url, "/")}/admin/api/manual-count-sync-batch"
 }
 
 output "oauth_start_url" {
   description = "Full deployed OAuth start URL."
-  value       = "${aws_apigatewayv2_stage.oauth.invoke_url}/oauth/square/start"
+  value       = "${trimsuffix(aws_apigatewayv2_stage.oauth.invoke_url, "/")}/oauth/square/start"
 }
 
 output "oauth_callback_url" {
   description = "Full deployed OAuth callback URL."
-  value       = "${aws_apigatewayv2_stage.oauth.invoke_url}/oauth/square/callback"
+  value       = "${trimsuffix(aws_apigatewayv2_stage.oauth.invoke_url, "/")}/oauth/square/callback"
 }
 
 output "webhook_jobs_queue_url" {

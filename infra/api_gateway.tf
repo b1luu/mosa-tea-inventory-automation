@@ -126,14 +126,6 @@ resource "aws_apigatewayv2_stage" "oauth" {
   api_id      = aws_apigatewayv2_api.oauth.id
   name        = var.oauth_api_stage_name
   auto_deploy = true
-  tags        = local.common_tags
-
-  lifecycle {
-    ignore_changes = [
-      tags,
-      tags_all,
-    ]
-  }
 }
 
 resource "aws_lambda_permission" "allow_webhook_api_invoke" {
