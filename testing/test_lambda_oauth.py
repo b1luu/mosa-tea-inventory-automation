@@ -10,12 +10,11 @@ class LambdaOAuthTests(unittest.TestCase):
         event = {
             "requestContext": {"http": {"method": "GET", "path": "/oauth/square/start"}},
             "rawPath": "/oauth/square/start",
-            "rawQueryString": "environment=sandbox&operator_token=test-operator-token",
+            "rawQueryString": "environment=sandbox",
             "headers": {},
         }
 
         with (
-            patch("app.operator_auth.get_operator_api_token", return_value="test-operator-token"),
             patch("app.oauth_routes.create_oauth_state", return_value="state-123"),
             patch(
                 "app.oauth_routes.build_square_oauth_authorization_url",

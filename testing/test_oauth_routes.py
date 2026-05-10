@@ -29,11 +29,7 @@ class OAuthRouteTests(unittest.TestCase):
                 return_value="https://square.example/authorize?state=state-123",
             ),
         ):
-            response = self.client.get(
-                "/oauth/square/start",
-                params={"operator_token": "test-operator-token"},
-                follow_redirects=False,
-            )
+            response = self.client.get("/oauth/square/start", follow_redirects=False)
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
@@ -41,13 +37,20 @@ class OAuthRouteTests(unittest.TestCase):
             "https://square.example/authorize?state=state-123",
         )
 
-    def test_oauth_start_requires_operator_token(self):
-        response = self.client.get("/oauth/square/start", follow_redirects=False)
+    def test_oauth_start_does_not_require_operator_token(self):
+        with (
+            patch("app.oauth_routes.create_oauth_state", return_value="state-456"),
+            patch(
+                "app.oauth_routes.build_square_oauth_authorization_url",
+                return_value="https://square.example/authorize?state=state-456",
+            ),
+        ):
+            response = self.client.get("/oauth/square/start", follow_redirects=False)
 
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(
-            response.json()["detail"],
-            "Invalid or missing operator token.",
+            response.headers["location"],
+            "https://square.example/authorize?state=state-456",
         )
 
     def test_oauth_callback_returns_error_when_square_returns_error(self):

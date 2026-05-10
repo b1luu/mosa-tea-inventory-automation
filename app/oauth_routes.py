@@ -71,7 +71,7 @@ def _render_oauth_page(title, lines, *, status_code=200):
     )
 
 
-@oauth_router.get("/oauth/square/start", dependencies=[Depends(require_operator_access)])
+@oauth_router.get("/oauth/square/start")
 async def square_oauth_start(environment: str | None = Query(default=None)):
     resolved_environment = _resolve_environment(environment)
     state = create_oauth_state(resolved_environment)
