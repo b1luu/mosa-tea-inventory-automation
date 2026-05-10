@@ -13,6 +13,11 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - DynamoDB tables
 - Lambda execution roles and runtime policies
 
+The current Terraform scope is a mix of:
+
+- imported live infrastructure that already existed in AWS
+- new OAuth infrastructure being added on top of that live stack
+
 ## Public-Safe Design
 
 The Terraform files are safe to keep in a public repository because they define infrastructure shape, not secret values.
@@ -68,6 +73,23 @@ This project already has live AWS resources, so the first safe adoption path is:
 
 This avoids Terraform trying to recreate resources that already exist.
 
+That adoption guidance applies to the pre-existing stack:
+
+- webhook ingress Lambda
+- webhook worker Lambda
+- manual count sync Lambda
+- webhook API
+- manual sync API
+- SQS queues
+- merchant/order/webhook DynamoDB tables
+- existing Lambda roles
+
+The OAuth API/Lambda/state-table slice is different:
+
+- it is a new extension to the live stack
+- it is expected to be created by Terraform
+- it is not imported from an already-existing deployed OAuth stack
+
 ## Basic Workflow
 
 Build the shared Lambda zip first:
@@ -104,6 +126,23 @@ For the new OAuth slice, Terraform also expects:
 - `square_oauth_redirect_uri`
 
 Those are required for the deployed callback flow and should be supplied through your local ignored `terraform.tfvars`.
+
+## OAuth Bootstrap Sequence
+
+Because the dedicated OAuth API is a new resource, the final deployed callback URL does not exist until after the first Terraform apply.
+
+That means OAuth setup is a two-step bootstrap:
+
+1. Put the Square sandbox application credentials into local `terraform.tfvars`.
+2. Use a temporary `square_oauth_redirect_uri` value for the first apply.
+3. Run `terraform apply` to create the OAuth API, OAuth Lambda, and OAuth state table.
+4. Read the generated `oauth_callback_url` Terraform output.
+5. Update both:
+   - the Square Sandbox Redirect URL in the Square Developer Dashboard
+   - `square_oauth_redirect_uri` in local `terraform.tfvars`
+6. Run `terraform apply` again so the deployed Lambda config and Square app configuration match exactly.
+
+Until that second apply is complete, the deployed OAuth callback should be treated as not fully wired.
 
 ## Runtime Compatibility Note
 
@@ -142,3 +181,4 @@ That reduces noisy drift and avoids dangerous replacement of the bindings table 
 - The Terraform scaffold uses a shared Lambda package, matching the current GitHub Actions deploy model.
 - It parameterizes sensitive values but does not store them.
 - It now includes a dedicated OAuth state table with TTL for short-lived callback state.
+- The OAuth API is intentionally separate from the webhook API and manual sync API to keep automation ingress, reconciliation tooling, and auth/onboarding concerns modular.
