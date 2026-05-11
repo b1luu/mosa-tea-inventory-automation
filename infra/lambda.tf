@@ -69,7 +69,6 @@ resource "aws_lambda_function" "webhook_ingress" {
       publish,
       tags,
       tags_all,
-      environment,
     ]
   }
 
@@ -81,7 +80,7 @@ resource "aws_lambda_function" "webhook_ingress" {
         WEBHOOK_JOB_QUEUE_URL           = aws_sqs_queue.webhook_jobs.id
         SQUARE_ACCESS_TOKEN             = var.square_access_token
         SQUARE_WEBHOOK_SIGNATURE_KEY    = var.square_webhook_signature_key
-        SQUARE_WEBHOOK_NOTIFICATION_URL = "${aws_apigatewayv2_stage.webhook.invoke_url}/webhook/square"
+        SQUARE_WEBHOOK_NOTIFICATION_URL = "${trimsuffix(aws_apigatewayv2_stage.webhook.invoke_url, "/")}/webhook/square"
       }
     )
   }
@@ -109,7 +108,6 @@ resource "aws_lambda_function" "webhook_worker" {
       publish,
       tags,
       tags_all,
-      environment,
     ]
   }
 
@@ -145,7 +143,6 @@ resource "aws_lambda_function" "manual_count_sync" {
       publish,
       tags,
       tags_all,
-      environment,
     ]
   }
 
