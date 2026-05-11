@@ -4,6 +4,7 @@
 .venv
 .build/
 infra/.terraform/
+infra/tfplan
 infra/*.tfvars
 infra/*.tfstate
 infra/*.tfstate.*
