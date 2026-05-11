@@ -214,6 +214,51 @@ def _get_active_binding_version_for_location(environment, merchant_id, location_
     return _normalize_binding_version(active_binding.get("version"))
 
 
+def _oauth_scopes_allow_writes(scopes):
+    return bool(scopes and "INVENTORY_WRITE" in scopes)
+
+
+def _resolve_oauth_writes_enabled(
+    environment,
+    merchant_id,
+    *,
+    selected_location_id,
+    scopes,
+    writes_enabled,
+):
+    if writes_enabled is not None:
+        return bool(writes_enabled)
+
+    backend = _get_store_backend()
+    existing_connection = backend.get_merchant_connection(environment, merchant_id)
+    if not existing_connection or not existing_connection["writes_enabled"]:
+        return False
+
+    if existing_connection["status"] != MERCHANT_STATUS_ACTIVE:
+        return False
+
+    if existing_connection["auth_mode"] != AUTH_SOURCE_OAUTH:
+        return False
+
+    if not selected_location_id:
+        return False
+
+    if existing_connection["selected_location_id"] != selected_location_id:
+        return False
+
+    if not _oauth_scopes_allow_writes(scopes):
+        return False
+
+    return (
+        _get_active_binding_version_for_location(
+            environment,
+            merchant_id,
+            selected_location_id,
+        )
+        is not None
+    )
+
+
 def _sync_active_binding_version_for_selected_location(environment, merchant_id):
     backend = _get_store_backend()
     merchant_context = get_merchant_context(environment, merchant_id)
@@ -322,10 +367,17 @@ def upsert_oauth_merchant(
     expires_at=None,
     short_lived=None,
     scopes=None,
-    writes_enabled=False,
+    writes_enabled=None,
     status=MERCHANT_STATUS_ACTIVE,
 ):
     backend = _get_store_backend()
+    resolved_writes_enabled = _resolve_oauth_writes_enabled(
+        environment,
+        merchant_id,
+        selected_location_id=selected_location_id,
+        scopes=scopes,
+        writes_enabled=writes_enabled,
+    )
     backend.upsert_merchant_connection(
         environment,
         merchant_id,
@@ -333,7 +385,7 @@ def upsert_oauth_merchant(
         auth_mode=AUTH_SOURCE_OAUTH,
         display_name=display_name,
         selected_location_id=selected_location_id,
-        writes_enabled=writes_enabled,
+        writes_enabled=resolved_writes_enabled,
         active_binding_version=_get_active_binding_version_for_location(
             environment,
             merchant_id,

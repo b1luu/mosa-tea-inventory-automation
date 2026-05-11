@@ -172,7 +172,6 @@ async def square_oauth_callback(
         expires_at=token_response.expires_at or token_status.expires_at,
         short_lived=token_response.short_lived,
         scopes=token_status.scopes,
-        writes_enabled=False,
     )
 
     return _render_oauth_page(
