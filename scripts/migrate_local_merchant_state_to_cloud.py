@@ -113,13 +113,6 @@ def migrate_merchant_state(
                 approved_at=binding.get("approved_at"),
             )
 
-        if local_connection["active_binding_version"] is not None:
-            merchant_store_dynamodb.set_active_binding_version(
-                environment,
-                merchant_id,
-                local_connection["active_binding_version"],
-            )
-
         cloud_connection = merchant_store_dynamodb.get_merchant_connection(
             environment,
             merchant_id,
@@ -133,6 +126,15 @@ def migrate_merchant_state(
             )
             if selected_location_id
             else None
+        )
+        merchant_store_dynamodb.set_active_binding_version(
+            environment,
+            merchant_id,
+            cloud_active_binding.get("version") if cloud_active_binding else None,
+        )
+        cloud_connection = merchant_store_dynamodb.get_merchant_connection(
+            environment,
+            merchant_id,
         )
         cloud_auth = (
             merchant_store_dynamodb.get_merchant_auth(environment, merchant_id)

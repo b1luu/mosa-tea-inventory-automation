@@ -270,6 +270,18 @@ data "aws_iam_policy_document" "oauth_runtime" {
   }
 
   statement {
+    sid    = "MerchantBindingRead"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:Scan",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [aws_dynamodb_table.merchant_bindings.arn]
+  }
+
+  statement {
     sid    = "MerchantSecretsLifecycle"
     effect = "Allow"
     actions = [
