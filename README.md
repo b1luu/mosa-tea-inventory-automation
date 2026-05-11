@@ -304,6 +304,7 @@ Expected success behavior:
 - [Docs index](docs/README.md)
 - [API Gateway serverless ingress](docs/api-gateway-serverless-ingress.md)
 - [AWS cost analysis](docs/aws-cost-analysis.md)
+- [Production OAuth decision](docs/production-oauth-decision.md)
 - [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
 - [Terraform infrastructure](docs/terraform-infrastructure.md)
 

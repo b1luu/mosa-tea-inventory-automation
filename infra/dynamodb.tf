@@ -78,3 +78,28 @@ resource "aws_dynamodb_table" "merchant_connections" {
     ]
   }
 }
+
+resource "aws_dynamodb_table" "oauth_state" {
+  name         = var.oauth_state_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "state"
+
+  attribute {
+    name = "state"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at_epoch"
+    enabled        = true
+  }
+
+  tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
+}

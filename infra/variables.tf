@@ -88,6 +88,18 @@ variable "manual_sync_api_name" {
   default     = "mosa-tea-manual-sync-api"
 }
 
+variable "oauth_api_name" {
+  description = "HTTP API name for OAuth onboarding and reconnect."
+  type        = string
+  default     = "mosa-tea-oauth-api"
+}
+
+variable "oauth_lambda_function_name" {
+  description = "Lambda function name for OAuth control-plane routes."
+  type        = string
+  default     = "mosa-tea-oauth"
+}
+
 variable "webhook_api_stage_name" {
   description = "Stage name for the webhook HTTP API."
   type        = string
@@ -96,6 +108,12 @@ variable "webhook_api_stage_name" {
 
 variable "manual_sync_api_stage_name" {
   description = "Stage name for the manual sync HTTP API."
+  type        = string
+  default     = "$default"
+}
+
+variable "oauth_api_stage_name" {
+  description = "Stage name for the OAuth HTTP API."
   type        = string
   default     = "$default"
 }
@@ -132,6 +150,12 @@ variable "worker_lambda_role_name" {
 
 variable "manual_count_sync_lambda_role_name" {
   description = "IAM role name for the manual count sync Lambda. Set this to the existing live role name when importing resources."
+  type        = string
+  default     = null
+}
+
+variable "oauth_lambda_role_name" {
+  description = "IAM role name for the OAuth Lambda."
   type        = string
   default     = null
 }
@@ -220,6 +244,18 @@ variable "merchant_binding_table_name" {
   default     = "mosa-tea-merchant-bindings"
 }
 
+variable "oauth_state_table_name" {
+  description = "DynamoDB table for short-lived OAuth callback state."
+  type        = string
+  default     = "mosa-tea-oauth-state"
+}
+
+variable "oauth_state_max_age_seconds" {
+  description = "Maximum lifetime for OAuth state tokens."
+  type        = number
+  default     = 600
+}
+
 variable "merchant_secret_prefix" {
   description = "Secrets Manager prefix for merchant auth secrets."
   type        = string
@@ -248,4 +284,27 @@ variable "operator_api_token" {
   description = "Operator token used by the manual count sync Lambda and Google Sheets."
   type        = string
   sensitive   = true
+}
+
+variable "square_oauth_client_id" {
+  description = "Square OAuth application client ID."
+  type        = string
+  sensitive   = true
+}
+
+variable "square_oauth_client_secret" {
+  description = "Square OAuth application client secret."
+  type        = string
+  sensitive   = true
+}
+
+variable "square_oauth_redirect_uri" {
+  description = "Deployed Square OAuth callback URL."
+  type        = string
+}
+
+variable "square_oauth_scopes" {
+  description = "Comma-separated Square OAuth scopes."
+  type        = string
+  default     = "MERCHANT_PROFILE_READ,ORDERS_READ,INVENTORY_READ,INVENTORY_WRITE,ITEMS_READ"
 }

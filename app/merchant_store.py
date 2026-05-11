@@ -193,6 +193,90 @@ def get_active_catalog_binding(environment, merchant_id, location_id):
     )
 
 
+def _normalize_binding_version(version):
+    if version is None:
+        return None
+
+    try:
+        return int(version)
+    except (TypeError, ValueError):
+        return version
+
+
+def _get_active_binding_version_for_location(environment, merchant_id, location_id):
+    if not location_id:
+        return None
+
+    active_binding = get_active_catalog_binding(environment, merchant_id, location_id)
+    if active_binding is None:
+        return None
+
+    return _normalize_binding_version(active_binding.get("version"))
+
+
+def _oauth_scopes_allow_writes(scopes):
+    return bool(scopes and "INVENTORY_WRITE" in scopes)
+
+
+def _resolve_oauth_writes_enabled(
+    environment,
+    merchant_id,
+    *,
+    selected_location_id,
+    scopes,
+    writes_enabled,
+):
+    if writes_enabled is not None:
+        return bool(writes_enabled)
+
+    backend = _get_store_backend()
+    existing_connection = backend.get_merchant_connection(environment, merchant_id)
+    if not existing_connection or not existing_connection["writes_enabled"]:
+        return False
+
+    if existing_connection["status"] != MERCHANT_STATUS_ACTIVE:
+        return False
+
+    if existing_connection["auth_mode"] != AUTH_SOURCE_OAUTH:
+        return False
+
+    if not selected_location_id:
+        return False
+
+    if existing_connection["selected_location_id"] != selected_location_id:
+        return False
+
+    if not _oauth_scopes_allow_writes(scopes):
+        return False
+
+    return (
+        _get_active_binding_version_for_location(
+            environment,
+            merchant_id,
+            selected_location_id,
+        )
+        is not None
+    )
+
+
+def _sync_active_binding_version_for_selected_location(environment, merchant_id):
+    backend = _get_store_backend()
+    merchant_context = get_merchant_context(environment, merchant_id)
+    if merchant_context is None:
+        return False
+
+    backend.set_active_binding_version(
+        environment,
+        merchant_id,
+        _get_active_binding_version_for_location(
+            environment,
+            merchant_id,
+            merchant_context.location_id,
+        ),
+    )
+    return True
+
+
 def list_catalog_bindings(environment, merchant_id, *, location_id=None, status=None):
     return _get_store_backend().list_merchant_catalog_bindings(
         environment,
@@ -255,6 +339,11 @@ def upsert_manual_merchant(
         display_name=display_name,
         selected_location_id=selected_location_id,
         writes_enabled=writes_enabled,
+        active_binding_version=_get_active_binding_version_for_location(
+            environment,
+            merchant_id,
+            selected_location_id,
+        ),
     )
     backend.upsert_merchant_auth(
         environment,
@@ -278,10 +367,17 @@ def upsert_oauth_merchant(
     expires_at=None,
     short_lived=None,
     scopes=None,
-    writes_enabled=False,
+    writes_enabled=None,
     status=MERCHANT_STATUS_ACTIVE,
 ):
     backend = _get_store_backend()
+    resolved_writes_enabled = _resolve_oauth_writes_enabled(
+        environment,
+        merchant_id,
+        selected_location_id=selected_location_id,
+        scopes=scopes,
+        writes_enabled=writes_enabled,
+    )
     backend.upsert_merchant_connection(
         environment,
         merchant_id,
@@ -289,7 +385,12 @@ def upsert_oauth_merchant(
         auth_mode=AUTH_SOURCE_OAUTH,
         display_name=display_name,
         selected_location_id=selected_location_id,
-        writes_enabled=writes_enabled,
+        writes_enabled=resolved_writes_enabled,
+        active_binding_version=_get_active_binding_version_for_location(
+            environment,
+            merchant_id,
+            selected_location_id,
+        ),
     )
     backend.upsert_merchant_auth(
         environment,
@@ -306,11 +407,16 @@ def upsert_oauth_merchant(
 
 
 def set_selected_location_id(environment, merchant_id, selected_location_id):
-    return _get_store_backend().set_selected_location_id(
+    backend = _get_store_backend()
+    updated = backend.set_selected_location_id(
         environment,
         merchant_id,
         selected_location_id,
     )
+    if not updated:
+        return False
+
+    return _sync_active_binding_version_for_selected_location(environment, merchant_id)
 
 
 def enable_merchant_writes(environment, merchant_id):
@@ -364,11 +470,7 @@ def upsert_catalog_binding(
         approved_at=approved_at,
     )
     if status == BINDING_STATUS_APPROVED:
-        backend.set_active_binding_version(
-            environment,
-            merchant_id,
-            version,
-        )
+        _sync_active_binding_version_for_selected_location(environment, merchant_id)
     return backend.get_merchant_catalog_binding(
         environment,
         merchant_id,
@@ -391,12 +493,7 @@ def approve_catalog_binding(environment, merchant_id, location_id, version):
     if not updated:
         return False
 
-    backend.set_active_binding_version(
-        environment,
-        merchant_id,
-        version,
-    )
-    return True
+    return _sync_active_binding_version_for_selected_location(environment, merchant_id)
 
 
 def enable_merchant_writes_if_ready(environment, merchant_id):
@@ -408,6 +505,7 @@ def enable_merchant_writes_if_ready(environment, merchant_id):
             "readiness": readiness,
         }
 
+    _sync_active_binding_version_for_selected_location(environment, merchant_id)
     enabled = backend.set_writes_enabled(environment, merchant_id, True)
     return {
         "enabled": enabled,

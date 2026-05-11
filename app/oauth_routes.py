@@ -11,7 +11,7 @@ from app.merchant_store import (
     refresh_oauth_merchant_access_token,
     upsert_oauth_merchant,
 )
-from app.oauth_state_db import consume_oauth_state, create_oauth_state
+from app.oauth_state_store import consume_oauth_state, create_oauth_state
 from app.operator_auth import require_operator_access
 from app.square_oauth import (
     build_square_oauth_authorization_url,
@@ -71,7 +71,7 @@ def _render_oauth_page(title, lines, *, status_code=200):
     )
 
 
-@oauth_router.get("/oauth/square/start", dependencies=[Depends(require_operator_access)])
+@oauth_router.get("/oauth/square/start")
 async def square_oauth_start(environment: str | None = Query(default=None)):
     resolved_environment = _resolve_environment(environment)
     state = create_oauth_state(resolved_environment)
@@ -172,7 +172,6 @@ async def square_oauth_callback(
         expires_at=token_response.expires_at or token_status.expires_at,
         short_lived=token_response.short_lived,
         scopes=token_status.scopes,
-        writes_enabled=False,
     )
 
     return _render_oauth_page(

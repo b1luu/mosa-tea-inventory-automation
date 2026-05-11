@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +23,19 @@ def _utcnow():
     return datetime.now(UTC).isoformat()
 
 
+@contextmanager
+def _db_connection():
+    connection = sqlite3.connect(DB_FILE)
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def _serialize_json(value):
     if value is None:
         return None
@@ -36,7 +50,7 @@ def _deserialize_json(value):
 
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS merchant_connection (
@@ -116,7 +130,7 @@ def upsert_merchant_connection(
 ):
     ensure_db()
     now = _utcnow()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO merchant_connection (
@@ -158,7 +172,7 @@ def upsert_merchant_connection(
 
 def get_merchant_connection(environment, merchant_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -208,7 +222,7 @@ def list_merchant_connections(status=None):
         params = (status,)
     query += " ORDER BY updated_at DESC"
 
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         rows = connection.execute(query, params).fetchall()
 
     return [
@@ -230,7 +244,7 @@ def list_merchant_connections(status=None):
 
 def set_merchant_connection_status(environment, merchant_id, status):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE merchant_connection
@@ -245,7 +259,7 @@ def set_merchant_connection_status(environment, merchant_id, status):
 
 def set_selected_location_id(environment, merchant_id, selected_location_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE merchant_connection
@@ -260,7 +274,7 @@ def set_selected_location_id(environment, merchant_id, selected_location_id):
 
 def set_writes_enabled(environment, merchant_id, writes_enabled):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE merchant_connection
@@ -275,7 +289,7 @@ def set_writes_enabled(environment, merchant_id, writes_enabled):
 
 def set_active_binding_version(environment, merchant_id, active_binding_version):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE merchant_connection
@@ -290,7 +304,7 @@ def set_active_binding_version(environment, merchant_id, active_binding_version)
 
 def delete_merchant(environment, merchant_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         binding_cursor = connection.execute(
             """
             DELETE FROM merchant_catalog_binding
@@ -336,7 +350,7 @@ def upsert_merchant_auth(
 ):
     ensure_db()
     now = _utcnow()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO merchant_auth (
@@ -381,7 +395,7 @@ def upsert_merchant_auth(
 
 def get_merchant_auth(environment, merchant_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -440,7 +454,7 @@ def upsert_merchant_catalog_binding(
 ):
     ensure_db()
     now = _utcnow()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO merchant_catalog_binding (
@@ -480,7 +494,7 @@ def upsert_merchant_catalog_binding(
 
 def get_merchant_catalog_binding(environment, merchant_id, location_id, version):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -519,7 +533,7 @@ def get_merchant_catalog_binding(environment, merchant_id, location_id, version)
 
 def get_active_catalog_binding(environment, merchant_id, location_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -576,7 +590,7 @@ def list_merchant_catalog_bindings(environment, merchant_id, location_id=None, s
 
     query += " ORDER BY location_id ASC, version DESC"
 
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         rows = connection.execute(query, tuple(params)).fetchall()
 
     return [
@@ -606,7 +620,7 @@ def set_catalog_binding_status(
     approved_at=None,
 ):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE merchant_catalog_binding

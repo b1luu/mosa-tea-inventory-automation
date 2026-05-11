@@ -19,6 +19,7 @@ env:
   LEGACY_LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
   WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
   MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
+  OAUTH_LAMBDA_FUNCTION_NAME: ${{ vars.OAUTH_LAMBDA_FUNCTION_NAME }}
   AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
 jobs:
@@ -128,3 +129,4 @@ jobs:
           deploy_function "${WORKER_FUNCTION_NAME}" "worker Lambda"
           deploy_function "${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" "webhook ingress Lambda"
           deploy_function "${MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME}" "manual count sync Lambda"
+          deploy_function "${OAUTH_LAMBDA_FUNCTION_NAME}" "OAuth Lambda"

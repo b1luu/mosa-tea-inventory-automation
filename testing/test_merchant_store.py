@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -136,23 +137,29 @@ class MerchantStoreTests(unittest.TestCase):
                 "short_lived": False,
             },
         )()
+        fixed_now = datetime(2026, 4, 15, tzinfo=UTC)
 
-        with patch(
-            "app.merchant_store.refresh_authorization_token",
-            return_value=token_response,
-        ) as mock_refresh:
+        with (
+            patch(
+                "app.merchant_store.refresh_authorization_token",
+                return_value=token_response,
+            ) as mock_refresh,
+            patch("app.merchant_store.datetime", wraps=datetime) as mock_datetime,
+        ):
+            mock_datetime.now.return_value = fixed_now
             refreshed = merchant_store.refresh_oauth_merchant_access_token(
                 "production",
                 "merchant-1",
                 force=True,
             )
+            resolved_access_token = merchant_store.resolve_merchant_access_token(
+                "production",
+                "merchant-1",
+            )
 
         mock_refresh.assert_called_once_with("production", "refresh-1")
         self.assertEqual(refreshed["access_token"], "access-2")
-        self.assertEqual(
-            merchant_store.resolve_merchant_access_token("production", "merchant-1"),
-            "access-2",
-        )
+        self.assertEqual(resolved_access_token, "access-2")
 
     def test_enable_merchant_writes_if_ready_refuses_missing_binding(self):
         merchant_store.upsert_oauth_merchant(
@@ -201,6 +208,264 @@ class MerchantStoreTests(unittest.TestCase):
         self.assertTrue(
             merchant_store.get_merchant_context("production", "merchant-1").writes_enabled
         )
+
+    def test_upsert_oauth_merchant_preserves_active_binding_version_for_selected_location(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+
+        context = merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-2",
+            refresh_token="refresh-2",
+            selected_location_id="LOC-1",
+        )
+
+        self.assertEqual(context.binding_version, 2)
+
+    def test_upsert_oauth_merchant_preserves_writes_enabled_for_safe_reconnect(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+        merchant_store.enable_merchant_writes("production", "merchant-1")
+
+        context = merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-2",
+            refresh_token="refresh-2",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+
+        self.assertTrue(context.writes_enabled)
+        self.assertEqual(context.binding_version, 2)
+
+    def test_upsert_oauth_merchant_disables_writes_when_selected_location_changes(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            1,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-1"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 1)
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-2",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-2"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-2", 2)
+        merchant_store.enable_merchant_writes("production", "merchant-1")
+
+        context = merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-2",
+            refresh_token="refresh-2",
+            selected_location_id="LOC-2",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+
+        self.assertFalse(context.writes_enabled)
+        self.assertEqual(context.binding_version, 2)
+
+    def test_upsert_oauth_merchant_disables_writes_when_inventory_write_scope_missing(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+        merchant_store.enable_merchant_writes("production", "merchant-1")
+
+        context = merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-2",
+            refresh_token="refresh-2",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "ORDERS_READ"],
+        )
+
+        self.assertFalse(context.writes_enabled)
+        self.assertEqual(context.binding_version, 2)
+
+    def test_set_selected_location_id_syncs_active_binding_version_for_new_location(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            1,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-1"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 1)
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-2",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-2"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-2", 2)
+
+        updated = merchant_store.set_selected_location_id(
+            "production",
+            "merchant-1",
+            "LOC-2",
+        )
+
+        self.assertTrue(updated)
+        context = merchant_store.get_merchant_context("production", "merchant-1")
+        self.assertEqual(context.location_id, "LOC-2")
+        self.assertEqual(context.binding_version, 2)
+
+    def test_approve_catalog_binding_for_other_location_preserves_selected_location_binding(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            1,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-1"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 1)
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-2",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-2"}},
+        )
+
+        approved = merchant_store.approve_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-2",
+            2,
+        )
+
+        self.assertTrue(approved)
+        context = merchant_store.get_merchant_context("production", "merchant-1")
+        self.assertEqual(context.location_id, "LOC-1")
+        self.assertEqual(context.binding_version, 1)
+
+    def test_upsert_approved_binding_for_other_location_preserves_selected_location_binding(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            1,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-1"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 1)
+
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-2",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY-2"}},
+            status="approved",
+        )
+
+        context = merchant_store.get_merchant_context("production", "merchant-1")
+        self.assertEqual(context.location_id, "LOC-1")
+        self.assertEqual(context.binding_version, 1)
+
+    def test_enable_merchant_writes_if_ready_backfills_missing_active_binding_version(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+        merchant_store_db.set_active_binding_version("production", "merchant-1", None)
+
+        result = merchant_store.enable_merchant_writes_if_ready(
+            "production",
+            "merchant-1",
+        )
+
+        self.assertTrue(result["enabled"])
+        context = merchant_store.get_merchant_context("production", "merchant-1")
+        self.assertEqual(context.binding_version, 2)
+        self.assertTrue(context.writes_enabled)
 
     def test_get_merchant_context_uses_dynamodb_backend_when_configured(self):
         with (

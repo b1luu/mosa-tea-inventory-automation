@@ -188,6 +188,98 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
         mock_upsert_auth.assert_not_called()
         self.assertFalse(result["secret_synced"])
 
+    def test_migrate_merchant_state_recomputes_active_binding_version_from_selected_location(self):
+        merchant_store_db.upsert_merchant_connection(
+            "sandbox",
+            "merchant-1",
+            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_db.AUTH_SOURCE_OAUTH,
+            selected_location_id="LOC-1",
+            active_binding_version=99,
+        )
+        merchant_store_db.upsert_merchant_catalog_binding(
+            "sandbox",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+            status=merchant_store_db.BINDING_STATUS_APPROVED,
+            approved_at="2026-04-04T00:00:00Z",
+        )
+
+        with (
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.upsert_merchant_connection"
+            ),
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.upsert_merchant_catalog_binding"
+            ),
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.set_active_binding_version"
+            ) as mock_set_active_binding_version,
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.get_merchant_connection",
+                side_effect=[
+                    {
+                        "environment": "sandbox",
+                        "merchant_id": "merchant-1",
+                        "status": "active",
+                        "auth_mode": "oauth",
+                        "display_name": None,
+                        "selected_location_id": "LOC-1",
+                        "writes_enabled": False,
+                        "active_binding_version": 99,
+                    },
+                    {
+                        "environment": "sandbox",
+                        "merchant_id": "merchant-1",
+                        "status": "active",
+                        "auth_mode": "oauth",
+                        "display_name": None,
+                        "selected_location_id": "LOC-1",
+                        "writes_enabled": False,
+                        "active_binding_version": 2,
+                    },
+                ],
+            ),
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.get_active_catalog_binding",
+                return_value={
+                    "environment": "sandbox",
+                    "merchant_id": "merchant-1",
+                    "location_id": "LOC-1",
+                    "version": 2,
+                    "status": "approved",
+                    "mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+                },
+            ),
+            patch(
+                "scripts.migrate_local_merchant_state_to_cloud.merchant_store_dynamodb.list_merchant_catalog_bindings",
+                return_value=[
+                    {
+                        "environment": "sandbox",
+                        "merchant_id": "merchant-1",
+                        "location_id": "LOC-1",
+                        "version": 2,
+                        "status": "approved",
+                        "mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+                    }
+                ],
+            ),
+        ):
+            result = migrate_merchant_state(
+                "sandbox",
+                "merchant-1",
+                sync_secret=False,
+            )
+
+        mock_set_active_binding_version.assert_called_once_with(
+            "sandbox",
+            "merchant-1",
+            2,
+        )
+        self.assertEqual(result["cloud"]["merchant"]["active_binding_version"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -39,6 +39,19 @@ class OAuthStateDbTests(unittest.TestCase):
 
         self.assertIsNone(oauth_state_db.consume_oauth_state(state, max_age_seconds=60))
 
+    def test_consume_oauth_state_uses_configured_default_max_age(self):
+        created_at = datetime(2026, 5, 9, 19, 0, tzinfo=UTC)
+        now = created_at + timedelta(minutes=2)
+
+        with patch("app.oauth_state_db._utcnow", return_value=created_at):
+            state = oauth_state_db.create_oauth_state("production")
+
+        with (
+            patch("app.oauth_state_db._utcnow", return_value=now),
+            patch("app.oauth_state_db.get_oauth_state_max_age_seconds", return_value=60),
+        ):
+            self.assertIsNone(oauth_state_db.consume_oauth_state(state))
+
 
 if __name__ == "__main__":
     unittest.main()
