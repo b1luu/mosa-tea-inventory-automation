@@ -31,6 +31,7 @@ Set these repository variables:
 - `WORKER_LAMBDA_FUNCTION_NAME`
 - `WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME`
 - `MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME`
+- `OAUTH_LAMBDA_FUNCTION_NAME`
 
 Legacy compatibility:
 
@@ -40,7 +41,16 @@ Set this repository secret:
 
 - `AWS_ROLE_TO_ASSUME`
 
-The workflow in [deploy-lambda.yml](../.github/workflows/deploy-lambda.yml) builds a Linux-compatible package and deploys it to all configured functions.
+The workflow in [deploy-lambda.yml](../.github/workflows/deploy-lambda.yml) builds Linux-compatible packages and deploys them to all configured functions.
+
+Current runtime split:
+
+- worker, webhook ingress, manual count sync:
+  - Python `3.14`
+- OAuth:
+  - Python `3.13`
+
+The workflow therefore builds a separate OAuth package so compiled dependencies match the Lambda runtime.
 
 ## Webhook Ingress Lambda Environment
 

@@ -14,6 +14,7 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHON_VERSION: "3.14"
+  OAUTH_PYTHON_VERSION: "3.13"
   AWS_REGION: ${{ vars.AWS_REGION }}
   WORKER_LAMBDA_FUNCTION_NAME: ${{ vars.WORKER_LAMBDA_FUNCTION_NAME }}
   LEGACY_LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
@@ -75,25 +76,41 @@ jobs:
           python -m compileall app scripts server.py
           python -m unittest discover -s testing -p 'test_*.py'
 
-      - name: Build Lambda deployment package
+      - name: Build Lambda deployment packages
         run: |
           rm -rf .build
-          mkdir -p .build/package/data
-          pip install -r requirements.txt --target .build/package
-          cp -R app .build/package/app
-          cp data/inventory_item_map.json data/recipe_map.json .build/package/data/
-          find .build/package -type d -name "__pycache__" -prune -exec rm -rf {} +
-          find .build/package -type f -name "*.pyc" -delete
-          (
-            cd .build/package
-            zip -r ../lambda-package.zip .
-          )
+          build_package () {
+            PACKAGE_ROOT="$1"
+            PY_VERSION="$2"
 
-      - name: Upload deployment artifact
+            mkdir -p "${PACKAGE_ROOT}/package/data"
+            pip install \
+              --requirement requirements.txt \
+              --platform manylinux2014_x86_64 \
+              --implementation cp \
+              --python-version "${PY_VERSION}" \
+              --only-binary=:all: \
+              --target "${PACKAGE_ROOT}/package"
+            cp -R app "${PACKAGE_ROOT}/package/app"
+            cp data/inventory_item_map.json data/recipe_map.json "${PACKAGE_ROOT}/package/data/"
+            find "${PACKAGE_ROOT}/package" -type d -name "__pycache__" -prune -exec rm -rf {} +
+            find "${PACKAGE_ROOT}/package" -type f -name "*.pyc" -delete
+            (
+              cd "${PACKAGE_ROOT}/package"
+              zip -r ../lambda-package.zip .
+            )
+          }
+
+          build_package .build/runtime314 "${PYTHON_VERSION}"
+          build_package .build/oauth-runtime313 "${OAUTH_PYTHON_VERSION}"
+
+      - name: Upload deployment artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: lambda-package
-          path: .build/lambda-package.zip
+          name: lambda-packages
+          path: |
+            .build/runtime314/lambda-package.zip
+            .build/oauth-runtime313/lambda-package.zip
           if-no-files-found: error
 
       - name: Configure AWS credentials
@@ -109,6 +126,7 @@ jobs:
           deploy_function () {
             FUNCTION_NAME="$1"
             LABEL="$2"
+            ZIP_PATH="$3"
 
             if [ -z "${FUNCTION_NAME}" ]; then
               echo "Skipping ${LABEL}: function name not configured."
@@ -119,14 +137,15 @@ jobs:
             aws lambda update-function-code \
               --function-name "${FUNCTION_NAME}" \
               --region "${AWS_REGION}" \
-              --zip-file fileb://.build/lambda-package.zip \
-              --publish
+              --zip-file "fileb://${ZIP_PATH}" \
+              --publish \
+              --query '{FunctionName:FunctionName, Version:Version, LastModified:LastModified, CodeSha256:CodeSha256}'
             aws lambda wait function-updated \
               --function-name "${FUNCTION_NAME}" \
               --region "${AWS_REGION}"
           }
 
-          deploy_function "${WORKER_FUNCTION_NAME}" "worker Lambda"
-          deploy_function "${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" "webhook ingress Lambda"
-          deploy_function "${MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME}" "manual count sync Lambda"
-          deploy_function "${OAUTH_LAMBDA_FUNCTION_NAME}" "OAuth Lambda"
+          deploy_function "${WORKER_FUNCTION_NAME}" "worker Lambda" ".build/runtime314/lambda-package.zip"
+          deploy_function "${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" "webhook ingress Lambda" ".build/runtime314/lambda-package.zip"
+          deploy_function "${MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME}" "manual count sync Lambda" ".build/runtime314/lambda-package.zip"
+          deploy_function "${OAUTH_LAMBDA_FUNCTION_NAME}" "OAuth Lambda" ".build/oauth-runtime313/lambda-package.zip"
