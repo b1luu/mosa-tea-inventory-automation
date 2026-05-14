@@ -78,7 +78,12 @@ def _summarize_context(context):
 
 
 def build_report(environment, merchant_id):
-    readiness = get_merchant_write_readiness(environment, merchant_id)
+    write_readiness = get_merchant_write_readiness(environment, merchant_id)
+    setup_readiness = get_merchant_write_readiness(
+        environment,
+        merchant_id,
+        include_operator_intent=False,
+    )
     context = get_merchant_context(environment, merchant_id)
     auth_record = get_merchant_auth_record(environment, merchant_id)
     location_id = context.location_id if context else None
@@ -87,10 +92,13 @@ def build_report(environment, merchant_id):
         "merchant": _summarize_context(context),
         "auth": _summarize_auth_record(auth_record),
         "readiness": {
-            "ready": readiness["ready"],
-            "reasons": readiness["reasons"],
+            "ready": setup_readiness["ready"],
+            "reasons": setup_readiness["reasons"],
+            "write_ready": write_readiness["write_ready"],
+            "write_blockers": write_readiness["write_blockers"],
+            "operator_enabled": write_readiness["operator_enabled"],
         },
-        "active_binding": readiness["active_binding"],
+        "active_binding": write_readiness["active_binding"],
         "bindings": list_catalog_bindings(
             environment,
             merchant_id,
