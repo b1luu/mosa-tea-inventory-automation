@@ -209,6 +209,59 @@ class MerchantStoreTests(unittest.TestCase):
             merchant_store.get_merchant_context("production", "merchant-1").writes_enabled
         )
 
+    def test_get_merchant_write_readiness_reports_operator_blocker(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "INVENTORY_WRITE"],
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+
+        readiness = merchant_store.get_merchant_write_readiness(
+            "production",
+            "merchant-1",
+        )
+
+        self.assertFalse(readiness["write_ready"])
+        self.assertIn("writes_disabled_by_operator", readiness["write_blockers"])
+
+    def test_get_merchant_write_readiness_reports_missing_inventory_write_scope(self):
+        merchant_store.upsert_oauth_merchant(
+            "production",
+            "merchant-1",
+            "access-1",
+            refresh_token="refresh-1",
+            selected_location_id="LOC-1",
+            scopes=["MERCHANT_PROFILE_READ", "ORDERS_READ"],
+        )
+        merchant_store.upsert_catalog_binding(
+            "production",
+            "merchant-1",
+            "LOC-1",
+            2,
+            {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
+        )
+        merchant_store.approve_catalog_binding("production", "merchant-1", "LOC-1", 2)
+        merchant_store.enable_merchant_writes("production", "merchant-1")
+
+        readiness = merchant_store.get_merchant_write_readiness(
+            "production",
+            "merchant-1",
+        )
+
+        self.assertFalse(readiness["write_ready"])
+        self.assertIn("inventory_write_scope_missing", readiness["write_blockers"])
+
     def test_upsert_oauth_merchant_preserves_active_binding_version_for_selected_location(self):
         merchant_store.upsert_oauth_merchant(
             "production",

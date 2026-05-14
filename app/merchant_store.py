@@ -218,6 +218,50 @@ def _oauth_scopes_allow_writes(scopes):
     return bool(scopes and "INVENTORY_WRITE" in scopes)
 
 
+def _resolve_write_location_id(merchant_context, location_id):
+    if location_id:
+        return location_id
+    if merchant_context is None:
+        return None
+    return merchant_context.location_id
+
+
+def _collect_write_blockers(
+    merchant_context,
+    auth_record,
+    *,
+    location_id,
+    active_binding,
+    include_operator_intent,
+):
+    blockers = []
+
+    if merchant_context is None:
+        blockers.append("merchant_not_found")
+    else:
+        if merchant_context.status != MERCHANT_STATUS_ACTIVE:
+            blockers.append(f"merchant_status_{merchant_context.status}")
+        if include_operator_intent and not merchant_context.writes_enabled:
+            blockers.append("writes_disabled_by_operator")
+
+    if not location_id:
+        blockers.append("missing_selected_location")
+
+    if auth_record is None:
+        blockers.append("missing_auth_record")
+    elif (
+        auth_record["source"] == AUTH_SOURCE_OAUTH
+        and auth_record["scopes"] is not None
+        and not _oauth_scopes_allow_writes(auth_record["scopes"])
+    ):
+        blockers.append("inventory_write_scope_missing")
+
+    if active_binding is None:
+        blockers.append("missing_approved_binding")
+
+    return blockers
+
+
 def _resolve_oauth_writes_enabled(
     environment,
     merchant_id,
@@ -289,33 +333,30 @@ def list_catalog_bindings(environment, merchant_id, *, location_id=None, status=
 def get_merchant_write_readiness(environment, merchant_id):
     merchant_context = get_merchant_context(environment, merchant_id)
     auth_record = get_merchant_auth_record(environment, merchant_id)
-    location_id = merchant_context.location_id if merchant_context else None
+    location_id = _resolve_write_location_id(merchant_context, None)
     active_binding = (
         get_active_catalog_binding(environment, merchant_id, location_id)
         if location_id
         else None
     )
-
-    reasons = []
-    if merchant_context is None:
-        reasons.append("merchant_not_found")
-    else:
-        if merchant_context.status != MERCHANT_STATUS_ACTIVE:
-            reasons.append(f"merchant_status_{merchant_context.status}")
-        if not merchant_context.location_id:
-            reasons.append("missing_selected_location")
-
-    if auth_record is None:
-        reasons.append("missing_auth_record")
-    if active_binding is None:
-        reasons.append("missing_approved_binding")
+    blockers = _collect_write_blockers(
+        merchant_context,
+        auth_record,
+        location_id=location_id,
+        active_binding=active_binding,
+        include_operator_intent=True,
+    )
 
     return {
         "merchant_context": merchant_context,
         "auth_record": auth_record,
+        "location_id": location_id,
         "active_binding": active_binding,
-        "ready": not reasons,
-        "reasons": reasons,
+        "operator_enabled": bool(merchant_context and merchant_context.writes_enabled),
+        "ready": not blockers,
+        "write_ready": not blockers,
+        "reasons": blockers,
+        "write_blockers": blockers,
     }
 
 
@@ -499,6 +540,19 @@ def approve_catalog_binding(environment, merchant_id, location_id, version):
 def enable_merchant_writes_if_ready(environment, merchant_id):
     backend = _get_store_backend()
     readiness = get_merchant_write_readiness(environment, merchant_id)
+    readiness = {
+        **readiness,
+        "reasons": _collect_write_blockers(
+            readiness["merchant_context"],
+            readiness["auth_record"],
+            location_id=readiness["location_id"],
+            active_binding=readiness["active_binding"],
+            include_operator_intent=False,
+        ),
+    }
+    readiness["write_blockers"] = readiness["reasons"]
+    readiness["ready"] = not readiness["reasons"]
+    readiness["write_ready"] = readiness["ready"]
     if not readiness["ready"]:
         return {
             "enabled": False,
