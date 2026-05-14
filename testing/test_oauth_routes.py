@@ -158,6 +158,10 @@ class OAuthRouteTests(unittest.TestCase):
                 "app.oauth_routes.upsert_oauth_merchant",
                 return_value=merchant_context,
             ) as mock_upsert,
+            patch(
+                "app.oauth_routes.get_merchant_write_readiness",
+                return_value={"write_ready": False, "write_blockers": ["writes_disabled_by_operator"]},
+            ),
         ):
             response = self.client.get(
                 "/oauth/square/callback",
@@ -168,6 +172,8 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertIn("Square OAuth Connected", response.text)
         self.assertIn("merchant_id: merchant-1", response.text)
         self.assertIn("selected_location_id: LOC-1", response.text)
+        self.assertIn("write_ready: False", response.text)
+        self.assertIn("write_blockers: writes_disabled_by_operator", response.text)
         mock_upsert.assert_called_once()
 
     def test_oauth_status_lists_connected_merchants(self):
@@ -197,6 +203,12 @@ class OAuthRouteTests(unittest.TestCase):
                 "scopes": ["ORDERS_READ"],
                 "updated_at": "2026-04-04T00:00:00Z",
             },
+        ), patch(
+            "app.oauth_routes.get_merchant_write_readiness",
+            return_value={
+                "write_ready": False,
+                "write_blockers": ["writes_disabled_by_operator", "missing_approved_binding"],
+            },
         ):
             response = self.client.get(
                 "/oauth/square/status",
@@ -208,6 +220,11 @@ class OAuthRouteTests(unittest.TestCase):
         self.assertEqual(len(merchants), 1)
         self.assertEqual(merchants[0]["merchant_id"], "merchant-1")
         self.assertEqual(merchants[0]["binding_version"], 3)
+        self.assertFalse(merchants[0]["write_ready"])
+        self.assertEqual(
+            merchants[0]["write_blockers"],
+            ["writes_disabled_by_operator", "missing_approved_binding"],
+        )
         self.assertTrue(merchants[0]["auth"]["has_refresh_token"])
         self.assertNotIn("access_token", merchants[0]["auth"])
 

@@ -7,6 +7,7 @@ from square.core.api_error import ApiError
 from app.config import get_square_environment_name
 from app.merchant_store import (
     get_merchant_auth_record,
+    get_merchant_write_readiness,
     list_merchant_contexts,
     refresh_oauth_merchant_access_token,
     upsert_oauth_merchant,
@@ -173,6 +174,10 @@ async def square_oauth_callback(
         short_lived=token_response.short_lived,
         scopes=token_status.scopes,
     )
+    readiness = get_merchant_write_readiness(
+        merchant_context.environment,
+        merchant_context.merchant_id,
+    )
 
     return _render_oauth_page(
         "Square OAuth Connected",
@@ -182,6 +187,11 @@ async def square_oauth_callback(
             f"display_name: {merchant_context.display_name or 'unknown'}",
             f"selected_location_id: {merchant_context.location_id or 'none'}",
             f"writes_enabled: {merchant_context.writes_enabled}",
+            f"write_ready: {readiness['write_ready']}",
+            (
+                "write_blockers: "
+                f"{', '.join(readiness['write_blockers']) or 'none'}"
+            ),
             f"expires_at: {token_status.expires_at}",
             f"scopes: {', '.join(token_status.scopes or []) or 'none'}",
             f"location_count: {len(locations)}",
@@ -204,6 +214,8 @@ async def square_oauth_status():
                 "selected_location_id": context.location_id,
                 "writes_enabled": context.writes_enabled,
                 "binding_version": context.binding_version,
+                "write_ready": readiness["write_ready"],
+                "write_blockers": readiness["write_blockers"],
                 "auth": _summarize_auth_record(
                     get_merchant_auth_record(
                         context.environment,
@@ -212,6 +224,12 @@ async def square_oauth_status():
                 ),
             }
             for context in contexts
+            for readiness in [
+                get_merchant_write_readiness(
+                    context.environment,
+                    context.merchant_id,
+                )
+            ]
         ]
     }
 
