@@ -1,6 +1,11 @@
 from app.client import create_square_client_for_merchant
 from app.config import get_square_environment_name
-from app.merchant_store import get_active_catalog_binding, get_merchant_context
+from app.merchant_store import (
+    get_active_catalog_binding,
+    get_merchant_context,
+    get_merchant_write_readiness,
+    get_write_blocker_message,
+)
 from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
@@ -42,15 +47,19 @@ def _build_empty_result():
     }
 
 
-def _build_blocked_result(reason, *, base_result=None):
+def _build_blocked_result(reason, *, blockers=None, base_result=None):
     result = dict(base_result or _build_empty_result())
     result["processing_outcome"] = PROCESSING_STATE_BLOCKED
     result["blocking_reason"] = reason
+    if blockers is not None:
+        result["blocking_reasons"] = list(blockers)
     inventory_response = result.get("inventory_response") or {}
     result["inventory_response"] = {
         **inventory_response,
         "blocked_reason": reason,
     }
+    if blockers is not None:
+        result["inventory_response"]["blocked_reasons"] = list(blockers)
     return result
 
 
@@ -142,13 +151,17 @@ def _process_claimed_order(order_id, *, job=None):
             result = process_orders([order_id], apply_changes=True)
         else:
             merchant_context = merchant_processing_context["merchant_context"]
-            if not merchant_context or merchant_context.status != "active":
+            readiness = get_merchant_write_readiness(
+                merchant_processing_context["environment"],
+                merchant_processing_context["merchant_id"],
+                location_id=merchant_processing_context["location_id"],
+                active_binding=merchant_processing_context["binding"],
+                include_operator_intent=False,
+            )
+            if not readiness["write_ready"]:
                 result = _build_blocked_result(
-                    "No active merchant context is available for this webhook job."
-                )
-            elif merchant_processing_context["binding"] is None:
-                result = _build_blocked_result(
-                    "No approved catalog binding is available for this merchant/location."
+                    get_write_blocker_message(readiness["write_blockers"][0]),
+                    blockers=readiness["write_blockers"],
                 )
             else:
                 merchant_client = create_square_client_for_merchant(
@@ -165,6 +178,7 @@ def _process_claimed_order(order_id, *, job=None):
                 if not apply_changes:
                     result = _build_blocked_result(
                         "Inventory writes are disabled pending owner approval.",
+                        blockers=["writes_disabled_by_operator"],
                         base_result=result,
                     )
 

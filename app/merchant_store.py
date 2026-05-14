@@ -262,6 +262,24 @@ def _collect_write_blockers(
     return blockers
 
 
+def get_write_blocker_message(blocker):
+    if blocker == "merchant_not_found":
+        return "No active merchant context is available for this request."
+    if blocker == "writes_disabled_by_operator":
+        return "Inventory writes are disabled pending owner approval."
+    if blocker == "missing_selected_location":
+        return "No selected location is configured for this merchant."
+    if blocker == "missing_auth_record":
+        return "No Square auth record is available for this merchant."
+    if blocker == "inventory_write_scope_missing":
+        return "OAuth scopes do not include INVENTORY_WRITE."
+    if blocker == "missing_approved_binding":
+        return "No approved catalog binding is available for this merchant/location."
+    if blocker.startswith("merchant_status_"):
+        return "Merchant is not active for inventory writes."
+    return blocker
+
+
 def _resolve_oauth_writes_enabled(
     environment,
     merchant_id,
@@ -330,21 +348,25 @@ def list_catalog_bindings(environment, merchant_id, *, location_id=None, status=
     )
 
 
-def get_merchant_write_readiness(environment, merchant_id):
+def get_merchant_write_readiness(
+    environment,
+    merchant_id,
+    *,
+    location_id=None,
+    active_binding=None,
+    include_operator_intent=True,
+):
     merchant_context = get_merchant_context(environment, merchant_id)
     auth_record = get_merchant_auth_record(environment, merchant_id)
-    location_id = _resolve_write_location_id(merchant_context, None)
-    active_binding = (
-        get_active_catalog_binding(environment, merchant_id, location_id)
-        if location_id
-        else None
-    )
+    location_id = _resolve_write_location_id(merchant_context, location_id)
+    if active_binding is None and location_id:
+        active_binding = get_active_catalog_binding(environment, merchant_id, location_id)
     blockers = _collect_write_blockers(
         merchant_context,
         auth_record,
         location_id=location_id,
         active_binding=active_binding,
-        include_operator_intent=True,
+        include_operator_intent=include_operator_intent,
     )
 
     return {

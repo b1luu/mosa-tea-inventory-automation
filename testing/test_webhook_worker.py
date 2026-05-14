@@ -207,26 +207,30 @@ class WebhookWorkerTests(unittest.TestCase):
                     return_value=binding,
                 ):
                     with patch(
-                        "app.webhook_worker.create_square_client_for_merchant",
-                        return_value="merchant-client",
-                    ) as mock_client:
+                        "app.webhook_worker.get_merchant_write_readiness",
+                        return_value={"write_ready": True, "write_blockers": []},
+                    ):
                         with patch(
-                            "app.webhook_worker.process_orders",
-                            return_value={
-                                "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
-                                "skipped_orders": [],
-                                "skipped_line_items": [],
-                                "inventory_response": {"ok": True},
-                            },
-                        ) as mock_process:
+                            "app.webhook_worker.create_square_client_for_merchant",
+                            return_value="merchant-client",
+                        ) as mock_client:
                             with patch(
-                                "app.webhook_worker.mark_order_applied",
-                                return_value=True,
-                            ):
+                                "app.webhook_worker.process_orders",
+                                return_value={
+                                    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                                    "skipped_orders": [],
+                                    "skipped_line_items": [],
+                                    "inventory_response": {"ok": True},
+                                },
+                            ) as mock_process:
                                 with patch(
-                                    "app.webhook_worker.set_webhook_event_status"
+                                    "app.webhook_worker.mark_order_applied",
+                                    return_value=True,
                                 ):
-                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+                                    with patch(
+                                        "app.webhook_worker.set_webhook_event_status"
+                                    ):
+                                        result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_client.assert_called_once_with("sandbox", "ML9M9XX0HM717")
         mock_process.assert_called_once_with(
@@ -260,31 +264,35 @@ class WebhookWorkerTests(unittest.TestCase):
                     return_value=binding,
                 ):
                     with patch(
-                        "app.webhook_worker.create_square_client_for_merchant",
-                        return_value="merchant-client",
+                        "app.webhook_worker.get_merchant_write_readiness",
+                        return_value={"write_ready": True, "write_blockers": []},
                     ):
                         with patch(
-                            "app.webhook_worker.process_orders",
-                            return_value={
-                                "mode": {"apply": False},
-                                "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
-                                "skipped_orders": [],
-                                "skipped_line_items": [],
-                                "projected_line_items": [],
-                                "combined_usage": [],
-                                "display_usage": [],
-                                "inventory_request": {},
-                                "inventory_response": None,
-                            },
-                        ) as mock_process:
+                            "app.webhook_worker.create_square_client_for_merchant",
+                            return_value="merchant-client",
+                        ):
                             with patch(
-                                "app.webhook_worker.mark_order_blocked",
-                                return_value=True,
-                            ):
+                                "app.webhook_worker.process_orders",
+                                return_value={
+                                    "mode": {"apply": False},
+                                    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                                    "skipped_orders": [],
+                                    "skipped_line_items": [],
+                                    "projected_line_items": [],
+                                    "combined_usage": [],
+                                    "display_usage": [],
+                                    "inventory_request": {},
+                                    "inventory_response": None,
+                                },
+                            ) as mock_process:
                                 with patch(
-                                    "app.webhook_worker.set_webhook_event_status"
-                                ) as mock_status:
-                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+                                    "app.webhook_worker.mark_order_blocked",
+                                    return_value=True,
+                                ):
+                                    with patch(
+                                        "app.webhook_worker.set_webhook_event_status"
+                                    ) as mock_status:
+                                        result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_process.assert_called_once_with(
             ["2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY"],
@@ -319,17 +327,24 @@ class WebhookWorkerTests(unittest.TestCase):
                     return_value=None,
                 ):
                     with patch(
-                        "app.webhook_worker.create_square_client_for_merchant"
-                    ) as mock_client:
-                        with patch("app.webhook_worker.process_orders") as mock_process:
-                            with patch(
-                                "app.webhook_worker.mark_order_blocked",
-                                return_value=True,
-                            ):
+                        "app.webhook_worker.get_merchant_write_readiness",
+                        return_value={
+                            "write_ready": False,
+                            "write_blockers": ["missing_approved_binding"],
+                        },
+                    ):
+                        with patch(
+                            "app.webhook_worker.create_square_client_for_merchant"
+                        ) as mock_client:
+                            with patch("app.webhook_worker.process_orders") as mock_process:
                                 with patch(
-                                    "app.webhook_worker.set_webhook_event_status"
-                                ) as mock_status:
-                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+                                    "app.webhook_worker.mark_order_blocked",
+                                    return_value=True,
+                                ):
+                                    with patch(
+                                        "app.webhook_worker.set_webhook_event_status"
+                                    ) as mock_status:
+                                        result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_client.assert_not_called()
         mock_process.assert_not_called()
@@ -359,17 +374,24 @@ class WebhookWorkerTests(unittest.TestCase):
                     "app.webhook_worker.get_active_catalog_binding"
                 ) as mock_binding:
                     with patch(
-                        "app.webhook_worker.create_square_client_for_merchant"
-                    ) as mock_client:
-                        with patch("app.webhook_worker.process_orders") as mock_process:
-                            with patch(
-                                "app.webhook_worker.mark_order_blocked",
-                                return_value=True,
-                            ):
+                        "app.webhook_worker.get_merchant_write_readiness",
+                        return_value={
+                            "write_ready": False,
+                            "write_blockers": ["merchant_status_revoked"],
+                        },
+                    ):
+                        with patch(
+                            "app.webhook_worker.create_square_client_for_merchant"
+                        ) as mock_client:
+                            with patch("app.webhook_worker.process_orders") as mock_process:
                                 with patch(
-                                    "app.webhook_worker.set_webhook_event_status"
-                                ) as mock_status:
-                                    result = process_webhook_job(MERCHANT_BOUND_JOB)
+                                    "app.webhook_worker.mark_order_blocked",
+                                    return_value=True,
+                                ):
+                                    with patch(
+                                        "app.webhook_worker.set_webhook_event_status"
+                                    ) as mock_status:
+                                        result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_binding.assert_called_once_with("sandbox", "ML9M9XX0HM717", "location-1")
         mock_client.assert_not_called()
