@@ -273,6 +273,59 @@ class ManualCountSyncTests(unittest.TestCase):
                     apply_changes=True,
                 )
 
+    def test_dry_run_blocks_on_canonical_scope_blocker(self):
+        with (
+            patch(
+                "app.manual_count_sync.get_merchant_context",
+                return_value=type("MerchantContext", (), {"status": "active", "writes_enabled": True})(),
+            ),
+            patch("app.manual_count_sync.get_active_catalog_binding", return_value={"mapping": {}}),
+            patch(
+                "app.manual_count_sync.get_merchant_write_readiness",
+                return_value={"write_ready": False, "write_blockers": ["inventory_write_scope_missing"]},
+            ),
+            patch("app.manual_count_sync.create_square_client_for_merchant") as mock_client,
+        ):
+            with self.assertRaisesRegex(ValueError, "OAuth scopes do not include INVENTORY_WRITE."):
+                sync_manual_inventory_count(
+                    environment="sandbox",
+                    merchant_id="merchant-1",
+                    location_id="LOC-1",
+                    inventory_key="black_tea",
+                    counted_quantity="75",
+                    counted_unit="bag",
+                    apply_changes=False,
+                )
+
+        mock_client.assert_not_called()
+
+    def test_batch_blocks_on_canonical_binding_blocker(self):
+        with (
+            patch(
+                "app.manual_count_sync.get_merchant_context",
+                return_value=type("MerchantContext", (), {"status": "active", "writes_enabled": True})(),
+            ),
+            patch("app.manual_count_sync.get_active_catalog_binding", return_value=None),
+            patch(
+                "app.manual_count_sync.get_merchant_write_readiness",
+                return_value={"write_ready": False, "write_blockers": ["missing_approved_binding"]},
+            ),
+            patch("app.manual_count_sync.create_square_client_for_merchant") as mock_client,
+        ):
+            with self.assertRaisesRegex(
+                ValueError,
+                "No approved catalog binding is available for this merchant/location.",
+            ):
+                sync_manual_inventory_counts_batch(
+                    environment="sandbox",
+                    merchant_id="merchant-1",
+                    location_id="LOC-1",
+                    rows=[{"inventory_key": "black_tea", "counted_quantity": "75", "counted_unit": "bag"}],
+                    apply_changes=False,
+                )
+
+        mock_client.assert_not_called()
+
     def test_batch_dry_run_fetches_counts_once_for_multiple_rows(self):
         client = _FakeClient(
             [
