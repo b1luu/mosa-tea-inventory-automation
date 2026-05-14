@@ -112,11 +112,13 @@ class BindingCoverageReportTests(unittest.TestCase):
                     _variation("LIVE-INV-TEA", item_name="Tea Inventory", variation_name="Bag"),
                     _variation("LIVE-INV-CUP", item_name="Cup Inventory", variation_name="Box"),
                     _variation("LIVE-SOLD-2", item_name="Tea", variation_name="Large"),
+                    _variation("CANONICAL-SOLD-2", item_name="Tea", variation_name="XL"),
                 )
             ],
             [
                 _modifier("LIVE-MOD-1", name="Boba"),
                 _modifier("LIVE-MOD-2", name="Jelly"),
+                _modifier("CANONICAL-MOD-2", name="Matcha Jelly"),
             ],
         )
 
@@ -127,8 +129,8 @@ class BindingCoverageReportTests(unittest.TestCase):
             patch(
                 "app.binding_coverage_report.get_canonical_binding_targets",
                 return_value={
-                    "sold_variation_ids": {"CANONICAL-SOLD-1"},
-                    "modifier_ids": {"CANONICAL-MOD-1"},
+                    "sold_variation_ids": {"CANONICAL-SOLD-1", "CANONICAL-SOLD-2"},
+                    "modifier_ids": {"CANONICAL-MOD-1", "CANONICAL-MOD-2"},
                     "inventory_keys": {"tea", "cup"},
                 },
             ),
@@ -141,8 +143,10 @@ class BindingCoverageReportTests(unittest.TestCase):
 
         self.assertTrue(report["summary"]["ready_for_approval"])
         self.assertEqual(report["summary"]["blocking_issue_count"], 0)
-        self.assertEqual(report["summary"]["warning_count"], 4)
-        self.assertEqual(len(report["sold_variations"]["unmapped_live_variations"]), 3)
+        self.assertEqual(report["summary"]["warning_count"], 2)
+        self.assertEqual(len(report["sold_variations"]["identity_covered_live_variations"]), 1)
+        self.assertEqual(len(report["sold_variations"]["unmapped_live_variations"]), 1)
+        self.assertEqual(len(report["modifiers"]["identity_covered_live_modifiers"]), 1)
         self.assertEqual(len(report["modifiers"]["unmapped_live_modifiers"]), 1)
 
     def test_report_flags_stale_and_missing_binding_coverage(self):
