@@ -8,9 +8,10 @@ from app.catalog_binding_resolver import (
 
 class CatalogBindingResolverTests(unittest.TestCase):
     def test_canonicalize_order_summary_maps_live_ids_to_canonical_ids(self):
+        realistic_location_id = "LB1MECVA7EZ8Z"
         order_summary = {
             "id": "order-1",
-            "location_id": "LOC-1",
+            "location_id": realistic_location_id,
             "line_items": [
                 {
                     "catalog_object_id": "LIVE-SOLD-1",
@@ -50,6 +51,7 @@ class CatalogBindingResolverTests(unittest.TestCase):
             order_summary["line_items"][0]["catalog_object_id"],
             "LIVE-SOLD-1",
         )
+        self.assertEqual(canonicalized["location_id"], realistic_location_id)
 
     def test_resolve_inventory_variation_id_returns_bound_id(self):
         binding = {
