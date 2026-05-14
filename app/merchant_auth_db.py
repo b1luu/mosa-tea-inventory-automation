@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,9 +10,22 @@ MERCHANT_STATUS_ACTIVE = "active"
 MERCHANT_STATUS_REVOKED = "revoked"
 
 
+@contextmanager
+def _db_connection():
+    connection = sqlite3.connect(DB_FILE)
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS merchant_auth (
@@ -55,7 +69,7 @@ def upsert_merchant_auth_record(
 ):
     ensure_db()
     now = datetime.now(UTC).isoformat()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO merchant_auth (
@@ -98,7 +112,7 @@ def upsert_merchant_auth_record(
 
 def get_merchant_auth_record(merchant_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -155,7 +169,7 @@ def list_merchant_auth_records(status=None):
         params = (status,)
     query += " ORDER BY updated_at DESC"
 
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         rows = connection.execute(query, params).fetchall()
 
     return [
