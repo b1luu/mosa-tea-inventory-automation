@@ -51,6 +51,12 @@ class _FakeClient:
 
 
 class ManualCountSyncTests(unittest.TestCase):
+    def _ready_readiness(self):
+        return patch(
+            "app.manual_count_sync.get_merchant_write_readiness",
+            return_value={"write_ready": True, "write_blockers": []},
+        )
+
     def test_dry_run_builds_physical_count_request_for_black_tea(self):
         client = _FakeClient(
             [
@@ -81,6 +87,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
         ):
             result = sync_manual_inventory_count(
                 environment="sandbox",
@@ -139,6 +146,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
         ):
             result = sync_manual_inventory_count(
                 environment="sandbox",
@@ -185,6 +193,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
             patch(
                 "app.manual_count_sync._utcnow_rfc3339",
                 side_effect=[
@@ -248,6 +257,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
         ):
             with self.assertRaisesRegex(
                 ValueError,
@@ -295,6 +305,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
             patch(
                 "app.manual_count_sync._utcnow_rfc3339",
                 return_value="2026-04-09T00:00:00Z",
@@ -365,6 +376,7 @@ class ManualCountSyncTests(unittest.TestCase):
                 "app.manual_count_sync.create_square_client_for_merchant",
                 return_value=client,
             ),
+            self._ready_readiness(),
             patch(
                 "app.manual_count_sync._utcnow_rfc3339",
                 return_value="2026-04-09T00:00:00Z",
@@ -462,6 +474,7 @@ class ManualCountSyncTests(unittest.TestCase):
                         "app.manual_count_sync.create_square_client_for_merchant",
                         return_value=client,
                     ),
+                    self._ready_readiness(),
                 ):
                     result = sync_manual_inventory_count(
                         environment="sandbox",

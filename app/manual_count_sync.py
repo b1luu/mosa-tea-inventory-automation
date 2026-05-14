@@ -6,7 +6,12 @@ from square.core.api_error import ApiError
 
 from app.catalog_binding_resolver import resolve_inventory_variation_id
 from app.client import create_square_client_for_merchant
-from app.merchant_store import get_active_catalog_binding, get_merchant_context
+from app.merchant_store import (
+    get_active_catalog_binding,
+    get_merchant_context,
+    get_merchant_write_readiness,
+    get_write_blocker_message,
+)
 from app.order_inventory_projection import load_inventory_item_map
 
 DEFAULT_STATES = ("IN_STOCK", "WASTE")
@@ -179,14 +184,16 @@ def _build_physical_count_change(
 
 def _validate_manual_sync_context(environment, merchant_id, location_id, apply_changes):
     merchant_context = get_merchant_context(environment, merchant_id)
-    if not merchant_context or merchant_context.status != "active":
-        raise ValueError("No active merchant context is available for this sync request.")
-
     binding = get_active_catalog_binding(environment, merchant_id, location_id)
-    if binding is None:
-        raise ValueError(
-            "No approved catalog binding is available for this merchant/location."
-        )
+    readiness = get_merchant_write_readiness(
+        environment,
+        merchant_id,
+        location_id=location_id,
+        active_binding=binding,
+        include_operator_intent=False,
+    )
+    if not readiness["write_ready"]:
+        raise ValueError(get_write_blocker_message(readiness["write_blockers"][0]))
 
     if apply_changes and not merchant_context.writes_enabled:
         raise ValueError("Inventory writes are disabled pending owner approval.")
