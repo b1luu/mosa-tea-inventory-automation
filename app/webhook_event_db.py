@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -31,9 +32,22 @@ _ALLOWED_CURRENT_STATUSES_BY_TARGET_STATUS = {
 }
 
 
+@contextmanager
+def _db_connection():
+    connection = sqlite3.connect(DB_FILE)
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS webhook_events (
@@ -57,7 +71,7 @@ def ensure_db():
 
 def get_webhook_event(event_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT
@@ -120,7 +134,7 @@ def upsert_webhook_event(
 ):
     ensure_db()
     now = datetime.now(UTC).isoformat()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO webhook_events (
@@ -186,7 +200,7 @@ def create_webhook_event(
 ):
     ensure_db()
     now = datetime.now(UTC).isoformat()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             INSERT INTO webhook_events (
@@ -240,7 +254,7 @@ def set_webhook_event_status(event_id, status):
         event_id,
         *sorted(allowed_current_statuses),
     )
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             f"""
             UPDATE webhook_events
@@ -266,7 +280,7 @@ def list_webhook_events(status=None):
         params = (status,)
     query += " ORDER BY received_at DESC"
 
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         rows = connection.execute(query, params).fetchall()
 
     return [

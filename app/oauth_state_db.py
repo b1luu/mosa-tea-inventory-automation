@@ -1,5 +1,6 @@
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -9,13 +10,26 @@ from app.config import get_oauth_state_max_age_seconds
 DB_FILE = Path("data/oauth_state.db")
 
 
+@contextmanager
+def _db_connection():
+    connection = sqlite3.connect(DB_FILE)
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def _utcnow():
     return datetime.now(UTC)
 
 
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS oauth_state (
@@ -31,7 +45,7 @@ def ensure_db():
 def create_oauth_state(environment):
     ensure_db()
     state = str(uuid.uuid4())
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO oauth_state (state, environment, created_at, consumed_at)
@@ -51,7 +65,7 @@ def _resolve_max_age_seconds(max_age_seconds):
 def consume_oauth_state(state, *, max_age_seconds=None):
     ensure_db()
     resolved_max_age_seconds = _resolve_max_age_seconds(max_age_seconds)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             """
             SELECT state, environment, created_at, consumed_at

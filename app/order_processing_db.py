@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, UTC
 from pathlib import Path
 
@@ -11,9 +12,22 @@ PROCESSING_STATE_FAILED = "failed"
 PROCESSING_STATE_APPLIED = "applied"
 
 
+@contextmanager
+def _db_connection():
+    connection = sqlite3.connect(DB_FILE)
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS order_processing (
@@ -27,7 +41,7 @@ def ensure_db():
 
 def is_order_applied(order_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
             (order_id,),
@@ -37,7 +51,7 @@ def is_order_applied(order_id):
 
 def get_order_processing_state(order_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         row = connection.execute(
             "SELECT processing_state FROM order_processing WHERE square_order_id = ?",
             (order_id,),
@@ -57,7 +71,7 @@ def list_order_processing_rows(processing_state=None):
         params = (processing_state,)
     query += " ORDER BY rowid DESC"
 
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         rows = connection.execute(query, params).fetchall()
 
     return [
@@ -77,7 +91,7 @@ def set_order_processing_state(order_id, processing_state):
         if processing_state == PROCESSING_STATE_APPLIED
         else None
     )
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         connection.execute(
             """
             INSERT INTO order_processing (square_order_id, processing_state, applied_at)
@@ -93,7 +107,7 @@ def set_order_processing_state(order_id, processing_state):
 def transition_order_processing_state(order_id, from_state, to_state):
     ensure_db()
     applied_at = datetime.now(UTC).isoformat() if to_state == PROCESSING_STATE_APPLIED else None
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE order_processing
@@ -108,7 +122,7 @@ def transition_order_processing_state(order_id, from_state, to_state):
 
 def reserve_order_processing(order_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             INSERT INTO order_processing (square_order_id, processing_state, applied_at)
@@ -155,7 +169,7 @@ def requeue_order_processing(order_id):
 
 def clear_order_processing_reservation(order_id):
     ensure_db()
-    with sqlite3.connect(DB_FILE) as connection:
+    with _db_connection() as connection:
         cursor = connection.execute(
             """
             DELETE FROM order_processing

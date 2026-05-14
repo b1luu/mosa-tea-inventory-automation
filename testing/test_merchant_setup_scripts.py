@@ -110,6 +110,12 @@ class MerchantSetupScriptTests(unittest.TestCase):
         report = build_report("sandbox", "merchant-1")
 
         self.assertTrue(report["readiness"]["ready"])
+        self.assertFalse(report["readiness"]["write_ready"])
+        self.assertEqual(
+            report["readiness"]["write_blockers"],
+            ["writes_disabled_by_operator"],
+        )
+        self.assertFalse(report["readiness"]["operator_enabled"])
         self.assertEqual(report["merchant"]["binding_version"], 2)
         self.assertEqual(len(report["bindings"]), 1)
         self.assertEqual(
