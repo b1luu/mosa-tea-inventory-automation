@@ -11,6 +11,10 @@ lambda_role_path = "/service-role/"
 manage_lambda_role_policies = false
 manage_lambda_permissions = false
 manage_resource_tags = false
+create_cloudwatch_alarms = true
+
+# Optional: wire alarms to an existing SNS topic.
+# alarm_notification_topic_arn = "arn:aws:sns:us-west-2:123456789012:mosa-tea-ops"
 
 worker_lambda_function_name          = "mosa-tea-webhook-worker"
 webhook_ingress_lambda_function_name = "mosa-tea-webhook-ingress"
@@ -38,6 +42,9 @@ webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq"
 webhook_queue_receive_wait_time_seconds = 20
 webhook_dlq_receive_wait_time_seconds   = 20
 sqs_max_message_size                    = 1048576
+webhook_dlq_visible_messages_alarm_threshold             = 1
+webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
+webhook_worker_errors_alarm_threshold                    = 1
 
 # Supply real secrets out of band. Do not commit your filled-in tfvars file.
 square_access_token          = "replace_me"

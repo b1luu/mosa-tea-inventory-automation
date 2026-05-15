@@ -10,6 +10,7 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - manual sync HTTP API
 - OAuth HTTP API
 - SQS main queue + DLQ
+- CloudWatch baseline alarms
 - DynamoDB tables
 - Lambda execution roles and runtime policies
 
@@ -17,6 +18,32 @@ The current Terraform scope is a mix of:
 
 - imported live infrastructure that already existed in AWS
 - new OAuth infrastructure being added on top of that live stack
+
+## Baseline Alarms
+
+The Terraform scaffold now includes a minimal CloudWatch alarm set for the webhook pipeline:
+
+- visible messages in the webhook DLQ
+- oldest visible message age on the main webhook jobs queue
+- webhook worker Lambda errors
+
+Default thresholds:
+
+- DLQ visible messages: `1`
+- oldest visible main-queue message age: `300` seconds
+- webhook worker Lambda errors: `1` over `5` minutes
+
+These alarms are intentionally infrastructure-level only. They do not require any application refactor or custom metrics.
+
+If you want notifications, set:
+
+- `alarm_notification_topic_arn`
+
+to an existing SNS topic ARN in your local ignored `terraform.tfvars`.
+
+If you need to suppress alarms during an import-first adoption step, set:
+
+- `create_cloudwatch_alarms = false`
 
 ## Public-Safe Design
 
@@ -32,6 +59,7 @@ Safe to keep in git:
 - queue wiring
 - timeout and memory settings
 - OAuth callback URL shape
+- baseline alarm thresholds and optional SNS wiring
 
 Do not commit:
 
@@ -54,6 +82,7 @@ Files:
 - [`infra/variables.tf`](../infra/variables.tf)
 - [`infra/dynamodb.tf`](../infra/dynamodb.tf)
 - [`infra/sqs.tf`](../infra/sqs.tf)
+- [`infra/cloudwatch.tf`](../infra/cloudwatch.tf)
 - [`infra/iam.tf`](../infra/iam.tf)
 - [`infra/lambda.tf`](../infra/lambda.tf)
 - [`infra/api_gateway.tf`](../infra/api_gateway.tf)

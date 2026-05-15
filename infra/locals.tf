@@ -6,6 +6,10 @@ locals {
     Repository  = "b1luu/mosa-tea-inventory-automation"
   }
 
+  alarm_actions = (
+    var.alarm_notification_topic_arn != null && trimspace(var.alarm_notification_topic_arn) != ""
+  ) ? [var.alarm_notification_topic_arn] : []
+
   merchant_store_env = {
     MERCHANT_STORE_MODE                     = "dynamodb"
     DYNAMODB_MERCHANT_CONNECTION_TABLE      = aws_dynamodb_table.merchant_connections.name

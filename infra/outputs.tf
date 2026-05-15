@@ -58,3 +58,12 @@ output "dynamodb_table_names" {
     oauth_state          = aws_dynamodb_table.oauth_state.name
   }
 }
+
+output "cloudwatch_alarm_names" {
+  description = "Baseline CloudWatch alarm names for the webhook pipeline."
+  value = var.create_cloudwatch_alarms ? {
+    webhook_jobs_dlq_visible_messages = aws_cloudwatch_metric_alarm.webhook_jobs_dlq_visible_messages[0].alarm_name
+    webhook_jobs_oldest_message_age   = aws_cloudwatch_metric_alarm.webhook_jobs_oldest_message_age[0].alarm_name
+    webhook_worker_errors             = aws_cloudwatch_metric_alarm.webhook_worker_errors[0].alarm_name
+  } : {}
+}

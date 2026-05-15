@@ -70,6 +70,36 @@ variable "log_retention_in_days" {
   default     = 14
 }
 
+variable "create_cloudwatch_alarms" {
+  description = "Whether Terraform should create the baseline CloudWatch alarms for the webhook pipeline."
+  type        = bool
+  default     = true
+}
+
+variable "alarm_notification_topic_arn" {
+  description = "Optional SNS topic ARN to notify when CloudWatch alarms fire or recover."
+  type        = string
+  default     = null
+}
+
+variable "webhook_dlq_visible_messages_alarm_threshold" {
+  description = "Alarm when the webhook DLQ has at least this many visible messages."
+  type        = number
+  default     = 1
+}
+
+variable "webhook_jobs_oldest_message_age_alarm_threshold_seconds" {
+  description = "Alarm when the oldest visible webhook job has been waiting at least this many seconds."
+  type        = number
+  default     = 300
+}
+
+variable "webhook_worker_errors_alarm_threshold" {
+  description = "Alarm when the webhook worker emits at least this many Lambda errors in a five-minute window."
+  type        = number
+  default     = 1
+}
+
 variable "manage_resource_tags" {
   description = "Whether Terraform should actively manage tags on imported resources during initial adoption."
   type        = bool
