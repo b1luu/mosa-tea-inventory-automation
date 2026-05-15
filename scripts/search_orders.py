@@ -5,6 +5,8 @@ from square.core.api_error import ApiError
 
 from app.client import create_square_client
 
+VALID_ORDER_STATES = ("OPEN", "COMPLETED", "CANCELED", "DRAFT")
+
 
 def summarize_order(order):
     return {
@@ -17,6 +19,14 @@ def summarize_order(order):
     }
 
 
+def _usage():
+    valid_states = ", ".join(VALID_ORDER_STATES)
+    return (
+        "Usage: ./.venv/bin/python -m scripts.search_orders "
+        f"[STATE] [--limit=N] [--all] [--order-id=ORDER_ID]\nValid states: {valid_states}"
+    )
+
+
 def _parse_args(argv):
     state_filter = "COMPLETED"
     limit = 20
@@ -25,7 +35,7 @@ def _parse_args(argv):
 
     for arg in argv:
         upper_arg = arg.upper()
-        if upper_arg in {"OPEN", "COMPLETED", "CANCELED", "DRAFT"}:
+        if upper_arg in VALID_ORDER_STATES:
             state_filter = upper_arg
             continue
 
@@ -33,18 +43,33 @@ def _parse_args(argv):
             all_pages = True
             continue
 
+        if arg == "--limit":
+            raise ValueError("Missing value for --limit. Use --limit=N.\n" + _usage())
+
         if arg.startswith("--limit="):
-            limit = int(arg.split("=", 1)[1])
+            limit_value = arg.split("=", 1)[1]
+            if not limit_value:
+                raise ValueError("Missing value for --limit.\n" + _usage())
+            try:
+                limit = int(limit_value)
+            except ValueError as error:
+                raise ValueError(
+                    f"Invalid --limit value: {limit_value!r}\n{_usage()}"
+                ) from error
             continue
+
+        if arg == "--order-id":
+            raise ValueError(
+                "Missing value for --order-id. Use --order-id=ORDER_ID.\n" + _usage()
+            )
 
         if arg.startswith("--order-id="):
             order_id_filter = arg.split("=", 1)[1]
+            if not order_id_filter:
+                raise ValueError("Missing value for --order-id.\n" + _usage())
             continue
 
-        raise ValueError(
-            "Usage: ./.venv/bin/python -m scripts.search_orders "
-            "[STATE] [--limit=N] [--all] [--order-id=ORDER_ID]"
-        )
+        raise ValueError(f"Unknown argument: {arg}\n{_usage()}")
 
     return state_filter, limit, all_pages, order_id_filter
 
