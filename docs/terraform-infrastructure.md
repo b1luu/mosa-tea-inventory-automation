@@ -208,6 +208,7 @@ That reduces noisy drift and avoids dangerous replacement of the bindings table 
 ## Notes
 
 - The Terraform scaffold uses a shared Lambda package, matching the current GitHub Actions deploy model.
+- Terraform ignores Lambda package/hash drift for all four functions, so infra-only applies do not accidentally redeploy code when the local build artifact differs from what is live in AWS.
 - It parameterizes sensitive values but does not store them.
 - It now includes a dedicated OAuth state table with TTL for short-lived callback state.
 - The OAuth API is intentionally separate from the webhook API and manual sync API to keep automation ingress, reconciliation tooling, and auth/onboarding concerns modular.

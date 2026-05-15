@@ -172,6 +172,19 @@ resource "aws_lambda_function" "oauth" {
   filename         = var.lambda_package_path
   source_code_hash = filebase64sha256(var.lambda_package_path)
 
+  lifecycle {
+    # OAuth code deploys can happen outside Terraform during recovery or via
+    # the GitHub workflow. Keep Terraform focused on config ownership here so
+    # unrelated infra changes do not try to redeploy the Lambda package.
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+    ]
+  }
+
   environment {
     variables = merge(
       local.merchant_store_env,
