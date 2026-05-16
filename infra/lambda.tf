@@ -46,6 +46,12 @@ resource "aws_cloudwatch_log_group" "oauth" {
   tags              = local.common_tags
 }
 
+resource "aws_cloudwatch_log_group" "binding_coverage_check" {
+  name              = "/aws/lambda/${var.binding_coverage_check_lambda_function_name}"
+  retention_in_days = var.log_retention_in_days
+  tags              = local.common_tags
+}
+
 resource "aws_lambda_function" "webhook_ingress" {
   function_name = var.webhook_ingress_lambda_function_name
   role          = aws_iam_role.webhook_ingress.arn
@@ -169,8 +175,8 @@ resource "aws_lambda_function" "oauth" {
   memory_size   = var.lambda_memory_size_mb
   timeout       = var.lambda_timeout_seconds
 
-  filename         = var.lambda_package_path
-  source_code_hash = filebase64sha256(var.lambda_package_path)
+  filename         = var.runtime313_lambda_package_path
+  source_code_hash = filebase64sha256(var.runtime313_lambda_package_path)
 
   lifecycle {
     # OAuth code deploys can happen outside Terraform during recovery or via
@@ -195,6 +201,43 @@ resource "aws_lambda_function" "oauth" {
         SQUARE_OAUTH_CLIENT_SECRET = var.square_oauth_client_secret
         SQUARE_OAUTH_REDIRECT_URI  = var.square_oauth_redirect_uri
         SQUARE_OAUTH_SCOPES        = var.square_oauth_scopes
+      }
+    )
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_lambda_function" "binding_coverage_check" {
+  function_name = var.binding_coverage_check_lambda_function_name
+  role          = aws_iam_role.binding_coverage_check.arn
+  handler       = "app.lambda_binding_coverage_check.lambda_handler"
+  runtime       = var.lambda_runtime
+  architectures = var.lambda_architectures
+  memory_size   = var.lambda_memory_size_mb
+  timeout       = var.lambda_timeout_seconds
+
+  filename         = var.runtime313_lambda_package_path
+  source_code_hash = filebase64sha256(var.runtime313_lambda_package_path)
+
+  lifecycle {
+    ignore_changes = [
+      runtime,
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+    ]
+  }
+
+  environment {
+    variables = merge(
+      local.merchant_store_env,
+      {
+        ALARM_NOTIFICATION_TOPIC_ARN = coalesce(var.alarm_notification_topic_arn, "")
+        SQUARE_OAUTH_CLIENT_ID       = var.square_oauth_client_id
+        SQUARE_OAUTH_CLIENT_SECRET   = var.square_oauth_client_secret
       }
     )
   }

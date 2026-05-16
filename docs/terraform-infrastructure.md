@@ -6,6 +6,7 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - webhook worker Lambda
 - manual count sync Lambda
 - OAuth Lambda
+- scheduled binding coverage check Lambda
 - webhook HTTP API
 - manual sync HTTP API
 - OAuth HTTP API
@@ -26,12 +27,14 @@ The Terraform scaffold now includes a minimal CloudWatch alarm set for the webho
 - visible messages in the webhook DLQ
 - oldest visible message age on the main webhook jobs queue
 - webhook worker Lambda errors
+- scheduled binding coverage check Lambda errors
 
 Default thresholds:
 
 - DLQ visible messages: `1`
 - oldest visible main-queue message age: `300` seconds
 - webhook worker Lambda errors: `1` over `5` minutes
+- binding coverage check Lambda errors: `1` over `5` minutes
 
 These alarms are intentionally infrastructure-level only. They do not require any application refactor or custom metrics.
 
@@ -40,6 +43,12 @@ If you want notifications, set:
 - `alarm_notification_topic_arn`
 
 to an existing SNS topic ARN in your local ignored `terraform.tfvars`.
+
+The same SNS topic is also reused by the scheduled binding coverage check when it finds:
+
+- blocking binding issues
+- unmapped live sold variations
+- merchant-level evaluation failures such as missing selected locations or token-refresh/report errors
 
 If you need to suppress alarms during an import-first adoption step, set:
 
@@ -121,16 +130,35 @@ The OAuth API/Lambda/state-table slice is different:
 
 ## Basic Workflow
 
-Build the shared Lambda zip first:
+Build the Lambda zips first:
 
 ```bash
-mkdir -p .build/package/data
-./.venv/bin/pip install -r requirements.txt --target .build/package
-cp -R app .build/package/app
-cp data/inventory_item_map.json data/recipe_map.json .build/package/data/
-find .build/package -type d -name "__pycache__" -prune -exec rm -rf {} +
-find .build/package -type f -name "*.pyc" -delete
-(cd .build/package && zip -r ../lambda-package.zip .)
+rm -rf .build/runtime314 .build/runtime313
+
+build_package () {
+  PACKAGE_ROOT="$1"
+  PY_VERSION="$2"
+
+  mkdir -p "${PACKAGE_ROOT}/package/data"
+  ./.venv/bin/pip install \
+    --requirement requirements.txt \
+    --platform manylinux2014_x86_64 \
+    --implementation cp \
+    --python-version "${PY_VERSION}" \
+    --only-binary=:all: \
+    --target "${PACKAGE_ROOT}/package"
+  cp -R app "${PACKAGE_ROOT}/package/app"
+  cp data/inventory_item_map.json data/recipe_map.json "${PACKAGE_ROOT}/package/data/"
+  find "${PACKAGE_ROOT}/package" -type d -name "__pycache__" -prune -exec rm -rf {} +
+  find "${PACKAGE_ROOT}/package" -type f -name "*.pyc" -delete
+  (
+    cd "${PACKAGE_ROOT}/package"
+    zip -r ../lambda-package.zip .
+  )
+}
+
+build_package .build/runtime314 3.14
+build_package .build/runtime313 3.13
 ```
 
 Then from `infra/`:
@@ -139,6 +167,15 @@ Then from `infra/`:
 terraform init
 terraform plan -var-file=terraform.tfvars
 ```
+
+Current package ownership:
+
+- `lambda_package_path`
+  - defaults to `../.build/runtime314/lambda-package.zip`
+  - used by the existing 3.14-backed webhook ingress / worker / manual sync Lambdas during local packaging flows
+- `runtime313_lambda_package_path`
+  - defaults to `../.build/runtime313/lambda-package.zip`
+  - used by the 3.13-backed OAuth and binding coverage check Lambdas
 
 When adopting the current live stack, make sure these variables match the IAM role names AWS already assigned to the Lambdas:
 

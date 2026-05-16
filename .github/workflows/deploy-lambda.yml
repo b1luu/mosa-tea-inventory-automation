@@ -14,13 +14,14 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHON_VERSION: "3.14"
-  OAUTH_PYTHON_VERSION: "3.13"
+  RUNTIME313_PYTHON_VERSION: "3.13"
   AWS_REGION: ${{ vars.AWS_REGION }}
   WORKER_LAMBDA_FUNCTION_NAME: ${{ vars.WORKER_LAMBDA_FUNCTION_NAME }}
   LEGACY_LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
   WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
   MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
   OAUTH_LAMBDA_FUNCTION_NAME: ${{ vars.OAUTH_LAMBDA_FUNCTION_NAME }}
+  BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME: ${{ vars.BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME }}
   AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
 jobs:
@@ -102,7 +103,7 @@ jobs:
           }
 
           build_package .build/runtime314 "${PYTHON_VERSION}"
-          build_package .build/oauth-runtime313 "${OAUTH_PYTHON_VERSION}"
+          build_package .build/runtime313 "${RUNTIME313_PYTHON_VERSION}"
 
       - name: Upload deployment artifacts
         uses: actions/upload-artifact@v4
@@ -110,7 +111,7 @@ jobs:
           name: lambda-packages
           path: |
             .build/runtime314/lambda-package.zip
-            .build/oauth-runtime313/lambda-package.zip
+            .build/runtime313/lambda-package.zip
           if-no-files-found: error
 
       - name: Configure AWS credentials
@@ -148,4 +149,5 @@ jobs:
           deploy_function "${WORKER_FUNCTION_NAME}" "worker Lambda" ".build/runtime314/lambda-package.zip"
           deploy_function "${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" "webhook ingress Lambda" ".build/runtime314/lambda-package.zip"
           deploy_function "${MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME}" "manual count sync Lambda" ".build/runtime314/lambda-package.zip"
-          deploy_function "${OAUTH_LAMBDA_FUNCTION_NAME}" "OAuth Lambda" ".build/oauth-runtime313/lambda-package.zip"
+          deploy_function "${BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME}" "binding coverage check Lambda" ".build/runtime313/lambda-package.zip"
+          deploy_function "${OAUTH_LAMBDA_FUNCTION_NAME}" "OAuth Lambda" ".build/runtime313/lambda-package.zip"

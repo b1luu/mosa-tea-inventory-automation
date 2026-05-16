@@ -20,6 +20,8 @@ Google Sheets -> Apps Script -> API Gateway -> manual count sync Lambda -> Squar
   - `app.lambda_webhook_ingress.lambda_handler`
 - Manual count sync Lambda handler:
   - `app.lambda_manual_count_sync.lambda_handler`
+- Binding coverage check Lambda handler:
+  - `app.lambda_binding_coverage_check.lambda_handler`
 
 All three functions can deploy from the same package because they share the same `app/` code.
 
@@ -32,6 +34,7 @@ Set these repository variables:
 - `WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME`
 - `MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME`
 - `OAUTH_LAMBDA_FUNCTION_NAME`
+- `BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME`
 
 Legacy compatibility:
 
@@ -47,10 +50,10 @@ Current runtime split:
 
 - worker, webhook ingress, manual count sync:
   - Python `3.14`
-- OAuth:
+- OAuth, binding coverage check:
   - Python `3.13`
 
-The workflow therefore builds a separate OAuth package so compiled dependencies match the Lambda runtime.
+The workflow therefore builds a separate shared Python `3.13` package under `.build/runtime313/` so compiled dependencies match those Lambda runtimes.
 
 ## Webhook Ingress Lambda Environment
 

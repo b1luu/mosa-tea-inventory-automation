@@ -12,6 +12,7 @@ manage_lambda_role_policies = false
 manage_lambda_permissions = false
 manage_resource_tags = false
 create_cloudwatch_alarms = true
+# runtime313_lambda_package_path = "../.build/runtime313/lambda-package.zip"
 
 # Optional: wire alarms to an existing SNS topic.
 # alarm_notification_topic_arn = "arn:aws:sns:us-west-2:123456789012:mosa-tea-ops"
@@ -19,11 +20,13 @@ create_cloudwatch_alarms = true
 worker_lambda_function_name          = "mosa-tea-webhook-worker"
 webhook_ingress_lambda_function_name = "mosa-tea-webhook-ingress"
 manual_count_sync_lambda_function_name = "mosa-tea-manual-count-sync"
+binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check"
 
 # Optional: set these to the current live IAM role names before importing existing Lambdas.
 # webhook_ingress_lambda_role_name = "your-existing-webhook-ingress-role-name"
 # worker_lambda_role_name          = "your-existing-webhook-worker-role-name"
 # manual_count_sync_lambda_role_name = "your-existing-manual-count-sync-role-name"
+# binding_coverage_check_lambda_role_name = "your-binding-coverage-check-role-name"
 
 webhook_api_name     = "mosa-tea-webhook-api"
 manual_sync_api_name = "mosa-tea-manual-sync-api"
@@ -45,6 +48,8 @@ sqs_max_message_size                    = 1048576
 webhook_dlq_visible_messages_alarm_threshold             = 1
 webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
 webhook_worker_errors_alarm_threshold                    = 1
+binding_coverage_check_errors_alarm_threshold            = 1
+binding_coverage_check_schedule_expression               = "rate(1 day)"
 
 # Supply real secrets out of band. Do not commit your filled-in tfvars file.
 square_access_token          = "replace_me"

@@ -235,3 +235,8 @@ def get_operator_api_token():
             "Set it before using admin or OAuth operator routes."
         )
     return token.strip()
+
+
+def get_alarm_notification_topic_arn():
+    topic_arn = os.getenv("ALARM_NOTIFICATION_TOPIC_ARN", "").strip()
+    return topic_arn or None
