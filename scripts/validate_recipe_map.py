@@ -4,7 +4,7 @@ import sys
 from app.order_inventory_projection import load_inventory_item_map, load_recipe_map
 
 ALLOWED_UNITS = ("ml", "g", "unit")
-ALLOWED_UNITS_DISPLAY = "{'ml', 'g', 'unit'}"
+ALLOWED_UNITS_DISPLAY = "{" + ", ".join(repr(unit) for unit in ALLOWED_UNITS) + "}"
 NUMERIC_AMOUNT_TYPES = (int, float, Decimal)
 AMOUNT_UPPER_BOUNDS = {
     "ml": 500,
