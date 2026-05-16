@@ -65,6 +65,13 @@ resource "aws_iam_role" "oauth" {
   tags               = local.common_tags
 }
 
+resource "aws_iam_role" "binding_coverage_check" {
+  name               = coalesce(var.binding_coverage_check_lambda_role_name, "${var.binding_coverage_check_lambda_function_name}-role")
+  path               = var.lambda_role_path
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+  tags               = local.common_tags
+}
+
 resource "aws_iam_role_policy_attachment" "webhook_ingress_basic_execution" {
   count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.webhook_ingress.name
@@ -85,6 +92,11 @@ resource "aws_iam_role_policy_attachment" "manual_count_sync_basic_execution" {
 
 resource "aws_iam_role_policy_attachment" "oauth_basic_execution" {
   role       = aws_iam_role.oauth.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "binding_coverage_check_basic_execution" {
+  role       = aws_iam_role.binding_coverage_check.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -300,4 +312,55 @@ resource "aws_iam_role_policy" "oauth_runtime" {
   name   = "oauth-runtime-access"
   role   = aws_iam_role.oauth.id
   policy = data.aws_iam_policy_document.oauth_runtime.json
+}
+
+data "aws_iam_policy_document" "binding_coverage_check_runtime" {
+  statement {
+    sid    = "MerchantTableRead"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:Scan",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      aws_dynamodb_table.merchant_connections.arn,
+      aws_dynamodb_table.merchant_bindings.arn,
+    ]
+  }
+
+  statement {
+    sid    = "MerchantSecretsRefresh"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:CreateSecret"
+    ]
+    resources = [
+      "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.merchant_secret_prefix}*"
+    ]
+  }
+
+  statement {
+    sid    = "CoverageAlertPublish"
+    effect = "Allow"
+    actions = ["sns:Publish"]
+    resources = [
+      (
+        var.alarm_notification_topic_arn != null
+        && trimspace(var.alarm_notification_topic_arn) != ""
+      )
+      ? var.alarm_notification_topic_arn
+      : "arn:aws:sns:${var.aws_region}:${data.aws_caller_identity.current.account_id}:unused-binding-coverage-alert-topic"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "binding_coverage_check_runtime" {
+  name   = "binding-coverage-check-runtime-access"
+  role   = aws_iam_role.binding_coverage_check.id
+  policy = data.aws_iam_policy_document.binding_coverage_check_runtime.json
 }

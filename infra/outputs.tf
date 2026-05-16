@@ -41,10 +41,11 @@ output "webhook_jobs_dlq_url" {
 output "lambda_function_names" {
   description = "Managed Lambda function names."
   value = {
-    webhook_ingress = aws_lambda_function.webhook_ingress.function_name
-    webhook_worker  = aws_lambda_function.webhook_worker.function_name
-    manual_sync     = aws_lambda_function.manual_count_sync.function_name
-    oauth           = aws_lambda_function.oauth.function_name
+    webhook_ingress        = aws_lambda_function.webhook_ingress.function_name
+    webhook_worker         = aws_lambda_function.webhook_worker.function_name
+    manual_sync            = aws_lambda_function.manual_count_sync.function_name
+    oauth                  = aws_lambda_function.oauth.function_name
+    binding_coverage_check = aws_lambda_function.binding_coverage_check.function_name
   }
 }
 
@@ -60,10 +61,11 @@ output "dynamodb_table_names" {
 }
 
 output "cloudwatch_alarm_names" {
-  description = "Baseline CloudWatch alarm names for the webhook pipeline."
+  description = "Baseline CloudWatch alarm names for the webhook pipeline and coverage check."
   value = var.create_cloudwatch_alarms ? {
     webhook_jobs_dlq_visible_messages = aws_cloudwatch_metric_alarm.webhook_jobs_dlq_visible_messages[0].alarm_name
     webhook_jobs_oldest_message_age   = aws_cloudwatch_metric_alarm.webhook_jobs_oldest_message_age[0].alarm_name
     webhook_worker_errors             = aws_cloudwatch_metric_alarm.webhook_worker_errors[0].alarm_name
+    binding_coverage_check_errors     = aws_cloudwatch_metric_alarm.binding_coverage_check_errors[0].alarm_name
   } : {}
 }

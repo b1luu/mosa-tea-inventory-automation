@@ -60,3 +60,24 @@ resource "aws_cloudwatch_metric_alarm" "webhook_worker_errors" {
   ok_actions    = local.alarm_actions
   tags          = local.common_tags
 }
+
+resource "aws_cloudwatch_metric_alarm" "binding_coverage_check_errors" {
+  count = var.create_cloudwatch_alarms ? 1 : 0
+
+  alarm_name          = "${var.project_name}-binding-coverage-check-errors"
+  alarm_description   = "The scheduled binding coverage check should not fail. Investigate token refresh or report execution errors before coverage drift goes silent."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = var.binding_coverage_check_errors_alarm_threshold
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    FunctionName = aws_lambda_function.binding_coverage_check.function_name
+  }
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.alarm_actions
+  tags          = local.common_tags
+}

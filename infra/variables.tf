@@ -19,7 +19,13 @@ variable "environment_name" {
 variable "lambda_package_path" {
   description = "Path to the shared Lambda deployment zip. Build it before apply."
   type        = string
-  default     = "../.build/lambda-package.zip"
+  default     = "../.build/runtime314/lambda-package.zip"
+}
+
+variable "runtime313_lambda_package_path" {
+  description = "Path to the Python 3.13-compatible Lambda deployment zip used by 3.13 runtimes."
+  type        = string
+  default     = "../.build/runtime313/lambda-package.zip"
 }
 
 variable "lambda_runtime" {
@@ -100,6 +106,12 @@ variable "webhook_worker_errors_alarm_threshold" {
   default     = 1
 }
 
+variable "binding_coverage_check_errors_alarm_threshold" {
+  description = "Alarm when the scheduled binding coverage check Lambda emits at least this many errors in a five-minute window."
+  type        = number
+  default     = 1
+}
+
 variable "manage_resource_tags" {
   description = "Whether Terraform should actively manage tags on imported resources during initial adoption."
   type        = bool
@@ -128,6 +140,12 @@ variable "oauth_lambda_function_name" {
   description = "Lambda function name for OAuth control-plane routes."
   type        = string
   default     = "mosa-tea-oauth"
+}
+
+variable "binding_coverage_check_lambda_function_name" {
+  description = "Lambda function name for the scheduled binding coverage check."
+  type        = string
+  default     = "mosa-tea-binding-coverage-check"
 }
 
 variable "webhook_api_stage_name" {
@@ -166,6 +184,12 @@ variable "manual_count_sync_lambda_function_name" {
   default     = "mosa-tea-manual-count-sync"
 }
 
+variable "binding_coverage_check_lambda_role_name" {
+  description = "IAM role name for the scheduled binding coverage check Lambda."
+  type        = string
+  default     = null
+}
+
 variable "webhook_ingress_lambda_role_name" {
   description = "IAM role name for the webhook ingress Lambda. Set this to the existing live role name when importing resources."
   type        = string
@@ -188,6 +212,12 @@ variable "oauth_lambda_role_name" {
   description = "IAM role name for the OAuth Lambda."
   type        = string
   default     = null
+}
+
+variable "binding_coverage_check_schedule_expression" {
+  description = "EventBridge schedule expression for the binding coverage check."
+  type        = string
+  default     = "rate(1 day)"
 }
 
 variable "webhook_jobs_queue_name" {
