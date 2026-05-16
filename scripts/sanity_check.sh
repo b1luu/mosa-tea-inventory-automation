@@ -24,6 +24,9 @@ fi
 echo "==> Bytecode compile check"
 "${PYTHON_BIN}" -m compileall "${ROOT_DIR}/app" "${ROOT_DIR}/scripts" "${ROOT_DIR}/server.py"
 
+echo "==> Recipe map validation"
+"${PYTHON_BIN}" -m scripts.validate_recipe_map
+
 echo "==> Unit test suite"
 "${PYTHON_BIN}" -m unittest discover -s "${ROOT_DIR}/testing" -p "test_*.py"
 
