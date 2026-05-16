@@ -19,6 +19,12 @@ def _validate_inventory_key(errors, inventory_item_map, path, inventory_key):
     errors.append(f"{path}={inventory_key!r}: not found in inventory_item_map")
 
 
+def _validate_tea_base_key(errors, tea_bases, path, tea_base_key):
+    if tea_base_key in tea_bases:
+        return
+    errors.append(f"{path}={tea_base_key!r}: not found in tea_bases")
+
+
 def _is_numeric_amount(value):
     return isinstance(value, NUMERIC_AMOUNT_TYPES) and not isinstance(value, bool)
 
@@ -59,41 +65,151 @@ def _validate_ingredient_amount_and_unit(errors, ingredient, path_prefix):
         )
 
 
-def _validate_ingredients(errors, inventory_item_map, ingredients, path_prefix):
+def _iter_ingredient_sites(recipe_map):
+    for tea_base_key, tea_base in (recipe_map.get("tea_bases") or {}).items():
+        yield f"tea_bases[{tea_base_key!r}].ingredients", tea_base.get("ingredients")
+
+    for sold_variation_id, recipe in (recipe_map.get("sold_variation_recipes") or {}).items():
+        recipe_path = f"sold_variation_recipes[{sold_variation_id!r}]"
+        yield f"{recipe_path}.ingredients", recipe.get("ingredients")
+
+        for modifier_id, override in (recipe.get("modifier_overrides") or {}).items():
+            yield (
+                f"{recipe_path}.modifier_overrides[{modifier_id!r}].ingredients",
+                override.get("ingredients"),
+            )
+
+    for modifier_id, addition in (recipe_map.get("modifier_additions") or {}).items():
+        yield f"modifier_additions[{modifier_id!r}].ingredients", addition.get("ingredients")
+
+
+def _validate_recipe_identity(errors, sold_variation_recipes):
+    for sold_variation_id, recipe in sold_variation_recipes.items():
+        if recipe.get("same_as_sold_variation_id") is not None:
+            continue
+
+        recipe_path = f"sold_variation_recipes[{sold_variation_id!r}]"
+        drink_key = recipe.get("drink_key")
+        drink_name = recipe.get("drink_name")
+
+        if not isinstance(drink_key, str) or not drink_key.strip():
+            errors.append(f"{recipe_path}.drink_key: missing or empty on non-redirect recipe")
+        if not isinstance(drink_name, str) or not drink_name.strip():
+            errors.append(f"{recipe_path}.drink_name: missing or empty on non-redirect recipe")
+
+
+def _validate_same_as_chains(errors, sold_variation_recipes):
+    for sold_variation_id, recipe in sold_variation_recipes.items():
+        target = recipe.get("same_as_sold_variation_id")
+        if target is None:
+            continue
+
+        path = f"sold_variation_recipes[{sold_variation_id!r}].same_as_sold_variation_id"
+        chain = [sold_variation_id]
+        current_target = target
+
+        while current_target is not None:
+            if current_target not in sold_variation_recipes:
+                errors.append(f"{path}={current_target!r}: target not found in sold_variation_recipes")
+                break
+            if current_target in chain:
+                errors.append(
+                    f"{path} chain forms cycle: {' -> '.join(chain + [current_target])}"
+                )
+                break
+
+            chain.append(current_target)
+            current_target = sold_variation_recipes[current_target].get(
+                "same_as_sold_variation_id"
+            )
+
+
+def _validate_ingredients(errors, inventory_item_map, tea_bases, ingredients, path_prefix):
     for index, ingredient in enumerate(ingredients or []):
         ingredient_path = f"{path_prefix}[{index}]"
         inventory_key = ingredient.get("inventory_key")
-        if inventory_key is None:
+        tea_base_key = ingredient.get("tea_base_key")
+        has_inventory_key = inventory_key is not None
+        has_tea_base_key = tea_base_key is not None
+
+        if has_inventory_key == has_tea_base_key:
+            state = "both" if has_inventory_key else "neither"
+            errors.append(
+                f"{ingredient_path}: must have exactly one of inventory_key or "
+                f"tea_base_key (has {state})"
+            )
             continue
-        _validate_inventory_key(
+
+        if has_inventory_key:
+            _validate_inventory_key(
+                errors,
+                inventory_item_map,
+                f"{ingredient_path}.inventory_key",
+                inventory_key,
+            )
+            _validate_ingredient_amount_and_unit(errors, ingredient, ingredient_path)
+            continue
+
+        _validate_tea_base_key(
             errors,
-            inventory_item_map,
-            f"{ingredient_path}.inventory_key",
-            inventory_key,
+            tea_bases,
+            f"{ingredient_path}.tea_base_key",
+            tea_base_key,
         )
-        _validate_ingredient_amount_and_unit(errors, ingredient, ingredient_path)
+        if "amount" in ingredient or "unit" in ingredient:
+            _validate_ingredient_amount_and_unit(errors, ingredient, ingredient_path)
+
+
+def find_orphan_inventory_keys(recipe_map, inventory_item_map):
+    referenced_inventory_keys = set()
+
+    for _, ingredients in _iter_ingredient_sites(recipe_map):
+        for ingredient in ingredients or []:
+            inventory_key = ingredient.get("inventory_key")
+            if inventory_key is not None:
+                referenced_inventory_keys.add(inventory_key)
+
+    for recipe in (recipe_map.get("sold_variation_recipes") or {}).values():
+        sugar_config = recipe.get("sugar_config")
+        if sugar_config and sugar_config.get("inventory_key") is not None:
+            referenced_inventory_keys.add(sugar_config["inventory_key"])
+
+    default_sugar_config = recipe_map.get("default_sugar_config") or {}
+    if default_sugar_config.get("inventory_key") is not None:
+        referenced_inventory_keys.add(default_sugar_config["inventory_key"])
+
+    for packaging_entry in (recipe_map.get("default_packaging_config") or {}).values():
+        if not isinstance(packaging_entry, dict):
+            continue
+        inventory_key = packaging_entry.get("inventory_key")
+        if inventory_key is not None:
+            referenced_inventory_keys.add(inventory_key)
+
+    return [
+        f"inventory_item_map[{inventory_key!r}]: not referenced in recipe_map"
+        for inventory_key in sorted(set(inventory_item_map) - referenced_inventory_keys)
+    ]
 
 
 def validate(recipe_map, inventory_item_map):
     errors = []
+    tea_bases = recipe_map.get("tea_bases") or {}
+    sold_variation_recipes = recipe_map.get("sold_variation_recipes") or {}
 
-    for tea_base_key, tea_base in (recipe_map.get("tea_bases") or {}).items():
+    _validate_recipe_identity(errors, sold_variation_recipes)
+    _validate_same_as_chains(errors, sold_variation_recipes)
+
+    for path_prefix, ingredients in _iter_ingredient_sites(recipe_map):
         _validate_ingredients(
             errors,
             inventory_item_map,
-            tea_base.get("ingredients"),
-            f"tea_bases[{tea_base_key!r}].ingredients",
+            tea_bases,
+            ingredients,
+            path_prefix,
         )
 
-    for sold_variation_id, recipe in (recipe_map.get("sold_variation_recipes") or {}).items():
+    for sold_variation_id, recipe in sold_variation_recipes.items():
         recipe_path = f"sold_variation_recipes[{sold_variation_id!r}]"
-        _validate_ingredients(
-            errors,
-            inventory_item_map,
-            recipe.get("ingredients"),
-            f"{recipe_path}.ingredients",
-        )
-
         sugar_config = recipe.get("sugar_config")
         if sugar_config and sugar_config.get("inventory_key") is not None:
             _validate_inventory_key(
@@ -102,22 +218,6 @@ def validate(recipe_map, inventory_item_map):
                 f"{recipe_path}.sugar_config.inventory_key",
                 sugar_config["inventory_key"],
             )
-
-        for modifier_id, override in (recipe.get("modifier_overrides") or {}).items():
-            _validate_ingredients(
-                errors,
-                inventory_item_map,
-                override.get("ingredients"),
-                f"{recipe_path}.modifier_overrides[{modifier_id!r}].ingredients",
-            )
-
-    for modifier_id, addition in (recipe_map.get("modifier_additions") or {}).items():
-        _validate_ingredients(
-            errors,
-            inventory_item_map,
-            addition.get("ingredients"),
-            f"modifier_additions[{modifier_id!r}].ingredients",
-        )
 
     default_sugar_config = recipe_map.get("default_sugar_config") or {}
     if default_sugar_config.get("inventory_key") is not None:
@@ -145,15 +245,20 @@ def validate(recipe_map, inventory_item_map):
 
 
 def main():
-    errors = validate(
-        load_recipe_map(),
-        load_inventory_item_map(),
-    )
+    recipe_map = load_recipe_map()
+    inventory_item_map = load_inventory_item_map()
+    errors = validate(recipe_map, inventory_item_map)
+    warnings = find_orphan_inventory_keys(recipe_map, inventory_item_map)
+
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
+        for warning in warnings:
+            print(f"WARNING: {warning}", file=sys.stderr)
         return 1
 
+    for warning in warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
     print("recipe_map validation passed")
     return 0
 
