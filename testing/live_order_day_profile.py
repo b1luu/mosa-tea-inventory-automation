@@ -389,7 +389,7 @@ def build_operational_drill_commands(profile_name):
                 "after_batch_offset": offset,
                 "command": (
                     "aws --no-cli-pager sqs get-queue-attributes "
-                    "--queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs "
+                    "--queue-url https://sqs.us-west-2.amazonaws.com/123456789012/mosa-tea-webhook-jobs "
                     "--attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible"
                 ),
             }
@@ -400,7 +400,7 @@ def build_operational_drill_commands(profile_name):
                 "after_batch_offset": offset,
                 "command": (
                     "aws --no-cli-pager sqs get-queue-attributes "
-                    "--queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs-dlq "
+                    "--queue-url https://sqs.us-west-2.amazonaws.com/123456789012/mosa-tea-webhook-jobs-dlq "
                     "--attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible"
                 ),
             }
