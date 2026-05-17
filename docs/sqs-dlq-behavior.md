@@ -84,7 +84,7 @@ Main queue counts:
 
 ```bash
 aws sqs get-queue-attributes \
-  --queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs \
+  --queue-url https://sqs.us-west-2.amazonaws.com/123456789012/mosa-tea-webhook-jobs \
   --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
 ```
 
@@ -92,7 +92,7 @@ DLQ counts:
 
 ```bash
 aws sqs get-queue-attributes \
-  --queue-url https://sqs.us-west-2.amazonaws.com/541341197059/mosa-tea-webhook-jobs-dlq \
+  --queue-url https://sqs.us-west-2.amazonaws.com/123456789012/mosa-tea-webhook-jobs-dlq \
   --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
 ```
 
