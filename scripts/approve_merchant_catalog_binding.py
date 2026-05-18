@@ -80,7 +80,18 @@ def main():
             indent=2,
         )
     )
-    return 0 if approved else 1
+    if approved:
+        return 0
+
+    print(
+        (
+            "Could not approve catalog binding "
+            f"version {version} for merchant {merchant_id!r} "
+            f"at location {location_id!r} in environment {environment!r}."
+        ),
+        file=sys.stderr,
+    )
+    return 1
 
 
 if __name__ == "__main__":
