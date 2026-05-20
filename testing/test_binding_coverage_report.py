@@ -80,6 +80,107 @@ class _FakeClient:
 
 
 class BindingCoverageReportTests(unittest.TestCase):
+    def test_ignored_live_variation_is_visible_but_not_actionable(self):
+        binding = {
+            "location_id": "LOC-1",
+            "version": 3,
+            "status": "draft",
+            "mapping": {
+                "sold_variation_aliases": {"LIVE-SOLD-1": "CANONICAL-SOLD-1"},
+                "modifier_aliases": {},
+                "inventory_variation_ids": {},
+                "ignored_live_variation_ids": ["IGNORED-LIVE-SOLD"],
+            },
+        }
+        client = _FakeClient(
+            [
+                _item(
+                    "Tea",
+                    _variation("LIVE-SOLD-1", item_name="Tea", variation_name="Regular"),
+                    _variation(
+                        "IGNORED-LIVE-SOLD",
+                        item_name="Rewards",
+                        variation_name="Free Drink (100 Reward)",
+                    ),
+                )
+            ],
+            [],
+        )
+
+        with (
+            patch("app.binding_coverage_report.get_merchant_context", return_value=None),
+            patch("app.binding_coverage_report.list_catalog_bindings", return_value=[binding]),
+            patch("app.binding_coverage_report.get_active_catalog_binding", return_value=binding),
+            patch(
+                "app.binding_coverage_report.get_canonical_binding_targets",
+                return_value={
+                    "sold_variation_ids": {"CANONICAL-SOLD-1"},
+                    "modifier_ids": set(),
+                    "inventory_keys": set(),
+                },
+            ),
+            patch(
+                "app.binding_coverage_report.create_square_client_for_merchant",
+                return_value=client,
+            ),
+        ):
+            report = build_binding_coverage_report("production", "merchant-1", "LOC-1")
+
+        self.assertEqual(
+            [variation["id"] for variation in report["sold_variations"]["ignored_live_variations"]],
+            ["IGNORED-LIVE-SOLD"],
+        )
+        self.assertEqual(report["sold_variations"]["unmapped_live_variations"], [])
+        self.assertEqual(report["summary"]["warning_count"], 0)
+
+    def test_missing_ignore_list_keeps_unmapped_variation_behavior(self):
+        binding = {
+            "location_id": "LOC-1",
+            "version": 3,
+            "status": "draft",
+            "mapping": {
+                "sold_variation_aliases": {"LIVE-SOLD-1": "CANONICAL-SOLD-1"},
+                "modifier_aliases": {},
+                "inventory_variation_ids": {},
+            },
+        }
+        client = _FakeClient(
+            [
+                _item(
+                    "Tea",
+                    _variation("LIVE-SOLD-1", item_name="Tea", variation_name="Regular"),
+                    _variation("UNMAPPED-LIVE-SOLD", item_name="Tea", variation_name="Large"),
+                )
+            ],
+            [],
+        )
+
+        with (
+            patch("app.binding_coverage_report.get_merchant_context", return_value=None),
+            patch("app.binding_coverage_report.list_catalog_bindings", return_value=[binding]),
+            patch("app.binding_coverage_report.get_active_catalog_binding", return_value=binding),
+            patch(
+                "app.binding_coverage_report.get_canonical_binding_targets",
+                return_value={
+                    "sold_variation_ids": {"CANONICAL-SOLD-1"},
+                    "modifier_ids": set(),
+                    "inventory_keys": set(),
+                },
+            ),
+            patch(
+                "app.binding_coverage_report.create_square_client_for_merchant",
+                return_value=client,
+            ),
+        ):
+            report = build_binding_coverage_report("production", "merchant-1", "LOC-1")
+
+        self.assertEqual(report["sold_variations"]["ignored_live_variations"], [])
+        self.assertEqual(
+            [variation["id"] for variation in report["sold_variations"]["unmapped_live_variations"]],
+            ["UNMAPPED-LIVE-SOLD"],
+        )
+        self.assertEqual(report["summary"]["warning_count"], 1)
+
     def test_report_allows_warnings_without_blockers(self):
         merchant_context = MerchantContext(
             environment="production",

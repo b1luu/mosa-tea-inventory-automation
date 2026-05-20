@@ -161,6 +161,7 @@ def build_binding_coverage_report(
     sold_variation_aliases = mapping.get("sold_variation_aliases", {})
     modifier_aliases = mapping.get("modifier_aliases", {})
     inventory_variation_ids = mapping.get("inventory_variation_ids", {})
+    ignored_live_variation_ids = set(mapping.get("ignored_live_variation_ids", []))
     inventory_live_ids = set(inventory_variation_ids.values())
 
     sold_unknown_targets = [
@@ -179,12 +180,21 @@ def build_binding_coverage_report(
         if variation_id in canonical_targets["sold_variation_ids"]
         and variation_id not in inventory_live_ids
     ]
+    ignored_live_variations = [
+        variation
+        for variation_id, variation in sorted(live_catalog["variations"].items())
+        if variation_id not in sold_variation_aliases
+        and variation_id not in canonical_targets["sold_variation_ids"]
+        and variation_id not in inventory_live_ids
+        and variation_id in ignored_live_variation_ids
+    ]
     unmapped_live_variations = [
         variation
         for variation_id, variation in sorted(live_catalog["variations"].items())
         if variation_id not in sold_variation_aliases
         and variation_id not in canonical_targets["sold_variation_ids"]
         and variation_id not in inventory_live_ids
+        and variation_id not in ignored_live_variation_ids
     ]
 
     modifier_unknown_targets = [
@@ -255,6 +265,7 @@ def build_binding_coverage_report(
             "unknown_canonical_targets": sold_unknown_targets,
             "stale_binding_sources": sold_stale_sources,
             "identity_covered_live_variations": identity_covered_live_variations,
+            "ignored_live_variations": ignored_live_variations,
             "unmapped_live_variations": unmapped_live_variations,
         },
         "modifiers": {
