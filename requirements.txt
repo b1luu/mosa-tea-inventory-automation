@@ -1,5 +1,7 @@
-boto3
-fastapi
-python-dotenv
-squareup
-uvicorn
+# Direct dependencies, pinned to the versions the test suite passes against.
+# Bumping is a deliberate, tested action — see docs/dependency-management.md.
+boto3==1.42.79
+fastapi==0.135.1
+python-dotenv==1.2.2
+squareup==44.0.1.20260122
+uvicorn==0.42.0

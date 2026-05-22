@@ -305,6 +305,7 @@ Expected success behavior:
 - [API Gateway serverless ingress](docs/api-gateway-serverless-ingress.md)
 - [AWS cost analysis](docs/aws-cost-analysis.md)
 - [Catalog modifier model](docs/catalog-modifier-model.md)
+- [Dependency management](docs/dependency-management.md)
 - [Ops runbook](docs/ops-runbook.md)
 - [Order state handling decision](docs/order-state-handling-decision.md)
 - [Production OAuth decision](docs/production-oauth-decision.md)
