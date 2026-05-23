@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,7 +7,67 @@ from unittest.mock import patch
 from app import order_processing_db
 
 
+def _read_context_row(db_path, order_id):
+    connection = sqlite3.connect(db_path)
+    try:
+        return connection.execute(
+            "SELECT merchant_id, environment, location_id "
+            "FROM order_processing WHERE square_order_id = ?",
+            (order_id,),
+        ).fetchone()
+    finally:
+        connection.close()
+
+
 class OrderProcessingDbTests(unittest.TestCase):
+    def test_reserve_persists_merchant_context(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing(
+                    "order-1",
+                    merchant_id="ML9M9XX0HM717",
+                    environment="sandbox",
+                    location_id="LB1MECVA7EZ8Z",
+                )
+            self.assertEqual(
+                _read_context_row(db_path, "order-1"),
+                ("ML9M9XX0HM717", "sandbox", "LB1MECVA7EZ8Z"),
+            )
+
+    def test_reserve_without_context_stores_nulls(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing("order-1")
+            self.assertEqual(_read_context_row(db_path, "order-1"), (None, None, None))
+
+    def test_ensure_db_migrates_legacy_table_missing_context_columns(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            connection = sqlite3.connect(db_path)
+            connection.execute(
+                "CREATE TABLE order_processing ("
+                "square_order_id TEXT PRIMARY KEY, "
+                "processing_state TEXT NOT NULL, applied_at TEXT)"
+            )
+            connection.commit()
+            connection.close()
+
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.ensure_db()
+                order_processing_db.reserve_order_processing(
+                    "order-1",
+                    merchant_id="ML9M9XX0HM717",
+                    environment="sandbox",
+                    location_id="LB1MECVA7EZ8Z",
+                )
+
+            self.assertEqual(
+                _read_context_row(db_path, "order-1"),
+                ("ML9M9XX0HM717", "sandbox", "LB1MECVA7EZ8Z"),
+            )
+
     def test_reserve_order_processing_only_succeeds_once(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "order_processing.db"

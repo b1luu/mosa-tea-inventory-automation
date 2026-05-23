@@ -25,6 +25,9 @@ def _db_connection():
         connection.close()
 
 
+_CONTEXT_COLUMNS = ("merchant_id", "environment", "location_id")
+
+
 def ensure_db():
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
     with _db_connection() as connection:
@@ -33,10 +36,25 @@ def ensure_db():
             CREATE TABLE IF NOT EXISTS order_processing (
                 square_order_id TEXT PRIMARY KEY,
                 processing_state TEXT NOT NULL,
-                applied_at TEXT
+                applied_at TEXT,
+                merchant_id TEXT,
+                environment TEXT,
+                location_id TEXT
             )
             """
         )
+        # Backfill the merchant-context columns on dev databases created before
+        # they existed. Rows reserved before this migration carry NULL context
+        # and are intentionally not safe to replay (see replay_order_job).
+        existing = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(order_processing)")
+        }
+        for column in _CONTEXT_COLUMNS:
+            if column not in existing:
+                connection.execute(
+                    f"ALTER TABLE order_processing ADD COLUMN {column} TEXT"
+                )
 
 
 def is_order_applied(order_id):
@@ -120,16 +138,32 @@ def transition_order_processing_state(order_id, from_state, to_state):
     return cursor.rowcount == 1
 
 
-def reserve_order_processing(order_id):
+def reserve_order_processing(
+    order_id,
+    *,
+    merchant_id=None,
+    environment=None,
+    location_id=None,
+):
     ensure_db()
     with _db_connection() as connection:
         cursor = connection.execute(
             """
-            INSERT INTO order_processing (square_order_id, processing_state, applied_at)
-            VALUES (?, ?, ?)
+            INSERT INTO order_processing (
+                square_order_id, processing_state, applied_at,
+                merchant_id, environment, location_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(square_order_id) DO NOTHING
             """,
-            (order_id, PROCESSING_STATE_PENDING, None),
+            (
+                order_id,
+                PROCESSING_STATE_PENDING,
+                None,
+                merchant_id,
+                environment,
+                location_id,
+            ),
         )
         reserved = cursor.rowcount == 1
 

@@ -31,7 +31,12 @@ class OrderProcessingStoreTests(unittest.TestCase):
                 reserved = order_processing_store.reserve_order_processing("order-1")
 
         self.assertTrue(reserved)
-        mock_dynamodb.assert_called_once_with("order-1")
+        mock_dynamodb.assert_called_once_with(
+            "order-1",
+            merchant_id=None,
+            environment=None,
+            location_id=None,
+        )
 
     def test_claim_order_processing_uses_configured_backend(self):
         with patch(

@@ -48,8 +48,19 @@ def transition_order_processing_state(order_id, from_state, to_state):
     return True
 
 
-def reserve_order_processing(order_id):
-    return _get_store_backend().reserve_order_processing(order_id)
+def reserve_order_processing(
+    order_id,
+    *,
+    merchant_id=None,
+    environment=None,
+    location_id=None,
+):
+    return _get_store_backend().reserve_order_processing(
+        order_id,
+        merchant_id=merchant_id,
+        environment=environment,
+        location_id=location_id,
+    )
 
 
 def claim_order_processing(order_id):
