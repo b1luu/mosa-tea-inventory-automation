@@ -124,6 +124,12 @@ def list_order_processing_rows(processing_state=None):
 
 
 def set_order_processing_state(order_id, processing_state):
+    # NOTE: this upsert only sets processing_state/applied_at. On an existing
+    # row it PRESERVES the merchant context columns (merchant_id/environment/
+    # location_id); on a brand-new row those columns are NULL. The DynamoDB
+    # backend's set_order_processing_state does a full put and would instead
+    # DROP that context — prefer transition_order_processing_state (a partial
+    # update) for state changes that must retain merchant context.
     ensure_db()
     applied_at = (
         datetime.now(UTC).isoformat()

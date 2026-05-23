@@ -119,6 +119,13 @@ def list_order_processing_rows(processing_state=None):
 
 
 def set_order_processing_state(order_id, processing_state):
+    # WARNING: this is a full put_item replace — it DROPS any merchant context
+    # (merchant_id/environment/location_id) previously stored on the row, since
+    # _build_item only includes context when explicitly supplied. For state
+    # changes that must retain merchant context, use
+    # transition_order_processing_state (an update_item that preserves other
+    # attributes). This is currently reached only by dead paths; the warning is
+    # a guard for future callers.
     return _get_table().put_item(Item=_build_item(order_id, processing_state))
 
 
