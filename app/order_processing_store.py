@@ -27,6 +27,10 @@ def get_order_processing_state(order_id):
     return _get_store_backend().get_order_processing_state(order_id)
 
 
+def get_order_processing_record(order_id):
+    return _get_store_backend().get_order_processing_record(order_id)
+
+
 def list_order_processing_rows(processing_state=None):
     return _get_store_backend().list_order_processing_rows(
         processing_state=processing_state

@@ -13,12 +13,12 @@ from app.order_processing_store import (
     PROCESSING_STATE_PENDING,
     PROCESSING_STATE_PROCESSING,
     claim_order_processing,
+    get_order_processing_record,
     get_order_processing_state,
     mark_order_applied,
     mark_order_blocked,
     mark_order_failed,
     release_order_processing_claim,
-    reserve_order_processing,
     requeue_order_processing,
 )
 from app.order_processor import process_orders
@@ -190,10 +190,34 @@ def _process_claimed_order(order_id, *, job=None):
     return processing_state, result
 
 
-def _process_order_job(order_id):
+def _build_replay_job(order_id):
+    # Replay must run through the same merchant-scoped path as a live webhook:
+    # the merchant's OAuth client, their binding, and the write-readiness gates.
+    # The merchant context lives on the order_processing row (persisted at
+    # ingest). Orders reserved before that persistence carry no merchant_id and
+    # are intentionally not safe to replay — refuse rather than fall back to the
+    # environment token.
+    record = get_order_processing_record(order_id)
+    merchant_id = (record or {}).get("merchant_id")
+    if not merchant_id:
+        raise RuntimeError(
+            f"Cannot replay order '{order_id}' safely: no merchant context is "
+            f"recorded for it. Orders that were never ingested, or were reserved "
+            f"before merchant-context persistence, cannot be replayed through the "
+            f"merchant-scoped path."
+        )
+    return {
+        "order_id": order_id,
+        "merchant_id": merchant_id,
+        "environment": record.get("environment"),
+        "location_id": record.get("location_id"),
+    }
+
+
+def _process_order_job(order_id, *, job=None):
     claimed = claim_order_processing(order_id)
     if claimed:
-        return _process_claimed_order(order_id, job=None)
+        return _process_claimed_order(order_id, job=job)
 
     current_state = get_order_processing_state(order_id)
     if current_state in {
@@ -218,9 +242,13 @@ def replay_order_job(order_id):
     if current_processing_state == PROCESSING_STATE_PROCESSING:
         raise RuntimeError(f"Order '{order_id}' is already being processed.")
 
-    if current_processing_state is None:
-        prepared = reserve_order_processing(order_id)
-    elif current_processing_state in {
+    # Validate replayability BEFORE mutating state. If the order has no recorded
+    # merchant context it cannot be routed through the merchant-scoped path, so
+    # refuse here and leave it in its current (FAILED/BLOCKED) state rather than
+    # degrading it to a PENDING limbo or reserving a phantom row.
+    job = _build_replay_job(order_id)
+
+    if current_processing_state in {
         PROCESSING_STATE_FAILED,
         PROCESSING_STATE_BLOCKED,
     }:
@@ -228,7 +256,10 @@ def replay_order_job(order_id):
     elif current_processing_state == PROCESSING_STATE_PENDING:
         prepared = True
     else:
-        prepared = False
+        raise RuntimeError(
+            f"Order '{order_id}' cannot be replayed from state "
+            f"{current_processing_state!r}."
+        )
 
     if not prepared:
         raise RuntimeError(
@@ -236,7 +267,7 @@ def replay_order_job(order_id):
             f"{current_processing_state!r}."
         )
 
-    processing_state_after, result = _process_order_job(order_id)
+    processing_state_after, result = _process_order_job(order_id, job=job)
     return {
         "order_id": order_id,
         "current_processing_state": current_processing_state,

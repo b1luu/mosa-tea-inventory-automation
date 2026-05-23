@@ -54,6 +54,38 @@ class OrderProcessingDynamoDbTests(unittest.TestCase):
         self.assertEqual(item["environment"], "sandbox")
         self.assertEqual(item["location_id"], "LB1MECVA7EZ8Z")
 
+    def test_get_order_processing_record_returns_item_with_context(self):
+        table = MagicMock()
+        table.get_item.return_value = {
+            "Item": {
+                "square_order_id": "order-1",
+                "processing_state": "failed",
+                "merchant_id": "ML9M9XX0HM717",
+                "environment": "sandbox",
+                "location_id": "LB1MECVA7EZ8Z",
+            }
+        }
+
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            record = order_processing_dynamodb.get_order_processing_record("order-1")
+
+        self.assertEqual(record["merchant_id"], "ML9M9XX0HM717")
+        self.assertEqual(record["environment"], "sandbox")
+        self.assertEqual(record["location_id"], "LB1MECVA7EZ8Z")
+        table.get_item.assert_called_once_with(
+            Key={"square_order_id": "order-1"},
+            ConsistentRead=True,
+        )
+
+    def test_get_order_processing_record_returns_none_when_missing(self):
+        table = MagicMock()
+        table.get_item.return_value = {}
+
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            record = order_processing_dynamodb.get_order_processing_record("missing")
+
+        self.assertIsNone(record)
+
     def test_get_order_processing_state_returns_state_from_item(self):
         table = MagicMock()
         table.get_item.return_value = {
