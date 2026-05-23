@@ -250,10 +250,6 @@ def mark_order_applied(order_id):
     )
 
 
-def mark_order_pending(order_id):
-    set_order_processing_state(order_id, PROCESSING_STATE_PENDING)
-
-
 def mark_order_failed(order_id):
     return transition_order_processing_state(
         order_id,

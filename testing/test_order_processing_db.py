@@ -117,7 +117,7 @@ class OrderProcessingDbTests(unittest.TestCase):
                     order_processing_db.get_order_processing_state("order-1")
                 )
 
-                order_processing_db.mark_order_pending("order-2")
+                order_processing_db.reserve_order_processing("order-2")
                 self.assertTrue(order_processing_db.claim_order_processing("order-2"))
                 self.assertTrue(order_processing_db.mark_order_applied("order-2"))
                 self.assertFalse(
@@ -150,7 +150,7 @@ class OrderProcessingDbTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "order_processing.db"
             with patch.object(order_processing_db, "DB_FILE", db_path):
-                order_processing_db.mark_order_pending("order-1")
+                order_processing_db.reserve_order_processing("order-1")
                 self.assertFalse(order_processing_db.mark_order_applied("order-1"))
                 self.assertTrue(order_processing_db.claim_order_processing("order-1"))
                 self.assertTrue(order_processing_db.mark_order_applied("order-1"))
@@ -169,7 +169,7 @@ class OrderProcessingDbTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "order_processing.db"
             with patch.object(order_processing_db, "DB_FILE", db_path):
-                order_processing_db.mark_order_pending("order-2")
+                order_processing_db.reserve_order_processing("order-2")
                 self.assertFalse(order_processing_db.mark_order_blocked("order-2"))
                 self.assertTrue(order_processing_db.claim_order_processing("order-2"))
                 self.assertTrue(order_processing_db.mark_order_blocked("order-2"))
@@ -184,7 +184,7 @@ class OrderProcessingDbTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "order_processing.db"
             with patch.object(order_processing_db, "DB_FILE", db_path):
-                order_processing_db.mark_order_pending("failed-order")
+                order_processing_db.reserve_order_processing("failed-order")
                 order_processing_db.claim_order_processing("failed-order")
                 order_processing_db.mark_order_failed("failed-order")
                 self.assertTrue(
@@ -195,7 +195,7 @@ class OrderProcessingDbTests(unittest.TestCase):
                     order_processing_db.PROCESSING_STATE_PENDING,
                 )
 
-                order_processing_db.mark_order_pending("blocked-order")
+                order_processing_db.reserve_order_processing("blocked-order")
                 order_processing_db.claim_order_processing("blocked-order")
                 order_processing_db.mark_order_blocked("blocked-order")
                 self.assertTrue(
@@ -206,7 +206,7 @@ class OrderProcessingDbTests(unittest.TestCase):
                     order_processing_db.PROCESSING_STATE_PENDING,
                 )
 
-                order_processing_db.mark_order_pending("pending-order")
+                order_processing_db.reserve_order_processing("pending-order")
                 self.assertFalse(
                     order_processing_db.requeue_order_processing("pending-order")
                 )
