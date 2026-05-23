@@ -53,7 +53,7 @@ class WebhookIngressDependencies:
     get_square_webhook_notification_url: Callable[[], str]
     get_webhook_event: Callable[[str | None], dict[str, Any] | None]
     get_order_processing_state: Callable[[str], str | None]
-    reserve_order_processing: Callable[[str], bool]
+    reserve_order_processing: Callable[..., bool]
     clear_order_processing_reservation: Callable[[str], Any]
     create_webhook_event: Callable[..., bool]
     record_webhook_event: Callable[..., Any]
@@ -425,7 +425,12 @@ def handle_square_webhook_request(
 
         should_start_processing = False
         if should_attempt_processing:
-            should_start_processing = deps.reserve_order_processing(order_id)
+            should_start_processing = deps.reserve_order_processing(
+                order_id,
+                merchant_id=merchant_id,
+                environment=runtime_environment,
+                location_id=location_id,
+            )
             if not should_start_processing:
                 current_processing_state = deps.get_order_processing_state(order_id)
                 if event_id:

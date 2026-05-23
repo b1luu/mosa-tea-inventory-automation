@@ -19,6 +19,41 @@ def _conditional_check_failed():
 
 
 class OrderProcessingDynamoDbTests(unittest.TestCase):
+    def test_build_item_includes_merchant_context_when_provided(self):
+        item = order_processing_dynamodb._build_item(
+            "order-1",
+            order_processing_dynamodb.PROCESSING_STATE_PENDING,
+            merchant_id="ML9M9XX0HM717",
+            environment="sandbox",
+            location_id="LB1MECVA7EZ8Z",
+        )
+        self.assertEqual(item["merchant_id"], "ML9M9XX0HM717")
+        self.assertEqual(item["environment"], "sandbox")
+        self.assertEqual(item["location_id"], "LB1MECVA7EZ8Z")
+
+    def test_build_item_omits_merchant_context_when_absent(self):
+        item = order_processing_dynamodb._build_item(
+            "order-1",
+            order_processing_dynamodb.PROCESSING_STATE_PENDING,
+        )
+        self.assertNotIn("merchant_id", item)
+        self.assertNotIn("environment", item)
+        self.assertNotIn("location_id", item)
+
+    def test_reserve_passes_merchant_context_to_put_item(self):
+        table = MagicMock()
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            order_processing_dynamodb.reserve_order_processing(
+                "order-1",
+                merchant_id="ML9M9XX0HM717",
+                environment="sandbox",
+                location_id="LB1MECVA7EZ8Z",
+            )
+        item = table.put_item.call_args.kwargs["Item"]
+        self.assertEqual(item["merchant_id"], "ML9M9XX0HM717")
+        self.assertEqual(item["environment"], "sandbox")
+        self.assertEqual(item["location_id"], "LB1MECVA7EZ8Z")
+
     def test_get_order_processing_state_returns_state_from_item(self):
         table = MagicMock()
         table.get_item.return_value = {

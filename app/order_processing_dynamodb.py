@@ -22,7 +22,14 @@ def _get_table():
     return _create_dynamodb_resource().Table(get_dynamodb_order_processing_table_name())
 
 
-def _build_item(order_id, processing_state):
+def _build_item(
+    order_id,
+    processing_state,
+    *,
+    merchant_id=None,
+    environment=None,
+    location_id=None,
+):
     now = datetime.now(UTC).isoformat()
     item = {
         "square_order_id": order_id,
@@ -31,6 +38,15 @@ def _build_item(order_id, processing_state):
     }
     if processing_state == PROCESSING_STATE_APPLIED:
         item["applied_at"] = now
+    # Persist merchant context only when supplied (at reserve time). Transitions
+    # use update_item and preserve it; a full put without context would drop it.
+    for key, value in (
+        ("merchant_id", merchant_id),
+        ("environment", environment),
+        ("location_id", location_id),
+    ):
+        if value is not None:
+            item[key] = value
     return item
 
 
@@ -114,10 +130,22 @@ def transition_order_processing_state(order_id, from_state, to_state):
     return True
 
 
-def reserve_order_processing(order_id):
+def reserve_order_processing(
+    order_id,
+    *,
+    merchant_id=None,
+    environment=None,
+    location_id=None,
+):
     try:
         _get_table().put_item(
-            Item=_build_item(order_id, PROCESSING_STATE_PENDING),
+            Item=_build_item(
+                order_id,
+                PROCESSING_STATE_PENDING,
+                merchant_id=merchant_id,
+                environment=environment,
+                location_id=location_id,
+            ),
             ConditionExpression="attribute_not_exists(square_order_id)",
         )
     except ClientError as error:
