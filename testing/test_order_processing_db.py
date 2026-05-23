@@ -68,6 +68,32 @@ class OrderProcessingDbTests(unittest.TestCase):
                 ("ML9M9XX0HM717", "sandbox", "LB1MECVA7EZ8Z"),
             )
 
+    def test_get_order_processing_record_returns_full_row_with_context(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing(
+                    "order-1",
+                    merchant_id="ML9M9XX0HM717",
+                    environment="sandbox",
+                    location_id="LB1MECVA7EZ8Z",
+                )
+                record = order_processing_db.get_order_processing_record("order-1")
+
+            self.assertEqual(record["square_order_id"], "order-1")
+            self.assertEqual(record["processing_state"], "pending")
+            self.assertEqual(record["merchant_id"], "ML9M9XX0HM717")
+            self.assertEqual(record["environment"], "sandbox")
+            self.assertEqual(record["location_id"], "LB1MECVA7EZ8Z")
+
+    def test_get_order_processing_record_returns_none_when_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                self.assertIsNone(
+                    order_processing_db.get_order_processing_record("missing")
+                )
+
     def test_reserve_order_processing_only_succeeds_once(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "order_processing.db"

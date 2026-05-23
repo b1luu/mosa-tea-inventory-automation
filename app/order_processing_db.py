@@ -77,6 +77,27 @@ def get_order_processing_state(order_id):
     return row[0] if row else None
 
 
+def get_order_processing_record(order_id):
+    ensure_db()
+    with _db_connection() as connection:
+        row = connection.execute(
+            "SELECT square_order_id, processing_state, applied_at, "
+            "merchant_id, environment, location_id "
+            "FROM order_processing WHERE square_order_id = ?",
+            (order_id,),
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        "square_order_id": row[0],
+        "processing_state": row[1],
+        "applied_at": row[2],
+        "merchant_id": row[3],
+        "environment": row[4],
+        "location_id": row[5],
+    }
+
+
 def list_order_processing_rows(processing_state=None):
     ensure_db()
     query = (

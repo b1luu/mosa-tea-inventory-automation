@@ -67,6 +67,26 @@ def get_order_processing_state(order_id):
     return item.get("processing_state") if item else None
 
 
+def get_order_processing_record(order_id):
+    response = _get_table().get_item(
+        Key={"square_order_id": order_id},
+        ConsistentRead=True,
+    )
+    item = response.get("Item")
+    if not item:
+        return None
+    # Return the same key set the SQLite backend does, so the abstraction has a
+    # single contract regardless of backend (DynamoDB omits unset attributes).
+    return {
+        "square_order_id": item.get("square_order_id"),
+        "processing_state": item.get("processing_state"),
+        "applied_at": item.get("applied_at"),
+        "merchant_id": item.get("merchant_id"),
+        "environment": item.get("environment"),
+        "location_id": item.get("location_id"),
+    }
+
+
 def list_order_processing_rows(processing_state=None):
     scan_kwargs = {}
     if processing_state:

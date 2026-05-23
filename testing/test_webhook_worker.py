@@ -1,8 +1,26 @@
+import tempfile
 import unittest
+from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
+from app import order_processing_db
 from app.merchant_store import MerchantContext
 from app.webhook_worker import RetryableWebhookJobError, process_webhook_job, replay_order_job
+
+
+@contextmanager
+def _real_sqlite_order_store(tmpdir):
+    """Run replay against a real SQLite order_processing store in tmpdir."""
+    db_path = Path(tmpdir) / "order_processing.db"
+    with (
+        patch.object(order_processing_db, "DB_FILE", db_path),
+        patch(
+            "app.order_processing_store.get_order_processing_store_mode",
+            return_value="sqlite",
+        ),
+    ):
+        yield
 
 
 REAL_SUCCESS_JOB = {
@@ -138,11 +156,49 @@ class WebhookWorkerTests(unittest.TestCase):
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "failed"
         )
 
-    def test_replay_order_job_requeues_failed_orders_before_processing(self):
-        with patch("app.webhook_worker.get_order_processing_state", return_value="failed"):
-            with patch("app.webhook_worker.requeue_order_processing", return_value=True):
-                with patch("app.webhook_worker.claim_order_processing", return_value=True):
-                    with patch(
+    def test_replay_order_job_uses_persisted_merchant_context(self):
+        merchant_context = MerchantContext(
+            environment="sandbox",
+            merchant_id="ML9M9XX0HM717",
+            status="active",
+            auth_mode="oauth",
+            location_id="LB1MECVA7EZ8Z",
+            writes_enabled=True,
+            binding_version=2,
+            display_name="Default Test Account",
+        )
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with _real_sqlite_order_store(tmpdir):
+                # Ingest-time reserve WITH merchant context, then drive to FAILED.
+                order_processing_db.reserve_order_processing(
+                    "order-1",
+                    merchant_id="ML9M9XX0HM717",
+                    environment="sandbox",
+                    location_id="LB1MECVA7EZ8Z",
+                )
+                order_processing_db.claim_order_processing("order-1")
+                order_processing_db.mark_order_failed("order-1")
+
+                with (
+                    patch(
+                        "app.webhook_worker.get_merchant_context",
+                        return_value=merchant_context,
+                    ),
+                    patch(
+                        "app.webhook_worker.get_active_catalog_binding",
+                        return_value=binding,
+                    ),
+                    patch(
+                        "app.webhook_worker.get_merchant_write_readiness",
+                        return_value={"write_ready": True, "write_blockers": []},
+                    ),
+                    patch(
+                        "app.webhook_worker.create_square_client_for_merchant",
+                        return_value="merchant-client",
+                    ) as mock_client,
+                    patch(
                         "app.webhook_worker.process_orders",
                         return_value={
                             "mode": {"apply": True},
@@ -155,14 +211,44 @@ class WebhookWorkerTests(unittest.TestCase):
                             "inventory_request": {},
                             "inventory_response": {"ok": True},
                         },
-                    ):
-                        with patch(
-                            "app.webhook_worker.mark_order_applied", return_value=True
-                        ):
-                            result = replay_order_job("order-1")
+                    ) as mock_process,
+                ):
+                    result = replay_order_job("order-1")
 
-        self.assertEqual(result["current_processing_state"], "failed")
-        self.assertEqual(result["processing_state_after"], "applied")
+                # Merchant was resolved from the PERSISTED context, not the env.
+                mock_client.assert_called_once_with("sandbox", "ML9M9XX0HM717")
+                mock_process.assert_called_once_with(
+                    ["order-1"],
+                    apply_changes=True,
+                    client="merchant-client",
+                    binding=binding,
+                )
+                self.assertEqual(result["current_processing_state"], "failed")
+                self.assertEqual(result["processing_state_after"], "applied")
+                self.assertEqual(
+                    order_processing_db.get_order_processing_state("order-1"),
+                    order_processing_db.PROCESSING_STATE_APPLIED,
+                )
+
+    def test_replay_order_job_refuses_context_less_order_without_changing_state(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with _real_sqlite_order_store(tmpdir):
+                # A pre-context order: reserved with NO merchant context, FAILED.
+                order_processing_db.reserve_order_processing("order-1")
+                order_processing_db.claim_order_processing("order-1")
+                order_processing_db.mark_order_failed("order-1")
+
+                with patch("app.webhook_worker.process_orders") as mock_process:
+                    with self.assertRaises(RuntimeError):
+                        replay_order_job("order-1")
+
+                # The order is left in its original FAILED state — not requeued
+                # into PENDING limbo — and no inventory write was attempted.
+                self.assertEqual(
+                    order_processing_db.get_order_processing_state("order-1"),
+                    order_processing_db.PROCESSING_STATE_FAILED,
+                )
+                mock_process.assert_not_called()
 
     def test_replay_order_job_refuses_applied_orders(self):
         with patch("app.webhook_worker.get_order_processing_state", return_value="applied"):
