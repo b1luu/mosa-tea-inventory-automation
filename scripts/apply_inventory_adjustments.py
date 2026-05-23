@@ -1,6 +1,7 @@
 import json
 import sys
 
+from app.client import create_square_client
 from app.json_utils import to_jsonable
 from app.order_processor import process_orders
 
@@ -58,7 +59,15 @@ def main():
         print(error)
         return 1
 
-    result = process_orders(order_ids, apply_changes=apply_changes)
+    # This operator tool intentionally writes against the env-token account, so
+    # it supplies an explicit client rather than relying on a silent fallback.
+    # This operator tool intentionally writes against the env-token account, so
+    # it supplies an explicit client rather than relying on a silent fallback.
+    result = process_orders(
+        order_ids,
+        apply_changes=apply_changes,
+        client=create_square_client(),
+    )
     _print_result(result)
     return 0
 

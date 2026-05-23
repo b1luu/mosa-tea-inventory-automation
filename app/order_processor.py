@@ -90,7 +90,13 @@ def apply_inventory_plan(plan, *, apply_changes=False, client=None, binding=None
     if not inventory_request["changes"]:
         return {"message": "No inventory changes to apply."}
 
-    client = client or create_square_client()
+    # Defense-in-depth at the actual write site: never fall back to the env
+    # token for batch_create_changes.
+    if client is None:
+        raise ValueError(
+            "Applying inventory changes requires an explicit Square client; "
+            "refusing to fall back to the environment token for a write."
+        )
     try:
         response = client.inventory.batch_create_changes(**inventory_request)
         return _serialize_response_model(response)
@@ -130,6 +136,12 @@ def process_orders(
     client=None,
     binding=None,
 ):
+    if apply_changes and client is None:
+        raise ValueError(
+            "Applying inventory changes requires an explicit Square client; "
+            "refusing to fall back to the environment token for a write."
+        )
+    # Reads/projection (apply_changes=False) may still use the env client.
     client = client or create_square_client()
     order_summaries, skipped_orders = load_order_summaries_for_processing(
         order_ids,

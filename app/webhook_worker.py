@@ -142,45 +142,50 @@ def _transition_claimed_order_to_terminal_state(order_id, result):
 def _process_claimed_order(order_id, *, job=None):
     try:
         merchant_processing_context = (
-            _resolve_merchant_processing_context(job or {})
-            if job is not None
-            else None
+            _resolve_merchant_processing_context(job) if job else None
         )
 
+        # No env-token fallback: every write must run against an explicit,
+        # merchant-scoped client. If the merchant context can't be resolved,
+        # fail loud rather than write to whatever account the env token holds.
         if merchant_processing_context is None:
-            result = process_orders([order_id], apply_changes=True)
+            raise RuntimeError(
+                f"Cannot process order '{order_id}' without a resolved merchant "
+                f"context; refusing to fall back to the environment token for a "
+                f"write."
+            )
+
+        merchant_context = merchant_processing_context["merchant_context"]
+        readiness = get_merchant_write_readiness(
+            merchant_processing_context["environment"],
+            merchant_processing_context["merchant_id"],
+            location_id=merchant_processing_context["location_id"],
+            active_binding=merchant_processing_context["binding"],
+            include_operator_intent=False,
+        )
+        if not readiness["write_ready"]:
+            result = _build_blocked_result(
+                get_write_blocker_message(readiness["write_blockers"][0]),
+                blockers=readiness["write_blockers"],
+            )
         else:
-            merchant_context = merchant_processing_context["merchant_context"]
-            readiness = get_merchant_write_readiness(
+            merchant_client = create_square_client_for_merchant(
                 merchant_processing_context["environment"],
                 merchant_processing_context["merchant_id"],
-                location_id=merchant_processing_context["location_id"],
-                active_binding=merchant_processing_context["binding"],
-                include_operator_intent=False,
             )
-            if not readiness["write_ready"]:
+            apply_changes = merchant_context.writes_enabled
+            result = process_orders(
+                [order_id],
+                apply_changes=apply_changes,
+                client=merchant_client,
+                binding=merchant_processing_context["binding"],
+            )
+            if not apply_changes:
                 result = _build_blocked_result(
-                    get_write_blocker_message(readiness["write_blockers"][0]),
-                    blockers=readiness["write_blockers"],
+                    "Inventory writes are disabled pending owner approval.",
+                    blockers=["writes_disabled_by_operator"],
+                    base_result=result,
                 )
-            else:
-                merchant_client = create_square_client_for_merchant(
-                    merchant_processing_context["environment"],
-                    merchant_processing_context["merchant_id"],
-                )
-                apply_changes = merchant_context.writes_enabled
-                result = process_orders(
-                    [order_id],
-                    apply_changes=apply_changes,
-                    client=merchant_client,
-                    binding=merchant_processing_context["binding"],
-                )
-                if not apply_changes:
-                    result = _build_blocked_result(
-                        "Inventory writes are disabled pending owner approval.",
-                        blockers=["writes_disabled_by_operator"],
-                        base_result=result,
-                    )
 
         processing_state = _transition_claimed_order_to_terminal_state(order_id, result)
     except Exception:

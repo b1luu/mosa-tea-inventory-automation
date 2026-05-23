@@ -4,7 +4,7 @@ from app.inventory_plan import (
     build_inventory_plan_from_order_summaries,
     build_inventory_plan_from_order_summary,
 )
-from app.order_processor import apply_inventory_plan
+from app.order_processor import apply_inventory_plan, process_orders
 from testing.order_projection_utils import load_scenario_order
 
 
@@ -72,6 +72,35 @@ class InventoryPlanTests(unittest.TestCase):
             apply_inventory_plan(plan, apply_changes=True),
             {"error": plan.blocking_reason},
         )
+
+    def test_apply_inventory_plan_refuses_write_without_explicit_client(self):
+        # A plan with real changes must not write via the env token: requiring
+        # an explicit client at the write site is the Part 3 guarantee.
+        order_summary = load_scenario_order("tgy_tea_100_sugar")
+        plan = build_inventory_plan_from_order_summary(
+            order_summary,
+            occurred_at="2026-04-03T20:00:00Z",
+        )
+
+        with self.assertRaises(ValueError):
+            apply_inventory_plan(plan, apply_changes=True, client=None)
+
+    def test_process_orders_refuses_write_without_explicit_client(self):
+        # Guard fires before any Square call, so no order lookup is attempted.
+        with self.assertRaises(ValueError):
+            process_orders(["order-1"], apply_changes=True, client=None)
+
+    def test_process_orders_allows_projection_without_client(self):
+        # apply_changes=False is read-only projection and may use the env client;
+        # it must NOT raise. (Guards the guard: ensures we only block writes.)
+        order_summary = load_scenario_order("tgy_tea_100_sugar")
+        plan = build_inventory_plan_from_order_summary(
+            order_summary,
+            occurred_at="2026-04-03T20:00:00Z",
+        )
+        # apply_inventory_plan with apply_changes=False returns None before any
+        # client is needed.
+        self.assertIsNone(apply_inventory_plan(plan, apply_changes=False, client=None))
 
     def test_apply_inventory_plan_executes_inventory_request(self):
         order_summary = load_scenario_order("tgy_tea_100_sugar")

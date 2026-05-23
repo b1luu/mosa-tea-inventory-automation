@@ -1,6 +1,46 @@
+import sys
 import unittest
+from unittest.mock import patch
 
 from app.order_processor import _build_adjustment_changes
+from scripts import apply_inventory_adjustments
+
+
+class ApplyInventoryAdjustmentsMainTests(unittest.TestCase):
+    def test_main_passes_an_explicit_client_to_process_orders(self):
+        # The script must supply an explicit (env-token) client so its writes
+        # opt in deliberately, rather than relying on a fallback that Part 3
+        # removed. Without this, process_orders(apply_changes=True) would raise.
+        empty_result = {
+            "mode": {"apply": True},
+            "projected_orders": [],
+            "skipped_orders": [],
+            "skipped_line_items": [],
+            "projected_line_items": [],
+            "combined_usage": [],
+            "display_usage": [],
+            "inventory_request": {},
+            "inventory_response": {"ok": True},
+        }
+        with (
+            patch.object(sys, "argv", ["prog", "--apply", "order-1"]),
+            patch.object(
+                apply_inventory_adjustments,
+                "create_square_client",
+                return_value="explicit-client",
+            ),
+            patch.object(
+                apply_inventory_adjustments,
+                "process_orders",
+                return_value=empty_result,
+            ) as mock_process,
+        ):
+            apply_inventory_adjustments.main()
+
+        _, kwargs = mock_process.call_args
+        self.assertEqual(kwargs["apply_changes"], True)
+        self.assertEqual(kwargs["client"], "explicit-client")
+        self.assertIsNotNone(kwargs["client"])
 
 
 class ApplyInventoryAdjustmentsTests(unittest.TestCase):
