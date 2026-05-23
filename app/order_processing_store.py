@@ -114,10 +114,6 @@ def mark_order_applied(order_id):
     return _get_store_backend().mark_order_applied(order_id)
 
 
-def mark_order_pending(order_id):
-    return _get_store_backend().mark_order_pending(order_id)
-
-
 def mark_order_failed(order_id):
     return _get_store_backend().mark_order_failed(order_id)
 
