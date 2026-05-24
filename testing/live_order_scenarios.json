@@ -199,6 +199,21 @@
           ]
         }
       ]
+    },
+    "tgy_special_100_sugar": {
+      "description": "Single TGY Special (Tie Guan Yin oolong milk tea with Brown Sugar Hun-Kue) at 100% Sugar and no toppings.",
+      "line_items": [
+        {
+          "catalog_object_id": "B526AZ22TDNVJGUAE4HRXJKS",
+          "quantity": "1",
+          "modifiers": [
+            {
+              "catalog_object_id": "VEDNAO6LH5WQET6TQTJGSPOB",
+              "quantity": "1"
+            }
+          ]
+        }
+      ]
     }
   }
 }

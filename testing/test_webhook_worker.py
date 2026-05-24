@@ -37,50 +37,85 @@ MERCHANT_BOUND_JOB = {
 }
 
 
-class WebhookWorkerTests(unittest.TestCase):
-    def test_process_webhook_job_claims_pending_order_and_marks_processed(self):
-        with patch("app.webhook_worker.claim_order_processing", return_value=True):
-            with patch(
-                "app.webhook_worker.process_orders",
-                return_value={
-                    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
-                    "skipped_orders": [],
-                    "skipped_line_items": [],
-                    "inventory_response": {"ok": True},
-                },
-            ) as mock_process:
-                with patch("app.webhook_worker.mark_order_applied", return_value=True):
-                    with patch(
-                        "app.webhook_worker.set_webhook_event_status"
-                    ) as mock_status:
-                        result = process_webhook_job(REAL_SUCCESS_JOB)
+def _active_merchant_context(*, writes_enabled=True):
+    return MerchantContext(
+        environment="sandbox",
+        merchant_id="ML9M9XX0HM717",
+        status="active",
+        auth_mode="oauth",
+        location_id="location-1",
+        writes_enabled=writes_enabled,
+        binding_version=2,
+        display_name="Default Test Account",
+    )
 
-        mock_process.assert_called_once_with(
-            ["2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY"], apply_changes=True
-        )
+
+@contextmanager
+def _merchant_path(*, merchant_context, binding, write_ready=True, write_blockers=None):
+    """Patch the merchant-scoped resolution functions for process_webhook_job."""
+    with (
+        patch("app.webhook_worker.get_merchant_context", return_value=merchant_context),
+        patch("app.webhook_worker.get_active_catalog_binding", return_value=binding),
+        patch(
+            "app.webhook_worker.get_merchant_write_readiness",
+            return_value={
+                "write_ready": write_ready,
+                "write_blockers": write_blockers or [],
+            },
+        ),
+        patch(
+            "app.webhook_worker.create_square_client_for_merchant",
+            return_value="merchant-client",
+        ),
+    ):
+        yield
+
+
+class WebhookWorkerTests(unittest.TestCase):
+    def test_process_webhook_job_fails_loud_without_merchant_context(self):
+        # A job carrying merchant_id but no environment/location cannot resolve
+        # a merchant context. The worker must fail loud (release the claim, mark
+        # the event failed) rather than write via the environment token.
+        with (
+            patch("app.webhook_worker.claim_order_processing", return_value=True),
+            patch("app.webhook_worker.process_orders") as mock_process,
+            patch(
+                "app.webhook_worker.release_order_processing_claim", return_value=True
+            ) as mock_release,
+            patch("app.webhook_worker.set_webhook_event_status") as mock_status,
+        ):
+            with self.assertRaises(RuntimeError):
+                process_webhook_job(REAL_SUCCESS_JOB)
+
+        mock_process.assert_not_called()
+        mock_release.assert_called_once_with("2bmc3h9wsfHfMfEwBIQm0ZQNO9FZY")
         mock_status.assert_called_once_with(
-            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
+            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "failed"
         )
-        self.assertEqual(result, "applied")
 
     def test_process_webhook_job_marks_blocked_orders_processed(self):
-        with patch("app.webhook_worker.claim_order_processing", return_value=True):
-            with patch(
-                "app.webhook_worker.process_orders",
-                return_value={
-                    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
-                    "skipped_orders": [],
-                    "skipped_line_items": [{"sold_variation_id": "missing"}],
-                    "inventory_response": {
-                        "error": "Refusing to apply inventory changes because one or more line items were skipped during projection."
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+        with _merchant_path(
+            merchant_context=_active_merchant_context(),
+            binding=binding,
+        ):
+            with (
+                patch("app.webhook_worker.claim_order_processing", return_value=True),
+                patch(
+                    "app.webhook_worker.process_orders",
+                    return_value={
+                        "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                        "skipped_orders": [],
+                        "skipped_line_items": [{"sold_variation_id": "missing"}],
+                        "inventory_response": {
+                            "error": "Refusing to apply inventory changes because one or more line items were skipped during projection."
+                        },
                     },
-                },
+                ),
+                patch("app.webhook_worker.mark_order_blocked", return_value=True),
+                patch("app.webhook_worker.set_webhook_event_status") as mock_status,
             ):
-                with patch("app.webhook_worker.mark_order_blocked", return_value=True):
-                    with patch(
-                        "app.webhook_worker.set_webhook_event_status"
-                    ) as mock_status:
-                        result = process_webhook_job(REAL_SUCCESS_JOB)
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_status.assert_called_once_with(
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
@@ -88,21 +123,26 @@ class WebhookWorkerTests(unittest.TestCase):
         self.assertEqual(result, "blocked")
 
     def test_process_webhook_job_returns_failed_for_terminal_failures(self):
-        with patch("app.webhook_worker.claim_order_processing", return_value=True):
-            with patch(
-                "app.webhook_worker.process_orders",
-                return_value={
-                    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
-                    "skipped_orders": [],
-                    "skipped_line_items": [],
-                    "inventory_response": {"error": "Square API error: boom"},
-                },
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+        with _merchant_path(
+            merchant_context=_active_merchant_context(),
+            binding=binding,
+        ):
+            with (
+                patch("app.webhook_worker.claim_order_processing", return_value=True),
+                patch(
+                    "app.webhook_worker.process_orders",
+                    return_value={
+                        "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+                        "skipped_orders": [],
+                        "skipped_line_items": [],
+                        "inventory_response": {"error": "Square API error: boom"},
+                    },
+                ),
+                patch("app.webhook_worker.mark_order_failed", return_value=True),
+                patch("app.webhook_worker.set_webhook_event_status") as mock_status,
             ):
-                with patch("app.webhook_worker.mark_order_failed", return_value=True):
-                    with patch(
-                        "app.webhook_worker.set_webhook_event_status"
-                    ) as mock_status:
-                        result = process_webhook_job(REAL_SUCCESS_JOB)
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
 
         mock_status.assert_called_once_with(
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "failed"
