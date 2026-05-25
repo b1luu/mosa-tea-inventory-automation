@@ -147,3 +147,7 @@ map (9 sugar entries → 5), makes the production mapping a small named table
 rather than an ID-to-ID enumeration where typos hide, and decouples the recipe
 namespace from any single catalog incarnation. It is a maintainability project,
 not a production prerequisite — the current ID-keyed model works.
+
+For the broader plan this fits into — how the per-merchant maps get generated,
+the read/write asymmetry, and the production go-live gate — see
+[Catalog binding & production transition](catalog-binding-and-production-transition.md).
