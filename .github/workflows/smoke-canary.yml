@@ -1,0 +1,94 @@
+name: Smoke Canary
+
+# Manually-triggered end-to-end check against the deployed system. It drives a
+# real Square sandbox order through the live pipeline: create + pay an order,
+# wait for the webhook pipeline to mark it applied (read from DynamoDB), and
+# confirm live inventory counts moved by the projected amount.
+#
+# This is deliberately NOT part of deploy-lambda.yml: every run creates a real
+# order and mutates real inventory, so a human decides when that side effect is
+# worth spending. Safe to run freely while the target is a sandbox merchant;
+# run it deliberately once it points at a real merchant.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Live order scenario to run (see testing/live_order_scenarios.json)"
+        required: true
+        default: tgy_special_100_sugar
+      timeout_seconds:
+        description: "Per-stage timeout in seconds"
+        required: true
+        default: "180"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: smoke-canary
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.14"
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+jobs:
+  canary:
+    name: Live Cloud Canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Validate canary configuration
+        env:
+          SQUARE_ACCESS_TOKEN: ${{ secrets.SQUARE_ACCESS_TOKEN }}
+          DYNAMODB_ORDER_PROCESSING_TABLE: ${{ vars.DYNAMODB_ORDER_PROCESSING_TABLE }}
+          DYNAMODB_WEBHOOK_EVENT_TABLE: ${{ vars.DYNAMODB_WEBHOOK_EVENT_TABLE }}
+        run: |
+          if [ -z "${AWS_REGION}" ] || [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
+            echo "::error::Set AWS_REGION variable and AWS_ROLE_TO_ASSUME secret before running the canary."
+            exit 1
+          fi
+          if [ -z "${SQUARE_ACCESS_TOKEN}" ]; then
+            echo "::error::Set repository secret SQUARE_ACCESS_TOKEN (sandbox token) before running the canary."
+            exit 1
+          fi
+          if [ -z "${DYNAMODB_ORDER_PROCESSING_TABLE}" ] || [ -z "${DYNAMODB_WEBHOOK_EVENT_TABLE}" ]; then
+            echo "::error::Set repository variables DYNAMODB_ORDER_PROCESSING_TABLE and DYNAMODB_WEBHOOK_EVENT_TABLE before running the canary."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+
+      - name: Run live cloud canary
+        env:
+          SQUARE_ACCESS_TOKEN: ${{ secrets.SQUARE_ACCESS_TOKEN }}
+          SQUARE_ENVIRONMENT: sandbox
+          DYNAMODB_ORDER_PROCESSING_TABLE: ${{ vars.DYNAMODB_ORDER_PROCESSING_TABLE }}
+          DYNAMODB_WEBHOOK_EVENT_TABLE: ${{ vars.DYNAMODB_WEBHOOK_EVENT_TABLE }}
+        run: |
+          python -m testing.run_live_cloud_canary \
+            --timeout-seconds "${{ inputs.timeout_seconds }}" \
+            "${{ inputs.scenario }}"
