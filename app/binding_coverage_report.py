@@ -154,8 +154,33 @@ def build_binding_coverage_report(
         binding_version=binding_version,
     )
     active_binding = get_active_catalog_binding(environment, merchant_id, location_id)
-    canonical_targets = get_canonical_binding_targets()
     live_catalog = _load_live_catalog_snapshot(environment, merchant_id)
+
+    return classify_binding_coverage(
+        binding,
+        live_catalog,
+        merchant_context=merchant_context,
+        active_binding=active_binding,
+    )
+
+
+def classify_binding_coverage(
+    binding,
+    live_catalog,
+    *,
+    merchant_context=None,
+    active_binding=None,
+    canonical_targets=None,
+):
+    """Pure coverage classification: no stores, no network.
+
+    Given a binding and a live catalog snapshot, classify blocking issues vs
+    warnings against the canonical recipe targets. Used both by
+    ``build_binding_coverage_report`` (which loads the inputs) and by offline
+    tooling (the binding builder demo) that supplies fixtures directly.
+    """
+    if canonical_targets is None:
+        canonical_targets = get_canonical_binding_targets()
 
     mapping = (binding or {}).get("mapping", {})
     sold_variation_aliases = mapping.get("sold_variation_aliases", {})

@@ -1,7 +1,10 @@
 # Documentation
 
+**★ Active priority:** [Catalog binding & production transition](catalog-binding-and-production-transition.md) — the primary open design area for going from a sandbox-backed deployment to a real production merchant.
+
 - [API Gateway serverless ingress](api-gateway-serverless-ingress.md)
 - [AWS cost analysis](aws-cost-analysis.md)
+- [Catalog binding & production transition](catalog-binding-and-production-transition.md)
 - [Catalog modifier model](catalog-modifier-model.md)
 - [CloudWatch alarm smoke test](cloudwatch-alarm-smoke-test.md)
 - [Dependency management](dependency-management.md)

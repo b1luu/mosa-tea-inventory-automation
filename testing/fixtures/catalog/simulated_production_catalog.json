@@ -1,0 +1,883 @@
+{
+  "modifiers": {
+    "PRODSIM-M-0001": {
+      "id": "PRODSIM-M-0001",
+      "modifier_list_id": "PRODSIM-ML-3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Taiwanese Retro"
+    },
+    "PRODSIM-M-0002": {
+      "id": "PRODSIM-M-0002",
+      "modifier_list_id": "PRODSIM-ML-DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "No Ice "
+    },
+    "PRODSIM-M-0003": {
+      "id": "PRODSIM-M-0003",
+      "modifier_list_id": "PRODSIM-ML-HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Taiwanese Retro"
+    },
+    "PRODSIM-M-0004": {
+      "id": "PRODSIM-M-0004",
+      "modifier_list_id": "PRODSIM-ML-3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Strawberry Matcha"
+    },
+    "PRODSIM-M-0005": {
+      "id": "PRODSIM-M-0005",
+      "modifier_list_id": "PRODSIM-ML-YEBOUJVK2HPJEBPJQDBPDQHP",
+      "name": "Lychee Jelly"
+    },
+    "PRODSIM-M-0006": {
+      "id": "PRODSIM-M-0006",
+      "modifier_list_id": "PRODSIM-ML-RDHKXVEVVRHYR7T5EX6GCUQ2",
+      "name": "Four Seasons Tea"
+    },
+    "PRODSIM-M-0007": {
+      "id": "PRODSIM-M-0007",
+      "modifier_list_id": "PRODSIM-ML-YEBOUJVK2HPJEBPJQDBPDQHP",
+      "name": "Boba"
+    },
+    "PRODSIM-M-0008": {
+      "id": "PRODSIM-M-0008",
+      "modifier_list_id": "PRODSIM-ML-76BWOEA3S4T3VERHORO6MPZ6",
+      "name": "Taiwanese Retro"
+    },
+    "PRODSIM-M-0009": {
+      "id": "PRODSIM-M-0009",
+      "modifier_list_id": "PRODSIM-ML-UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Daily Jelly (Matcha Jelly)"
+    },
+    "PRODSIM-M-0010": {
+      "id": "PRODSIM-M-0010",
+      "modifier_list_id": "PRODSIM-ML-HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Mosa Logo"
+    },
+    "PRODSIM-M-0011": {
+      "id": "PRODSIM-M-0011",
+      "modifier_list_id": "PRODSIM-ML-FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "75% Sugar"
+    },
+    "PRODSIM-M-0012": {
+      "id": "PRODSIM-M-0012",
+      "modifier_list_id": "PRODSIM-ML-HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Strawberry Matcha"
+    },
+    "PRODSIM-M-0013": {
+      "id": "PRODSIM-M-0013",
+      "modifier_list_id": "PRODSIM-ML-HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "75% Sugar"
+    },
+    "PRODSIM-M-0014": {
+      "id": "PRODSIM-M-0014",
+      "modifier_list_id": "PRODSIM-ML-DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "50% Ice"
+    },
+    "PRODSIM-M-0015": {
+      "id": "PRODSIM-M-0015",
+      "modifier_list_id": "PRODSIM-ML-DLVPNSDMUH2USMJ2BC3XA5JR",
+      "name": "Extra Matcha Shot"
+    },
+    "PRODSIM-M-0016": {
+      "id": "PRODSIM-M-0016",
+      "modifier_list_id": "PRODSIM-ML-HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "25% Sugar"
+    },
+    "PRODSIM-M-0017": {
+      "id": "PRODSIM-M-0017",
+      "modifier_list_id": "PRODSIM-ML-3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Mosa Logo"
+    },
+    "PRODSIM-M-0018": {
+      "id": "PRODSIM-M-0018",
+      "modifier_list_id": "PRODSIM-ML-DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "100% Ice"
+    },
+    "PRODSIM-M-0019": {
+      "id": "PRODSIM-M-0019",
+      "modifier_list_id": "PRODSIM-ML-PCB7PO5WYAAIBMAEGJ6665M2",
+      "name": "Brown Sugar Cream Foam"
+    },
+    "PRODSIM-M-0020": {
+      "id": "PRODSIM-M-0020",
+      "modifier_list_id": "PRODSIM-ML-PCB7PO5WYAAIBMAEGJ6665M2",
+      "name": "Pistachio Foam"
+    },
+    "PRODSIM-M-0021": {
+      "id": "PRODSIM-M-0021",
+      "modifier_list_id": "PRODSIM-ML-HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "50% Sugar"
+    },
+    "PRODSIM-M-0022": {
+      "id": "PRODSIM-M-0022",
+      "modifier_list_id": "PRODSIM-ML-UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Brown Sugar H\u00fan-Ku\u00e9 (Tapioca Jelly)"
+    },
+    "PRODSIM-M-0023": {
+      "id": "PRODSIM-M-0023",
+      "modifier_list_id": "PRODSIM-ML-HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Mosa Cabinet"
+    },
+    "PRODSIM-M-0024": {
+      "id": "PRODSIM-M-0024",
+      "modifier_list_id": "PRODSIM-ML-FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "No Sugar"
+    },
+    "PRODSIM-M-0025": {
+      "id": "PRODSIM-M-0025",
+      "modifier_list_id": "PRODSIM-ML-76BWOEA3S4T3VERHORO6MPZ6",
+      "name": "Strawberry Matcha"
+    },
+    "PRODSIM-M-0026": {
+      "id": "PRODSIM-M-0026",
+      "modifier_list_id": "PRODSIM-ML-2SAMXNURGN2INFWSS223ONEF",
+      "name": "Genmai"
+    },
+    "PRODSIM-M-0027": {
+      "id": "PRODSIM-M-0027",
+      "modifier_list_id": "PRODSIM-ML-UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Lychee Jelly"
+    },
+    "PRODSIM-M-0028": {
+      "id": "PRODSIM-M-0028",
+      "modifier_list_id": "PRODSIM-ML-FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "50% Sugar"
+    },
+    "PRODSIM-M-0029": {
+      "id": "PRODSIM-M-0029",
+      "modifier_list_id": "PRODSIM-ML-UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Tie Guan Yin Oolong Jelly"
+    },
+    "PRODSIM-M-0030": {
+      "id": "PRODSIM-M-0030",
+      "modifier_list_id": "PRODSIM-ML-HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "100% Sugar"
+    },
+    "PRODSIM-M-0031": {
+      "id": "PRODSIM-M-0031",
+      "modifier_list_id": "PRODSIM-ML-AOWZGBX3SKYIVKWTCD6CIKFD",
+      "name": "Sub w/ Oat Milk"
+    },
+    "PRODSIM-M-0032": {
+      "id": "PRODSIM-M-0032",
+      "modifier_list_id": "PRODSIM-ML-HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Jelly BFFs"
+    },
+    "PRODSIM-M-0033": {
+      "id": "PRODSIM-M-0033",
+      "modifier_list_id": "PRODSIM-ML-FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "25% Sugar"
+    },
+    "PRODSIM-M-0034": {
+      "id": "PRODSIM-M-0034",
+      "modifier_list_id": "PRODSIM-ML-DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "25% Ice"
+    },
+    "PRODSIM-M-0035": {
+      "id": "PRODSIM-M-0035",
+      "modifier_list_id": "PRODSIM-ML-3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Jelly BFFs"
+    },
+    "PRODSIM-M-0036": {
+      "id": "PRODSIM-M-0036",
+      "modifier_list_id": "PRODSIM-ML-DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "75% Ice"
+    },
+    "PRODSIM-M-0037": {
+      "id": "PRODSIM-M-0037",
+      "modifier_list_id": "PRODSIM-ML-3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Mosa Cabinet"
+    },
+    "PRODSIM-M-0038": {
+      "id": "PRODSIM-M-0038",
+      "modifier_list_id": "PRODSIM-ML-UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Boba"
+    },
+    "PRODSIM-M-0039": {
+      "id": "PRODSIM-M-0039",
+      "modifier_list_id": "PRODSIM-ML-FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "100% Sugar"
+    },
+    "PRODSIM-M-0040": {
+      "id": "PRODSIM-M-0040",
+      "modifier_list_id": "PRODSIM-ML-2SAMXNURGN2INFWSS223ONEF",
+      "name": "Jasmine Green Tea & Genmai"
+    },
+    "PRODSIM-M-0041": {
+      "id": "PRODSIM-M-0041",
+      "modifier_list_id": "PRODSIM-ML-RDHKXVEVVRHYR7T5EX6GCUQ2",
+      "name": "Jasmine Green Tea"
+    }
+  },
+  "variations": {
+    "PRODSIM-V-0001": {
+      "id": "PRODSIM-V-0001",
+      "item_name": "Hot Tie Guan Yin Milk Tea with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0002": {
+      "id": "PRODSIM-V-0002",
+      "item_name": "Signature Black Tea \u719f\u6210\u7d05\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0003": {
+      "id": "PRODSIM-V-0003",
+      "item_name": "Hot Genmai Jasmine Green Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0004": {
+      "id": "PRODSIM-V-0004",
+      "item_name": "Strawberry Matcha Latte \u8349\u8393\u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0005": {
+      "id": "PRODSIM-V-0005",
+      "item_name": "Hot Four Seasons Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0006": {
+      "id": "PRODSIM-V-0006",
+      "item_name": "Sample Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0007": {
+      "id": "PRODSIM-V-0007",
+      "item_name": "4S",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0008": {
+      "id": "PRODSIM-V-0008",
+      "item_name": "Milk",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0009": {
+      "id": "PRODSIM-V-0009",
+      "item_name": "Pistachio",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0010": {
+      "id": "PRODSIM-V-0010",
+      "item_name": "Tie Guan Yin Oolong Tea with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0011": {
+      "id": "PRODSIM-V-0011",
+      "item_name": "Tie Guan Yin Milk Tea with Osmanthus Honey \u6842\u82b1\u871c\u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0012": {
+      "id": "PRODSIM-V-0012",
+      "item_name": "Tie Guan Yin Oolong Tea \u9435\u89c0\u97f3\u70cf\u9f8d\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0013": {
+      "id": "PRODSIM-V-0013",
+      "item_name": "Frozen Mango",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0014": {
+      "id": "PRODSIM-V-0014",
+      "item_name": "Fresh Fruit Tea \u65b0\u9bae\u6c34\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0015": {
+      "id": "PRODSIM-V-0015",
+      "item_name": "Grapefruit Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0016": {
+      "id": "PRODSIM-V-0016",
+      "item_name": "Orange Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0017": {
+      "id": "PRODSIM-V-0017",
+      "item_name": "Matcha (Jelly)",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0018": {
+      "id": "PRODSIM-V-0018",
+      "item_name": "Roasted Buckwheat Barley Tea \u854e\u9ea5\u9ea5\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0019": {
+      "id": "PRODSIM-V-0019",
+      "item_name": "Hot Genmai Jasmine Green Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0020": {
+      "id": "PRODSIM-V-0020",
+      "item_name": "Small Straw",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0021": {
+      "id": "PRODSIM-V-0021",
+      "item_name": "Signature Black Milk Tea \u719f\u6210\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0022": {
+      "id": "PRODSIM-V-0022",
+      "item_name": "Non-Dairy Creamer",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0023": {
+      "id": "PRODSIM-V-0023",
+      "item_name": "TGY Special \u7c89\u7cbf\u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0024": {
+      "id": "PRODSIM-V-0024",
+      "item_name": "Tie Guan Yin Milk Tea \u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0025": {
+      "id": "PRODSIM-V-0025",
+      "item_name": "Grapefruit Can",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0026": {
+      "id": "PRODSIM-V-0026",
+      "item_name": "Boba",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0027": {
+      "id": "PRODSIM-V-0027",
+      "item_name": "Mango Matcha Latte \u8292\u679c\u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0028": {
+      "id": "PRODSIM-V-0028",
+      "item_name": "TGY",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "600 g bags"
+    },
+    "PRODSIM-V-0029": {
+      "id": "PRODSIM-V-0029",
+      "item_name": "Frozen Strawberry",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0030": {
+      "id": "PRODSIM-V-0030",
+      "item_name": "Hot Genmai Jasmine Green Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0031": {
+      "id": "PRODSIM-V-0031",
+      "item_name": "Matcha Latte \u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0032": {
+      "id": "PRODSIM-V-0032",
+      "item_name": "Cold Cup Lid",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0033": {
+      "id": "PRODSIM-V-0033",
+      "item_name": "Buckwheat",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0034": {
+      "id": "PRODSIM-V-0034",
+      "item_name": "Hot Spice Apple Tea Cider \u71b1\u860b\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0035": {
+      "id": "PRODSIM-V-0035",
+      "item_name": "Fresh Apple Tea \u9bae\u860b\u679c\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0036": {
+      "id": "PRODSIM-V-0036",
+      "item_name": "Roasted Buckwheat Barley Au Lait \u854e\u9ea5\u9ea5\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0037": {
+      "id": "PRODSIM-V-0037",
+      "item_name": "Hot Tie Guan Yin Au Lait with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0038": {
+      "id": "PRODSIM-V-0038",
+      "item_name": "Genmai",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0039": {
+      "id": "PRODSIM-V-0039",
+      "item_name": "Mango Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0040": {
+      "id": "PRODSIM-V-0040",
+      "item_name": "Pistachio Mist \u958b\u5fc3\u96f2\u6735",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0041": {
+      "id": "PRODSIM-V-0041",
+      "item_name": "Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0042": {
+      "id": "PRODSIM-V-0042",
+      "item_name": "Hot Roasted Buckwheat Barley Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0043": {
+      "id": "PRODSIM-V-0043",
+      "item_name": "Fresh Lemon Tea \u9bae\u6ab8\u6aac\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0044": {
+      "id": "PRODSIM-V-0044",
+      "item_name": "Fresh Grapefruit Tea \u9bae\u8461\u8404\u67da\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0045": {
+      "id": "PRODSIM-V-0045",
+      "item_name": "Hot Lid",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0046": {
+      "id": "PRODSIM-V-0046",
+      "item_name": "Hot Four Seasons Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0047": {
+      "id": "PRODSIM-V-0047",
+      "item_name": "Apple Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0048": {
+      "id": "PRODSIM-V-0048",
+      "item_name": "Grapefruit Bloom \u67da\u9999\u56db\u5b63",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0049": {
+      "id": "PRODSIM-V-0049",
+      "item_name": "Hot Matcha Latte",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0050": {
+      "id": "PRODSIM-V-0050",
+      "item_name": "Hot Tie Guan Yin Oolong Tea with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0051": {
+      "id": "PRODSIM-V-0051",
+      "item_name": "Hot Four Seasons Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0052": {
+      "id": "PRODSIM-V-0052",
+      "item_name": "Fresh Orange Tea \u9bae\u67f3\u6a59\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0053": {
+      "id": "PRODSIM-V-0053",
+      "item_name": "Hot Signature Black Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0054": {
+      "id": "PRODSIM-V-0054",
+      "item_name": "Genmai Jasmine Green Milk Tea \u7384\u7c73\u7da0\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0055": {
+      "id": "PRODSIM-V-0055",
+      "item_name": "Big Straw",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0056": {
+      "id": "PRODSIM-V-0056",
+      "item_name": "Matcha",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0057": {
+      "id": "PRODSIM-V-0057",
+      "item_name": "Brown Sugar Mist \u9ed1\u7cd6\u96f2\u6735",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0058": {
+      "id": "PRODSIM-V-0058",
+      "item_name": "Free Drink (100\u263c Reward)",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0059": {
+      "id": "PRODSIM-V-0059",
+      "item_name": "Signature Black Au Lait \u719f\u6210\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0060": {
+      "id": "PRODSIM-V-0060",
+      "item_name": "Cream Foam Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0061": {
+      "id": "PRODSIM-V-0061",
+      "item_name": "Hot Tie Guan Yin Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0062": {
+      "id": "PRODSIM-V-0062",
+      "item_name": "Heavy Cream",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0063": {
+      "id": "PRODSIM-V-0063",
+      "item_name": "Four Seasons Au Lait \u56db\u5b63\u9752\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0064": {
+      "id": "PRODSIM-V-0064",
+      "item_name": "Fresh Strawberry Tea \u9bae\u8349\u8393\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0065": {
+      "id": "PRODSIM-V-0065",
+      "item_name": "Hot Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0066": {
+      "id": "PRODSIM-V-0066",
+      "item_name": "U600 Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0067": {
+      "id": "PRODSIM-V-0067",
+      "item_name": "Lychee Jelly",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0068": {
+      "id": "PRODSIM-V-0068",
+      "item_name": "Genmai Matcha with Matcha Jelly \u62b9\u8336\u51cd\u7384\u7c73\u62b9\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0069": {
+      "id": "PRODSIM-V-0069",
+      "item_name": "Genmai Jasmine Green Tea \u7384\u7c73\u7da0\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0070": {
+      "id": "PRODSIM-V-0070",
+      "item_name": "Lemon Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0071": {
+      "id": "PRODSIM-V-0071",
+      "item_name": "Hot Tie Guan Yin Oolong Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0072": {
+      "id": "PRODSIM-V-0072",
+      "item_name": "Hot Tie Guan Yin Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0073": {
+      "id": "PRODSIM-V-0073",
+      "item_name": "Roasted Buckwheat Barley Milk Tea \u854e\u9ea5\u9ea5\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0074": {
+      "id": "PRODSIM-V-0074",
+      "item_name": "Four Seasons Milk Tea \u56db\u5b63\u9752\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0075": {
+      "id": "PRODSIM-V-0075",
+      "item_name": "Black Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0076": {
+      "id": "PRODSIM-V-0076",
+      "item_name": "HK Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0077": {
+      "id": "PRODSIM-V-0077",
+      "item_name": "Genmai Jasmine Green Au Lait \u7384\u7c73\u7da0\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0078": {
+      "id": "PRODSIM-V-0078",
+      "item_name": "Roasted Buckwheat Four Seasons Tea \u854e\u9ea5\u9752\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0079": {
+      "id": "PRODSIM-V-0079",
+      "item_name": "Hot Roasted Buckwheat Barley Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0080": {
+      "id": "PRODSIM-V-0080",
+      "item_name": "TJ Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0081": {
+      "id": "PRODSIM-V-0081",
+      "item_name": "Four Seasons Tea \u56db\u5b63\u9752\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0082": {
+      "id": "PRODSIM-V-0082",
+      "item_name": "Hot Roasted Buckwheat Barley Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0083": {
+      "id": "PRODSIM-V-0083",
+      "item_name": "Hot Signature Black Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0084": {
+      "id": "PRODSIM-V-0084",
+      "item_name": "Powdered Sugar",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0085": {
+      "id": "PRODSIM-V-0085",
+      "item_name": "Green Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0086": {
+      "id": "PRODSIM-V-0086",
+      "item_name": "Sugar Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0087": {
+      "id": "PRODSIM-V-0087",
+      "item_name": "Hot Signature Black Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0088": {
+      "id": "PRODSIM-V-0088",
+      "item_name": "Tie Guan Yin Au Lait with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0089": {
+      "id": "PRODSIM-V-0089",
+      "item_name": "Brown Sugar",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0090": {
+      "id": "PRODSIM-V-0090",
+      "item_name": "Taiwanese Retro \u81fa\u7063\u73cd\u73e0\u9bae\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0091": {
+      "id": "PRODSIM-V-0091",
+      "item_name": "Strawberry Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0092": {
+      "id": "PRODSIM-V-0092",
+      "item_name": "Tie Guan Yin Au Lait \u9435\u89c0\u97f3\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0093": {
+      "id": "PRODSIM-V-0093",
+      "item_name": "Hot Spice Mango Tea Cider \u71b1\u8292\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-0094": {
+      "id": "PRODSIM-V-0094",
+      "item_name": "Barley",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PRODSIM-V-0095": {
+      "id": "PRODSIM-V-0095",
+      "item_name": "Fresh Mango Tea \u9bae\u8292\u679c\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "PRODSIM-V-EXTRA-GIFTCARD": {
+      "id": "PRODSIM-V-EXTRA-GIFTCARD",
+      "item_name": "Mosa Gift Card",
+      "sellable": true,
+      "stockable": false,
+      "variation_name": "$25"
+    }
+  }
+}

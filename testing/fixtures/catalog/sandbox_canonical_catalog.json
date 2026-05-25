@@ -1,0 +1,876 @@
+{
+  "modifiers": {
+    "2REM2XYZQL46VQD44RG2PGJ6": {
+      "id": "2REM2XYZQL46VQD44RG2PGJ6",
+      "modifier_list_id": "3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Taiwanese Retro"
+    },
+    "2Y4IC74WRQACJUDYZM4OJHYW": {
+      "id": "2Y4IC74WRQACJUDYZM4OJHYW",
+      "modifier_list_id": "DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "No Ice "
+    },
+    "4UVGI2WN6FMM62IOFSXAZ5LV": {
+      "id": "4UVGI2WN6FMM62IOFSXAZ5LV",
+      "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Taiwanese Retro"
+    },
+    "57T5H5L2ZR23FD2ZQDSFIEAZ": {
+      "id": "57T5H5L2ZR23FD2ZQDSFIEAZ",
+      "modifier_list_id": "3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Strawberry Matcha"
+    },
+    "6UYQEPDUVWLZEMR5HZHR73TY": {
+      "id": "6UYQEPDUVWLZEMR5HZHR73TY",
+      "modifier_list_id": "YEBOUJVK2HPJEBPJQDBPDQHP",
+      "name": "Lychee Jelly"
+    },
+    "76GJNMZXVLFOXRDRE23MR3FF": {
+      "id": "76GJNMZXVLFOXRDRE23MR3FF",
+      "modifier_list_id": "RDHKXVEVVRHYR7T5EX6GCUQ2",
+      "name": "Four Seasons Tea"
+    },
+    "7W5K26H2FYRHGEBDODC3V65X": {
+      "id": "7W5K26H2FYRHGEBDODC3V65X",
+      "modifier_list_id": "YEBOUJVK2HPJEBPJQDBPDQHP",
+      "name": "Boba"
+    },
+    "AACCTGPGSHDGB26IQLFPUHBC": {
+      "id": "AACCTGPGSHDGB26IQLFPUHBC",
+      "modifier_list_id": "76BWOEA3S4T3VERHORO6MPZ6",
+      "name": "Taiwanese Retro"
+    },
+    "AB2HPG7C7F2V3DXPPXCEBNH4": {
+      "id": "AB2HPG7C7F2V3DXPPXCEBNH4",
+      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Daily Jelly (Matcha Jelly)"
+    },
+    "AO67JKYVROAETRWYO3YE3RIQ": {
+      "id": "AO67JKYVROAETRWYO3YE3RIQ",
+      "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Mosa Logo"
+    },
+    "AZ6D2FGNSWBWCKPPG7FVBRWZ": {
+      "id": "AZ6D2FGNSWBWCKPPG7FVBRWZ",
+      "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "75% Sugar"
+    },
+    "BDALS44S4NSYQOERHMLH4CPR": {
+      "id": "BDALS44S4NSYQOERHMLH4CPR",
+      "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Strawberry Matcha"
+    },
+    "BHWIDHGY2Z5HBG4AQCQE3RH3": {
+      "id": "BHWIDHGY2Z5HBG4AQCQE3RH3",
+      "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "75% Sugar"
+    },
+    "CZCF5SW63ETKSK42IH6BXMNW": {
+      "id": "CZCF5SW63ETKSK42IH6BXMNW",
+      "modifier_list_id": "DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "50% Ice"
+    },
+    "D2VNC2NUKRJ7JPRXTDQ7HTIZ": {
+      "id": "D2VNC2NUKRJ7JPRXTDQ7HTIZ",
+      "modifier_list_id": "DLVPNSDMUH2USMJ2BC3XA5JR",
+      "name": "Extra Matcha Shot"
+    },
+    "EHC2F422OXEQBMVP5AF3ABWW": {
+      "id": "EHC2F422OXEQBMVP5AF3ABWW",
+      "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "25% Sugar"
+    },
+    "EPWDLUWTPMWH64CTRFKFHNRQ": {
+      "id": "EPWDLUWTPMWH64CTRFKFHNRQ",
+      "modifier_list_id": "3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Mosa Logo"
+    },
+    "FIXCEMIHYCT5PJRJ7M4OIVKB": {
+      "id": "FIXCEMIHYCT5PJRJ7M4OIVKB",
+      "modifier_list_id": "DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "100% Ice"
+    },
+    "G2IKLVV2HGABCPEHQNAEUHQZ": {
+      "id": "G2IKLVV2HGABCPEHQNAEUHQZ",
+      "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
+      "name": "Brown Sugar Cream Foam"
+    },
+    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
+      "id": "G56XRZ7WHJ7XMA6OOXDCIEWW",
+      "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
+      "name": "Pistachio Foam"
+    },
+    "HBLOG26AKQNVOTYJJT3YFAMR": {
+      "id": "HBLOG26AKQNVOTYJJT3YFAMR",
+      "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "50% Sugar"
+    },
+    "HD5IAR2GT4I4G4L64CQ7LJ6H": {
+      "id": "HD5IAR2GT4I4G4L64CQ7LJ6H",
+      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Brown Sugar H\u00fan-Ku\u00e9 (Tapioca Jelly)"
+    },
+    "HTY6R66P7Q2UE4XFYS4L6QM4": {
+      "id": "HTY6R66P7Q2UE4XFYS4L6QM4",
+      "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Mosa Cabinet"
+    },
+    "IDFKCCIPYGFA67OPJMJ3SQVO": {
+      "id": "IDFKCCIPYGFA67OPJMJ3SQVO",
+      "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "No Sugar"
+    },
+    "IE2JTFE7Z4GUSO4MTYOTWRNV": {
+      "id": "IE2JTFE7Z4GUSO4MTYOTWRNV",
+      "modifier_list_id": "76BWOEA3S4T3VERHORO6MPZ6",
+      "name": "Strawberry Matcha"
+    },
+    "IQSH74JXSLK2GGAUH4HQVP4X": {
+      "id": "IQSH74JXSLK2GGAUH4HQVP4X",
+      "modifier_list_id": "2SAMXNURGN2INFWSS223ONEF",
+      "name": "Genmai"
+    },
+    "LVFSXC7PNLAZAFNKBRXUSOI7": {
+      "id": "LVFSXC7PNLAZAFNKBRXUSOI7",
+      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Lychee Jelly"
+    },
+    "M3GNVPQ44FH575OGMUPSPLDD": {
+      "id": "M3GNVPQ44FH575OGMUPSPLDD",
+      "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "50% Sugar"
+    },
+    "MEAKOBKUZMU6PVM3OVPDYMJ2": {
+      "id": "MEAKOBKUZMU6PVM3OVPDYMJ2",
+      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Tie Guan Yin Oolong Jelly"
+    },
+    "MSBCTUUEB2HSJ6JIAZ6PWX44": {
+      "id": "MSBCTUUEB2HSJ6JIAZ6PWX44",
+      "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
+      "name": "100% Sugar"
+    },
+    "NASUMFZKO4P5GWA5YZNGENJ3": {
+      "id": "NASUMFZKO4P5GWA5YZNGENJ3",
+      "modifier_list_id": "AOWZGBX3SKYIVKWTCD6CIKFD",
+      "name": "Sub w/ Oat Milk"
+    },
+    "NT2VVEYUY7JKB2OZH7K7XUEQ": {
+      "id": "NT2VVEYUY7JKB2OZH7K7XUEQ",
+      "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
+      "name": "Jelly BFFs"
+    },
+    "NVT23ZGHPCB32GHQB5JL5VUU": {
+      "id": "NVT23ZGHPCB32GHQB5JL5VUU",
+      "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "25% Sugar"
+    },
+    "PCN6JQYXSABQIRJJDWGWA45Z": {
+      "id": "PCN6JQYXSABQIRJJDWGWA45Z",
+      "modifier_list_id": "DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "25% Ice"
+    },
+    "PJO6SBI5Q33G45BIRPOIAIKL": {
+      "id": "PJO6SBI5Q33G45BIRPOIAIKL",
+      "modifier_list_id": "3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Jelly BFFs"
+    },
+    "REQNMSVQN5KGZM7FT5NO3F4R": {
+      "id": "REQNMSVQN5KGZM7FT5NO3F4R",
+      "modifier_list_id": "DTREF4EIBWHLSSFZ5UMFORUL",
+      "name": "75% Ice"
+    },
+    "RJX2EOLCMLOVQ4P63JYNFEY2": {
+      "id": "RJX2EOLCMLOVQ4P63JYNFEY2",
+      "modifier_list_id": "3BGJWSWIU2YYXSNPQVPDAXQ2",
+      "name": "Mosa Cabinet"
+    },
+    "UIFT45SSDNEZBUDPKFGF6VES": {
+      "id": "UIFT45SSDNEZBUDPKFGF6VES",
+      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
+      "name": "Boba"
+    },
+    "VEDNAO6LH5WQET6TQTJGSPOB": {
+      "id": "VEDNAO6LH5WQET6TQTJGSPOB",
+      "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
+      "name": "100% Sugar"
+    },
+    "VP6AQIBJJOMA5KNBGKJTAHNU": {
+      "id": "VP6AQIBJJOMA5KNBGKJTAHNU",
+      "modifier_list_id": "2SAMXNURGN2INFWSS223ONEF",
+      "name": "Jasmine Green Tea & Genmai"
+    },
+    "Z3ZW4GLVWIAMBC4XI447XH2V": {
+      "id": "Z3ZW4GLVWIAMBC4XI447XH2V",
+      "modifier_list_id": "RDHKXVEVVRHYR7T5EX6GCUQ2",
+      "name": "Jasmine Green Tea"
+    }
+  },
+  "variations": {
+    "2FARBPJVB7OGMWUFLJUO63QJ": {
+      "id": "2FARBPJVB7OGMWUFLJUO63QJ",
+      "item_name": "Hot Tie Guan Yin Milk Tea with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "2GVQJKC2SVP7ALXQ4EXODBJJ": {
+      "id": "2GVQJKC2SVP7ALXQ4EXODBJJ",
+      "item_name": "Signature Black Tea \u719f\u6210\u7d05\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "2NHO2FXDWTJSZIGU5ZCXTS6T": {
+      "id": "2NHO2FXDWTJSZIGU5ZCXTS6T",
+      "item_name": "Hot Genmai Jasmine Green Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "3CIY22QYNOUQSCFPS6OEV77W": {
+      "id": "3CIY22QYNOUQSCFPS6OEV77W",
+      "item_name": "Strawberry Matcha Latte \u8349\u8393\u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "3IUNOTOZ23VKQF3CT3FZGQJO": {
+      "id": "3IUNOTOZ23VKQF3CT3FZGQJO",
+      "item_name": "Hot Four Seasons Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "3LKL6XU2LY2VBIKQT63XTJ4O": {
+      "id": "3LKL6XU2LY2VBIKQT63XTJ4O",
+      "item_name": "Sample Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "45IPVSWXHIMM3P535VAEPQFM": {
+      "id": "45IPVSWXHIMM3P535VAEPQFM",
+      "item_name": "4S",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "4CLJVUZQCIVAEU4F7APU6QGX": {
+      "id": "4CLJVUZQCIVAEU4F7APU6QGX",
+      "item_name": "Milk",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "4F4NTG7FT3L2DJLRYGBGLPR6": {
+      "id": "4F4NTG7FT3L2DJLRYGBGLPR6",
+      "item_name": "Pistachio",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "4PPGTR4WKW5LI2Q5VL2RWG62": {
+      "id": "4PPGTR4WKW5LI2Q5VL2RWG62",
+      "item_name": "Tie Guan Yin Oolong Tea with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "5QYGSH5A7D3EOYGTBZMVEC7D": {
+      "id": "5QYGSH5A7D3EOYGTBZMVEC7D",
+      "item_name": "Tie Guan Yin Milk Tea with Osmanthus Honey \u6842\u82b1\u871c\u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "72KIPS2KHWEK6RAT452MAB2P": {
+      "id": "72KIPS2KHWEK6RAT452MAB2P",
+      "item_name": "Tie Guan Yin Oolong Tea \u9435\u89c0\u97f3\u70cf\u9f8d\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "752YPSPEVSL34NNXAE5SIKER": {
+      "id": "752YPSPEVSL34NNXAE5SIKER",
+      "item_name": "Frozen Mango",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "75VND7AVP4WBXIAK5D3OYG6C": {
+      "id": "75VND7AVP4WBXIAK5D3OYG6C",
+      "item_name": "Fresh Fruit Tea \u65b0\u9bae\u6c34\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "77MOU7MAIMPY3LNKTQXIAQDD": {
+      "id": "77MOU7MAIMPY3LNKTQXIAQDD",
+      "item_name": "Grapefruit Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "7O5OG45AB2XVFCKJCS4L5CN2": {
+      "id": "7O5OG45AB2XVFCKJCS4L5CN2",
+      "item_name": "Orange Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "7QZVOBCT7X3NFO5AP2OTQWRC": {
+      "id": "7QZVOBCT7X3NFO5AP2OTQWRC",
+      "item_name": "Matcha (Jelly)",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "7TBAWV3PPUHTQQ75HKMSZQZR": {
+      "id": "7TBAWV3PPUHTQQ75HKMSZQZR",
+      "item_name": "Roasted Buckwheat Barley Tea \u854e\u9ea5\u9ea5\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "7VVQ526562N3Z3GTKROKFNFI": {
+      "id": "7VVQ526562N3Z3GTKROKFNFI",
+      "item_name": "Hot Genmai Jasmine Green Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "A2I2PSB3FMDPJXCUPVITQSMJ": {
+      "id": "A2I2PSB3FMDPJXCUPVITQSMJ",
+      "item_name": "Small Straw",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "AQCPLG5NND3HT5SE3NLHNVXD": {
+      "id": "AQCPLG5NND3HT5SE3NLHNVXD",
+      "item_name": "Signature Black Milk Tea \u719f\u6210\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "AYC7DO3IZ6CGZ4OENAIAIBIJ": {
+      "id": "AYC7DO3IZ6CGZ4OENAIAIBIJ",
+      "item_name": "Non-Dairy Creamer",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "B526AZ22TDNVJGUAE4HRXJKS": {
+      "id": "B526AZ22TDNVJGUAE4HRXJKS",
+      "item_name": "TGY Special \u7c89\u7cbf\u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "BU4ESSWPHPWD5HVHDJAAXNHT": {
+      "id": "BU4ESSWPHPWD5HVHDJAAXNHT",
+      "item_name": "Tie Guan Yin Milk Tea \u9435\u89c0\u97f3\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "CCT3GW7IDLHS43WAWK6TPION": {
+      "id": "CCT3GW7IDLHS43WAWK6TPION",
+      "item_name": "Grapefruit Can",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "CVTORPM7SO6H5BLFDROJ5DLA": {
+      "id": "CVTORPM7SO6H5BLFDROJ5DLA",
+      "item_name": "Boba",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "CYCWISFBGJBMVQJT327EKXKA": {
+      "id": "CYCWISFBGJBMVQJT327EKXKA",
+      "item_name": "Mango Matcha Latte \u8292\u679c\u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "DFSCYEJEFN4PTIKTE4YVJWLH": {
+      "id": "DFSCYEJEFN4PTIKTE4YVJWLH",
+      "item_name": "TGY",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "600 g bags"
+    },
+    "DFTD6J7NHATN6QAPBTDOIL3Z": {
+      "id": "DFTD6J7NHATN6QAPBTDOIL3Z",
+      "item_name": "Frozen Strawberry",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "DSU5CV4X365YAPIZTLCKJ5TH": {
+      "id": "DSU5CV4X365YAPIZTLCKJ5TH",
+      "item_name": "Hot Genmai Jasmine Green Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "DX2LRA7T4EFSSFH6POETDJHY": {
+      "id": "DX2LRA7T4EFSSFH6POETDJHY",
+      "item_name": "Matcha Latte \u62b9\u8336\u62ff\u9435",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "E6LDP3TADQ6X2NM7YAT4PMXR": {
+      "id": "E6LDP3TADQ6X2NM7YAT4PMXR",
+      "item_name": "Cold Cup Lid",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "E6TQACDI2C2DJZLEN4TYFDXV": {
+      "id": "E6TQACDI2C2DJZLEN4TYFDXV",
+      "item_name": "Buckwheat",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "EJJASVYVTOW2RW42KNIANNZO": {
+      "id": "EJJASVYVTOW2RW42KNIANNZO",
+      "item_name": "Hot Spice Apple Tea Cider \u71b1\u860b\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "EN2VSTOAJGNMPKU5LMXF3MR6": {
+      "id": "EN2VSTOAJGNMPKU5LMXF3MR6",
+      "item_name": "Fresh Apple Tea \u9bae\u860b\u679c\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "EN3MUM4GFV7IMYIUH2QMIUSM": {
+      "id": "EN3MUM4GFV7IMYIUH2QMIUSM",
+      "item_name": "Roasted Buckwheat Barley Au Lait \u854e\u9ea5\u9ea5\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "EZ77LLZT4T3W6JMWFPZKRNPS": {
+      "id": "EZ77LLZT4T3W6JMWFPZKRNPS",
+      "item_name": "Hot Tie Guan Yin Au Lait with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "FG6AKC4JPSHJ2AOR3FULQOQM": {
+      "id": "FG6AKC4JPSHJ2AOR3FULQOQM",
+      "item_name": "Genmai",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "FGTVUOCNF3UAQX26H56JM5U6": {
+      "id": "FGTVUOCNF3UAQX26H56JM5U6",
+      "item_name": "Mango Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "FYZX4EUOH6P37MKZ6TZNYW3I": {
+      "id": "FYZX4EUOH6P37MKZ6TZNYW3I",
+      "item_name": "Pistachio Mist \u958b\u5fc3\u96f2\u6735",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "G2ECIVTMKE4Z5TTM35Y4EQDV": {
+      "id": "G2ECIVTMKE4Z5TTM35Y4EQDV",
+      "item_name": "Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "GBS2JYH7YIFDVMWL4CVS3MFF": {
+      "id": "GBS2JYH7YIFDVMWL4CVS3MFF",
+      "item_name": "Hot Roasted Buckwheat Barley Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "GL4SND76TJYPY6RBUU32N4HF": {
+      "id": "GL4SND76TJYPY6RBUU32N4HF",
+      "item_name": "Fresh Lemon Tea \u9bae\u6ab8\u6aac\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "GWLUEE5JMJLJITJRR42G6GHV": {
+      "id": "GWLUEE5JMJLJITJRR42G6GHV",
+      "item_name": "Fresh Grapefruit Tea \u9bae\u8461\u8404\u67da\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "HMSFQIGMVWI4VOMTKRPM4FRK": {
+      "id": "HMSFQIGMVWI4VOMTKRPM4FRK",
+      "item_name": "Hot Lid",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "HWDEB3422IYXRP4WV47TY7IF": {
+      "id": "HWDEB3422IYXRP4WV47TY7IF",
+      "item_name": "Hot Four Seasons Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "IJ7TLOH6IHI6KNTWDCJUOMOU": {
+      "id": "IJ7TLOH6IHI6KNTWDCJUOMOU",
+      "item_name": "Apple Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "IPAOWQYVBTMVYEWOQQAYXI7J": {
+      "id": "IPAOWQYVBTMVYEWOQQAYXI7J",
+      "item_name": "Grapefruit Bloom \u67da\u9999\u56db\u5b63",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "J23B26YNDV2WAAJIKDXKD3YR": {
+      "id": "J23B26YNDV2WAAJIKDXKD3YR",
+      "item_name": "Hot Matcha Latte",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "JNMEIPGCJLSLJVD7BNPZWE7R": {
+      "id": "JNMEIPGCJLSLJVD7BNPZWE7R",
+      "item_name": "Hot Tie Guan Yin Oolong Tea with Osmanthus Honey",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "KBA6LSBZUFPV3O2QP2LD7FPI": {
+      "id": "KBA6LSBZUFPV3O2QP2LD7FPI",
+      "item_name": "Hot Four Seasons Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "KESNSNPZO3QYTJHW4STNDJNR": {
+      "id": "KESNSNPZO3QYTJHW4STNDJNR",
+      "item_name": "Fresh Orange Tea \u9bae\u67f3\u6a59\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "LVX3VUS2O4XOP6WR63VTO2WK": {
+      "id": "LVX3VUS2O4XOP6WR63VTO2WK",
+      "item_name": "Hot Signature Black Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "MFEUN6CYRHERVYYWV7H7WWVZ": {
+      "id": "MFEUN6CYRHERVYYWV7H7WWVZ",
+      "item_name": "Genmai Jasmine Green Milk Tea \u7384\u7c73\u7da0\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "NJZAOW4UF4CL5KRZBE32JHGH": {
+      "id": "NJZAOW4UF4CL5KRZBE32JHGH",
+      "item_name": "Big Straw",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "NQ3U5ZT6VS5UGCI7MQ6SVWQK": {
+      "id": "NQ3U5ZT6VS5UGCI7MQ6SVWQK",
+      "item_name": "Matcha",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "NRVPY6OAHI42VTZEMYHTDQ4N": {
+      "id": "NRVPY6OAHI42VTZEMYHTDQ4N",
+      "item_name": "Brown Sugar Mist \u9ed1\u7cd6\u96f2\u6735",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "NWWYPDJQNXMVE2KZANH3ZYDZ": {
+      "id": "NWWYPDJQNXMVE2KZANH3ZYDZ",
+      "item_name": "Free Drink (100\u263c Reward)",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "OVRXSRTC3OETYH5GZOAN4UKH": {
+      "id": "OVRXSRTC3OETYH5GZOAN4UKH",
+      "item_name": "Signature Black Au Lait \u719f\u6210\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "P3FGGHWQM6F42GIPQSY5TBB2": {
+      "id": "P3FGGHWQM6F42GIPQSY5TBB2",
+      "item_name": "Cream Foam Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PF3JSGPSK2QSRWPDSJDNX5PJ": {
+      "id": "PF3JSGPSK2QSRWPDSJDNX5PJ",
+      "item_name": "Hot Tie Guan Yin Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PVBCZR2YGPI5XUAAPVETGVO2": {
+      "id": "PVBCZR2YGPI5XUAAPVETGVO2",
+      "item_name": "Heavy Cream",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "PWOPJQGW3GQHLEYIBUNOEAZD": {
+      "id": "PWOPJQGW3GQHLEYIBUNOEAZD",
+      "item_name": "Four Seasons Au Lait \u56db\u5b63\u9752\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "QFNOAWWK3VZXJTZJAU4JRCFO": {
+      "id": "QFNOAWWK3VZXJTZJAU4JRCFO",
+      "item_name": "Fresh Strawberry Tea \u9bae\u8349\u8393\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "RC47EPMXSKVPRSM4OO5GOQYZ": {
+      "id": "RC47EPMXSKVPRSM4OO5GOQYZ",
+      "item_name": "Hot Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "RFKMPO65RYX5APBVM3CPEV5W": {
+      "id": "RFKMPO65RYX5APBVM3CPEV5W",
+      "item_name": "U600 Cup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "RGUQJPBZBPR7MQN7HBMGAEI4": {
+      "id": "RGUQJPBZBPR7MQN7HBMGAEI4",
+      "item_name": "Lychee Jelly",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "RJU3MBQFNVHFUUDMTAXDQ43P": {
+      "id": "RJU3MBQFNVHFUUDMTAXDQ43P",
+      "item_name": "Genmai Matcha with Matcha Jelly \u62b9\u8336\u51cd\u7384\u7c73\u62b9\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "SA4SIBUCOLBU3XQ3BZPYXXP4": {
+      "id": "SA4SIBUCOLBU3XQ3BZPYXXP4",
+      "item_name": "Genmai Jasmine Green Tea \u7384\u7c73\u7da0\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "TO3NAKG5S4Q7WGOQJLYWRZSA": {
+      "id": "TO3NAKG5S4Q7WGOQJLYWRZSA",
+      "item_name": "Lemon Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "UCXQBKF6EKHTD5CT2MLACMO5": {
+      "id": "UCXQBKF6EKHTD5CT2MLACMO5",
+      "item_name": "Hot Tie Guan Yin Oolong Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "UE3LLFVD7P6AATRKRBYZCZ5D": {
+      "id": "UE3LLFVD7P6AATRKRBYZCZ5D",
+      "item_name": "Hot Tie Guan Yin Milk Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "UMBGTNZ3VXRWVFZQ3D2UESYF": {
+      "id": "UMBGTNZ3VXRWVFZQ3D2UESYF",
+      "item_name": "Roasted Buckwheat Barley Milk Tea \u854e\u9ea5\u9ea5\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "UT2LQ5DFYMM3TJDOGVGSJ542": {
+      "id": "UT2LQ5DFYMM3TJDOGVGSJ542",
+      "item_name": "Four Seasons Milk Tea \u56db\u5b63\u9752\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "UUNXKESV2Y62F6DIAJ737KOO": {
+      "id": "UUNXKESV2Y62F6DIAJ737KOO",
+      "item_name": "Black Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "VFWW5OIALE7OFWRK6EWO2LZM": {
+      "id": "VFWW5OIALE7OFWRK6EWO2LZM",
+      "item_name": "HK Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "VXCZ6EMJHEJN5QYCQ3EYHPFT": {
+      "id": "VXCZ6EMJHEJN5QYCQ3EYHPFT",
+      "item_name": "Genmai Jasmine Green Au Lait \u7384\u7c73\u7da0\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "W5F3TM6WNOY5ZFX2GQCY3XXU": {
+      "id": "W5F3TM6WNOY5ZFX2GQCY3XXU",
+      "item_name": "Roasted Buckwheat Four Seasons Tea \u854e\u9ea5\u9752\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "W5OZ3N4RCU3WO7CEL7FQ7KNH": {
+      "id": "W5OZ3N4RCU3WO7CEL7FQ7KNH",
+      "item_name": "Hot Roasted Buckwheat Barley Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "W5VMLRKCKZKXG4IYYMVBRIJK": {
+      "id": "W5VMLRKCKZKXG4IYYMVBRIJK",
+      "item_name": "TJ Powder",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "WDJUOLPURFXN7OYF57TQG4D6": {
+      "id": "WDJUOLPURFXN7OYF57TQG4D6",
+      "item_name": "Four Seasons Tea \u56db\u5b63\u9752\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "WH5ZLKHGHG3MJ5B3QM2KD23B": {
+      "id": "WH5ZLKHGHG3MJ5B3QM2KD23B",
+      "item_name": "Hot Roasted Buckwheat Barley Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "X2PJTAY45YI2UCSUG2CEXWTO": {
+      "id": "X2PJTAY45YI2UCSUG2CEXWTO",
+      "item_name": "Hot Signature Black Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "XGB4E2IJMBFSXB5OQPEJW32J": {
+      "id": "XGB4E2IJMBFSXB5OQPEJW32J",
+      "item_name": "Powdered Sugar",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "XHJKFYHJOIHPZK33SCOHEQOM": {
+      "id": "XHJKFYHJOIHPZK33SCOHEQOM",
+      "item_name": "Green Tea",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "XLLAY7WGXHFAZJXT37W5HZFT": {
+      "id": "XLLAY7WGXHFAZJXT37W5HZFT",
+      "item_name": "Sugar Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "XLWAAW46HMU4PZRUALKDDV3G": {
+      "id": "XLWAAW46HMU4PZRUALKDDV3G",
+      "item_name": "Hot Signature Black Au Lait",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "YBWRTRH3ZE2OHQ5PL3V662WE": {
+      "id": "YBWRTRH3ZE2OHQ5PL3V662WE",
+      "item_name": "Tie Guan Yin Au Lait with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "YEXINHOOOPEJFAQ7GTPQHEQP": {
+      "id": "YEXINHOOOPEJFAQ7GTPQHEQP",
+      "item_name": "Brown Sugar",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "YHYT7XWXSTTUUYZLV4XJVOAB": {
+      "id": "YHYT7XWXSTTUUYZLV4XJVOAB",
+      "item_name": "Taiwanese Retro \u81fa\u7063\u73cd\u73e0\u9bae\u5976\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "YSGAL2HGDIITJP3E4A2GZBJI": {
+      "id": "YSGAL2HGDIITJP3E4A2GZBJI",
+      "item_name": "Strawberry Syrup",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "YU6LD7JKK46GF6NC5XH3PXR5": {
+      "id": "YU6LD7JKK46GF6NC5XH3PXR5",
+      "item_name": "Tie Guan Yin Au Lait \u9435\u89c0\u97f3\u6b50\u857e",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "Z7FNN52NHCZ7LEGUSD3GUIVX": {
+      "id": "Z7FNN52NHCZ7LEGUSD3GUIVX",
+      "item_name": "Hot Spice Mango Tea Cider \u71b1\u8292\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    },
+    "ZFRNV5R7R3IQWKLMNECVSK4R": {
+      "id": "ZFRNV5R7R3IQWKLMNECVSK4R",
+      "item_name": "Barley",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": "Regular"
+    },
+    "ZHKPXHX6LYJE4ULT4VTUSAQG": {
+      "id": "ZHKPXHX6LYJE4ULT4VTUSAQG",
+      "item_name": "Fresh Mango Tea \u9bae\u8292\u679c\u679c\u8336",
+      "sellable": true,
+      "stockable": true,
+      "variation_name": null
+    }
+  }
+}
