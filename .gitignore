@@ -21,3 +21,4 @@ data/oauth_state.db
 data/order_processing.db
 data/webhook_events.db
 data/processed_orders.json
+data/backend_inventory_backups/

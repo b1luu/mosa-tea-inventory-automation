@@ -61,10 +61,41 @@ def _modifier(modifier_id, *, name, modifier_list_id="LIST-1"):
     )()
 
 
+def _archived_variation(variation_id, *, item_id, variation_name, sellable=True, stockable=True):
+    return type(
+        "ArchivedVariation",
+        (),
+        {
+            "id": variation_id,
+            "type": "ITEM_VARIATION",
+            "item_variation_data": type(
+                "VariationData",
+                (),
+                {
+                    "name": variation_name,
+                    "item_id": item_id,
+                    "sellable": sellable,
+                    "stockable": stockable,
+                },
+            )(),
+        },
+    )()
+
+
+def _related_item(item_id, name):
+    return type(
+        "RelatedItem",
+        (),
+        {"id": item_id, "type": "ITEM", "item_data": type("ItemData", (), {"name": name})()},
+    )()
+
+
 class _FakeCatalog:
-    def __init__(self, items, modifiers):
+    def __init__(self, items, modifiers, by_id=None, related=None):
         self._items = items
         self._modifiers = modifiers
+        self._by_id = {obj.id: obj for obj in (by_id or [])}
+        self._related = list(related or [])
 
     def list(self, *, types):
         if types == "ITEM":
@@ -73,10 +104,14 @@ class _FakeCatalog:
             return list(self._modifiers)
         raise AssertionError(types)
 
+    def batch_get(self, *, object_ids, include_related_objects=False):
+        objects = [self._by_id[i] for i in object_ids if i in self._by_id]
+        return type("BatchGetResponse", (), {"objects": objects, "related_objects": self._related})()
+
 
 class _FakeClient:
-    def __init__(self, items, modifiers):
-        self.catalog = _FakeCatalog(items, modifiers)
+    def __init__(self, items, modifiers, by_id=None, related=None):
+        self.catalog = _FakeCatalog(items, modifiers, by_id=by_id, related=related)
 
 
 class BindingCoverageReportTests(unittest.TestCase):
@@ -306,6 +341,71 @@ class BindingCoverageReportTests(unittest.TestCase):
             report["modifiers"]["stale_binding_sources"][0]["live_id"],
             "MISSING-LIVE-MOD",
         )
+
+
+class ArchivedBackfillTests(unittest.TestCase):
+    """#2: archived inventory items are gone from `catalog.list` but must be
+    fetched by ID so the coverage report doesn't false-flag them as stale."""
+
+    def _run(self, client):
+        with (
+            patch("app.binding_coverage_report.get_merchant_context", return_value=None),
+            patch("app.binding_coverage_report.list_catalog_bindings", return_value=[self.binding]),
+            patch("app.binding_coverage_report.get_active_catalog_binding", return_value=self.binding),
+            patch(
+                "app.binding_coverage_report.get_canonical_binding_targets",
+                return_value={
+                    "sold_variation_ids": set(),
+                    "modifier_ids": set(),
+                    "inventory_keys": {"tgy"},
+                },
+            ),
+            patch(
+                "app.binding_coverage_report.create_square_client_for_merchant",
+                return_value=client,
+            ),
+        ):
+            return build_binding_coverage_report("production", "merchant-1", "LOC-1")
+
+    def setUp(self):
+        self.binding = {
+            "location_id": "LOC-1",
+            "version": 1,
+            "status": "draft",
+            "mapping": {
+                "sold_variation_aliases": {},
+                "modifier_aliases": {},
+                "inventory_variation_ids": {"tgy": "ARCHIVED-INV-1"},
+                "ignored_live_variation_ids": [],
+            },
+        }
+
+    def test_archived_inventory_item_fetched_by_id_is_not_stale(self):
+        # ARCHIVED-INV-1 is absent from list() (archived) but available by ID.
+        client = _FakeClient(
+            [],
+            [],
+            by_id=[_archived_variation("ARCHIVED-INV-1", item_id="ITEM-1", variation_name="600 g bags")],
+            related=[_related_item("ITEM-1", "TGY")],
+        )
+        report = self._run(client)
+
+        self.assertEqual(report["inventory"]["stale_live_variation_ids"], [])
+        self.assertEqual(report["inventory"]["missing_required_keys"], [])
+        self.assertEqual(report["summary"]["blocking_issue_count"], 0)
+        self.assertTrue(report["summary"]["ready_for_approval"])
+
+    def test_genuinely_missing_inventory_id_is_still_flagged_stale(self):
+        # Not in list() and not retrievable by ID -> must still be flagged.
+        client = _FakeClient([], [], by_id=[], related=[])
+        report = self._run(client)
+
+        self.assertEqual(
+            [entry["live_variation_id"] for entry in report["inventory"]["stale_live_variation_ids"]],
+            ["ARCHIVED-INV-1"],
+        )
+        self.assertGreaterEqual(report["summary"]["blocking_issue_count"], 1)
+        self.assertFalse(report["summary"]["ready_for_approval"])
 
 
 if __name__ == "__main__":

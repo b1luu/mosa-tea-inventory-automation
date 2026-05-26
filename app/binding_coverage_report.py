@@ -107,7 +107,61 @@ def _select_binding_for_report(environment, merchant_id, location_id, binding_ve
     return None
 
 
-def _load_live_catalog_snapshot(environment, merchant_id):
+def _variation_snapshot_entry(variation, item_name):
+    variation_data = getattr(variation, "item_variation_data", None)
+    return {
+        "id": variation.id,
+        "item_name": item_name,
+        "variation_name": getattr(variation_data, "name", None) or getattr(variation, "name", None),
+        "sellable": getattr(variation_data, "sellable", None),
+        "stockable": getattr(variation_data, "stockable", None),
+    }
+
+
+def _modifier_snapshot_entry(modifier):
+    modifier_data = getattr(modifier, "modifier_data", None)
+    return {
+        "id": modifier.id,
+        "name": getattr(modifier_data, "name", None) or getattr(modifier, "name", None),
+        "modifier_list_id": getattr(modifier_data, "modifier_list_id", None),
+    }
+
+
+def _backfill_by_id(client, variation_map, modifier_map, ensure_variation_ids, ensure_modifier_ids):
+    """`catalog.list` omits archived items, so any binding-referenced id missing
+    from the listed snapshot is fetched directly by id (which returns archived
+    objects). This is why an archived inventory item is not falsely flagged as a
+    stale binding. See docs/backend-inventory-organization.md."""
+    missing_variations = [vid for vid in (ensure_variation_ids or set()) if vid not in variation_map]
+    missing_modifiers = [mid for mid in (ensure_modifier_ids or set()) if mid not in modifier_map]
+    missing_ids = missing_variations + missing_modifiers
+    if not missing_ids:
+        return
+
+    response = client.catalog.batch_get(object_ids=missing_ids, include_related_objects=True)
+    related_items = {
+        obj.id: obj
+        for obj in (getattr(response, "related_objects", None) or [])
+        if getattr(obj, "type", None) == "ITEM"
+    }
+    for obj in (getattr(response, "objects", None) or []):
+        obj_type = getattr(obj, "type", None)
+        if obj_type == "ITEM_VARIATION":
+            variation_data = getattr(obj, "item_variation_data", None)
+            parent = related_items.get(getattr(variation_data, "item_id", None))
+            item_name = getattr(getattr(parent, "item_data", None), "name", None)
+            variation_map[obj.id] = _variation_snapshot_entry(obj, item_name)
+        elif obj_type == "MODIFIER":
+            modifier_map[obj.id] = _modifier_snapshot_entry(obj)
+
+
+def _load_live_catalog_snapshot(
+    environment,
+    merchant_id,
+    *,
+    ensure_variation_ids=None,
+    ensure_modifier_ids=None,
+):
     client = create_square_client_for_merchant(environment, merchant_id)
     variation_map = {}
     modifier_map = {}
@@ -116,22 +170,12 @@ def _load_live_catalog_snapshot(environment, merchant_id):
         item_data = getattr(item, "item_data", None)
         item_name = getattr(item_data, "name", None)
         for variation in (getattr(item_data, "variations", None) or []):
-            variation_data = getattr(variation, "item_variation_data", None)
-            variation_map[variation.id] = {
-                "id": variation.id,
-                "item_name": item_name,
-                "variation_name": getattr(variation_data, "name", None) or getattr(variation, "name", None),
-                "sellable": getattr(variation_data, "sellable", None),
-                "stockable": getattr(variation_data, "stockable", None),
-            }
+            variation_map[variation.id] = _variation_snapshot_entry(variation, item_name)
 
     for modifier in client.catalog.list(types="MODIFIER"):
-        modifier_data = getattr(modifier, "modifier_data", None)
-        modifier_map[modifier.id] = {
-            "id": modifier.id,
-            "name": getattr(modifier_data, "name", None) or getattr(modifier, "name", None),
-            "modifier_list_id": getattr(modifier_data, "modifier_list_id", None),
-        }
+        modifier_map[modifier.id] = _modifier_snapshot_entry(modifier)
+
+    _backfill_by_id(client, variation_map, modifier_map, ensure_variation_ids, ensure_modifier_ids)
 
     return {
         "variations": variation_map,
@@ -154,7 +198,20 @@ def build_binding_coverage_report(
         binding_version=binding_version,
     )
     active_binding = get_active_catalog_binding(environment, merchant_id, location_id)
-    live_catalog = _load_live_catalog_snapshot(environment, merchant_id)
+
+    # Backfill ids the binding references (e.g. archived inventory variations)
+    # that `catalog.list` no longer returns, so they are validated by ID.
+    mapping = (binding or {}).get("mapping", {})
+    ensure_variation_ids = set(mapping.get("inventory_variation_ids", {}).values()) | set(
+        mapping.get("sold_variation_aliases", {}).keys()
+    )
+    ensure_modifier_ids = set(mapping.get("modifier_aliases", {}).keys())
+    live_catalog = _load_live_catalog_snapshot(
+        environment,
+        merchant_id,
+        ensure_variation_ids=ensure_variation_ids,
+        ensure_modifier_ids=ensure_modifier_ids,
+    )
 
     return classify_binding_coverage(
         binding,
