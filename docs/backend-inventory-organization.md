@@ -83,12 +83,16 @@ matters**: you must capture the inventory IDs while items are still listable,
 1. Grant **`ITEMS_WRITE`** on the production OAuth app; merchant re-authorizes.
    (No personal access token is available in production, so the one-time catalog
    writes go through the OAuth token.)
-2. **Create the backend inventory items + capture IDs** (create-and-capture):
-   create the ~38 stock items in production and record each returned variation id
-   straight into the binding's `inventory_variation_ids`. Because you create
-   them, you *own* the ids directly — no name-matching needed for the inventory
-   side. *(Tool not yet built; the production inventory-side counterpart to the
-   organize/builder tools.)*
+2. **Create the backend inventory items + capture IDs** (create-and-capture) via
+   `scripts/create_backend_inventory.py --apply`: it creates the ~38 stock items
+   and records each returned variation id straight into
+   `data/backend_inventory_created_ids.json` (= the account's
+   `inventory_variation_ids`). Because you create them, you *own* the ids
+   directly — no name-matching for the inventory side. Built and sandbox-proven
+   (create → capture → verify). Greenfield only: do **not** `--apply` it in
+   sandbox (real items exist archived → would duplicate). Set initial stock in
+   the units the recipe map assumes; deduction math lives in our code, so the
+   variations only need `track_inventory` (which they get).
 3. **Build the rest of the binding** with the read-only builder — name-match the
    **sold drinks** (which already exist in production) → `sold_variation_aliases`
    + `modifier_aliases`.
