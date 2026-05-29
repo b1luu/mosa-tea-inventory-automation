@@ -12,6 +12,7 @@
 - [Ops runbook](ops-runbook.md)
 - [Order state handling decision](order-state-handling-decision.md)
 - [Production onboarding runbook](production-onboarding-runbook.md)
+- [Secrets & security](secrets-and-security.md)
 - [Production OAuth decision](production-oauth-decision.md)
 - [SQS dead-letter queue behavior](sqs-dlq-behavior.md)
 - [Terraform infrastructure](terraform-infrastructure.md)
