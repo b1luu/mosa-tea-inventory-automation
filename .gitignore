@@ -22,3 +22,27 @@ data/order_processing.db
 data/webhook_events.db
 data/processed_orders.json
 data/backend_inventory_backups/
+data/backend_inventory_created_ids.json
+
+# Other env files (keep .env.example committable; block real ones)
+.env.local
+.env.production
+.env.sandbox
+.env.staging
+
+# Defensive: anything that looks like a credential, even by accident
+*.pem
+*.key
+credentials.json
+service-account*.json
+.aws/
+
+# Logs, coverage, IDE noise
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+.vscode/
+.idea/
+*.swp
+*~
