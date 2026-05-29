@@ -32,6 +32,70 @@ rehearsal exists largely to *surface* these.
    plus a production webhook subscription pointed at it.
 3. Production merchant connected via OAuth (token in the merchant store).
 
+## Scope justification — what each permission is for
+
+The production OAuth ask, every scope mapped to the Square endpoint it gates and
+the tool that uses it. Nothing in this list can move money, take payments, or
+create orders — those scopes (`PAYMENTS_WRITE`, `ORDERS_WRITE`, etc.) are
+explicitly **not** requested.
+
+### `MERCHANT_PROFILE_READ`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `GET /v2/merchants/{id}` (`RetrieveMerchant`) | `client.merchants.get(...)` | OAuth callback / merchant context resolution | Identify the merchant just connected; persist `merchant_id` + display name |
+
+### `ORDERS_READ`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `GET /v2/orders/{id}` (`RetrieveOrder`) | `client.orders.get(...)` | **Webhook worker** (hot path); `scripts/inspect_order.py` | Fetch the full order to compute deductions from line items + modifiers |
+
+### `INVENTORY_READ`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `POST /v2/inventory/counts/batch-retrieve` (`BatchRetrieveInventoryCounts`) | `client.inventory.batch_get_counts(...)` | `scripts/inspect_inventory_count.py`; manual-count-sync; ops tooling | Read current stock levels before/after a change |
+
+### `INVENTORY_WRITE`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `POST /v2/inventory/changes/batch-create` (`BatchChangeInventory`) | `client.inventory.batch_create_changes(...)` | **Webhook worker** (hot path); `scripts/apply_inventory_adjustments.py`; manual-count-sync | **The actual inventory deductions per sale — the whole point of the system** |
+
+### `ITEMS_READ`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `GET /v2/catalog/list` (`ListCatalog`) | `client.catalog.list(types=...)` | Binding coverage cron; binding builder; organize script; create-script greenfield guard | Enumerate sold items / modifiers / categories for binding validation + name-matching |
+| `POST /v2/catalog/batch-retrieve` (`BatchRetrieveCatalogObjects`) | `client.catalog.batch_get(...)` | **Binding coverage cron (#2 backfill)** | Fetch archived inventory items by ID that `list` won't return |
+| `GET /v2/catalog/object/{id}` (`RetrieveCatalogObject`) | `client.catalog.object.get(...)` | Organize script (pre-upsert version fetch); ad-hoc inspection | Read a specific item's current version + fields before updating |
+
+### `ITEMS_WRITE`
+| Endpoint | SDK | Used by | Why |
+|---|---|---|---|
+| `POST /v2/catalog/object` (`UpsertCatalogObject`) | `client.catalog.object.upsert(...)` | `scripts/create_backend_inventory.py`; `scripts/organize_backend_inventory.py` (create the "Backend Inventory" category once, then archive + recategorize each item, and revert) | The **only** catalog mutation we make — one endpoint, used four ways (create item, create category, archive+categorize, revert) |
+
+### Boss-facing one-liner
+
+> *"The app needs to **read** the menu + orders + stock counts, **write** stock
+> deductions (the whole product), **read** the merchant profile (to know who
+> connected), and **edit catalog items** for one purpose: a one-time scripted
+> setup that creates the backend inventory items and archives + categorizes
+> them. Nothing it can do can move money, take payments, or create orders."*
+
+## Revoking access (for the merchant)
+
+The merchant can revoke this app at any time, without involving the developer,
+from the **Square Seller Dashboard → Account & Settings → My Business → Apps &
+integrations → Authorized applications** (label varies). Selecting the app shows
+its permissions + a Revoke / Disconnect button. After revocation:
+
+- The access token and refresh token become invalid immediately.
+- The deployed worker fails-closed on the next inventory write (already wired
+  via `disable_merchant_writes` / `revoke_merchant` in `app/webhook_ingress.py`)
+  and an alarm should fire.
+- Re-onboarding = redo the OAuth consent (same one-button landing page).
+
+To revoke programmatically from our side (e.g. on detected compromise), the
+endpoint is `POST /oauth2/revoke` (`RevokeToken`) via
+`client.o_auth.revoke_token(...)`.
+
 ## Stage 0 — Dress rehearsal on a FRESH sandbox account ("TEST PRODUCTION")
 
 The default sandbox account is *not* a faithful prod stand-in: it already has the
