@@ -46,3 +46,7 @@ htmlcov/
 .idea/
 *.swp
 *~
+
+# Internal operational notes (never committed; lives only locally + in
+# password manager). See docs/secrets-and-security.md for what belongs here.
+docs/internal/
