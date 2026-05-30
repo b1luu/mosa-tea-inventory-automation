@@ -107,6 +107,18 @@ These are not in the repo's control but are the most leverage per minute spent:
   keys; GuardDuty enabled (cheap, high signal).
 - **Lock your laptop** when you walk away. Trivial but real.
 
+## Internal operational notes (not committed)
+
+The path `docs/internal/` is **gitignored** by design. It holds ops-sensitive
+notes that should stay local + in the shared password manager — never on
+GitHub. Current contents (by convention; create as needed):
+
+- `docs/internal/operator-token.md` — operator token storage, rotation
+  procedure, and audit log.
+
+Anything you put under `docs/internal/` is invisible to git. If a future
+maintainer needs to know it exists, this section is the discovery point.
+
 ## Related
 
 - [Production onboarding runbook](production-onboarding-runbook.md) — the full
