@@ -346,6 +346,18 @@ variable "operator_api_token" {
   sensitive   = true
 }
 
+variable "operator_session_signing_key" {
+  description = "HMAC signing key for the operator onboarding session cookie. 32+ random bytes."
+  type        = string
+  sensitive   = true
+}
+
+variable "operator_session_ttl_seconds" {
+  description = "Operator onboarding session cookie lifetime in seconds. Default 2 hours."
+  type        = number
+  default     = 7200
+}
+
 variable "square_oauth_client_id" {
   description = "Square OAuth application client ID."
   type        = string

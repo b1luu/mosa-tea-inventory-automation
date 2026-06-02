@@ -1,3 +1,4 @@
+import time
 import unittest
 import os
 from unittest.mock import patch
@@ -6,13 +7,27 @@ from fastapi.testclient import TestClient
 
 import server
 from app.merchant_store import MerchantContext
+from app.operator_session import COOKIE_NAME as OPERATOR_SESSION_COOKIE, issue_session_value
+
+
+_TEST_SIGNING_KEY = "test-signing-key-32-bytes-please-1234567890"
+
+
+def _valid_session_cookies():
+    value, _ = issue_session_value(
+        ttl_seconds=3600, signing_key=_TEST_SIGNING_KEY, now=int(time.time())
+    )
+    return {OPERATOR_SESSION_COOKIE: value}
 
 
 class OAuthRouteTests(unittest.TestCase):
     def setUp(self):
         self.env_patch = patch.dict(
             os.environ,
-            {"OPERATOR_API_TOKEN": "test-operator-token"},
+            {
+                "OPERATOR_API_TOKEN": "test-operator-token",
+                "OPERATOR_SESSION_SIGNING_KEY": _TEST_SIGNING_KEY,
+            },
             clear=False,
         )
         self.env_patch.start()
@@ -21,7 +36,7 @@ class OAuthRouteTests(unittest.TestCase):
     def tearDown(self):
         self.env_patch.stop()
 
-    def test_oauth_start_redirects_to_square_authorization_url(self):
+    def test_oauth_start_with_valid_session_redirects_to_square(self):
         with (
             patch("app.oauth_routes.create_oauth_state", return_value="state-123"),
             patch(
@@ -29,7 +44,11 @@ class OAuthRouteTests(unittest.TestCase):
                 return_value="https://square.example/authorize?state=state-123",
             ),
         ):
-            response = self.client.get("/oauth/square/start", follow_redirects=False)
+            response = self.client.get(
+                "/oauth/square/start",
+                cookies=_valid_session_cookies(),
+                follow_redirects=False,
+            )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
@@ -37,25 +56,19 @@ class OAuthRouteTests(unittest.TestCase):
             "https://square.example/authorize?state=state-123",
         )
 
-    def test_oauth_start_does_not_require_operator_token(self):
-        with (
-            patch("app.oauth_routes.create_oauth_state", return_value="state-456"),
-            patch(
-                "app.oauth_routes.build_square_oauth_authorization_url",
-                return_value="https://square.example/authorize?state=state-456",
-            ),
-        ):
-            response = self.client.get("/oauth/square/start", follow_redirects=False)
+    def test_oauth_start_without_session_redirects_to_onboarding(self):
+        # The browser flow is now gated on the operator session cookie. No
+        # session means we bounce back to /onboarding rather than initiating
+        # Square OAuth on behalf of whoever shows up at the URL.
+        response = self.client.get("/oauth/square/start", follow_redirects=False)
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response.headers["location"],
-            "https://square.example/authorize?state=state-456",
-        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/onboarding")
 
-    def test_oauth_callback_returns_error_when_square_returns_error(self):
+    def test_oauth_callback_renders_connection_cancelled_on_deny(self):
         response = self.client.get(
             "/oauth/square/callback",
+            cookies=_valid_session_cookies(),
             params={
                 "error": "access_denied",
                 "error_description": "Seller denied access",
@@ -63,32 +76,42 @@ class OAuthRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Square OAuth Error", response.text)
-        self.assertIn("access_denied", response.text)
+        self.assertIn("Connection cancelled", response.text)
+        self.assertIn("Nothing was connected", response.text)
 
     def test_oauth_callback_escapes_error_content(self):
         response = self.client.get(
             "/oauth/square/callback",
+            cookies=_valid_session_cookies(),
             params={
-                "error": "<script>alert(1)</script>",
-                "error_description": "<b>bad</b>",
+                "error": "weird_error",  # not access_denied -> falls into generic Authorization failed
+                "error_description": "<script>alert(1)</script>",
             },
         )
 
         self.assertEqual(response.status_code, 400)
         self.assertNotIn("<script>alert(1)</script>", response.text)
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", response.text)
-        self.assertIn("&lt;b&gt;bad&lt;/b&gt;", response.text)
+
+    def test_oauth_callback_without_session_renders_session_expired(self):
+        response = self.client.get(
+            "/oauth/square/callback",
+            params={"code": "code-123", "state": "state-123"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Operator session expired", response.text)
 
     def test_oauth_callback_rejects_invalid_state(self):
         with patch("app.oauth_routes.consume_oauth_state", return_value=None):
             response = self.client.get(
                 "/oauth/square/callback",
+                cookies=_valid_session_cookies(),
                 params={"code": "code-123", "state": "bad-state"},
             )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Invalid or expired OAuth state.", response.text)
+        self.assertIn("Authorization expired", response.text)
 
     def test_oauth_callback_stores_connected_merchant_summary(self):
         token_response = type(
@@ -158,22 +181,22 @@ class OAuthRouteTests(unittest.TestCase):
                 "app.oauth_routes.upsert_oauth_merchant",
                 return_value=merchant_context,
             ) as mock_upsert,
-            patch(
-                "app.oauth_routes.get_merchant_write_readiness",
-                return_value={"write_ready": False, "write_blockers": ["writes_disabled_by_operator"]},
-            ),
         ):
             response = self.client.get(
                 "/oauth/square/callback",
+                cookies=_valid_session_cookies(),
                 params={"code": "code-123", "state": "state-123"},
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Square OAuth Connected", response.text)
-        self.assertIn("merchant_id: merchant-1", response.text)
-        self.assertIn("selected_location_id: LOC-1", response.text)
-        self.assertIn("write_ready: False", response.text)
-        self.assertIn("write_blockers: writes_disabled_by_operator", response.text)
+        self.assertIn("Access granted", response.text)
+        self.assertIn("API access to your Square account", response.text)
+        self.assertIn("Tea Shop LLC", response.text)
+        self.assertIn("merchant-1", response.text)
+        self.assertIn("production", response.text)
+        self.assertIn("MERCHANT_PROFILE_READ", response.text)
+        # Old (incorrect) framing must not regress.
+        self.assertNotIn("linked to Square", response.text)
         mock_upsert.assert_called_once()
 
     def test_oauth_status_lists_connected_merchants(self):
@@ -293,6 +316,80 @@ class OAuthRouteTests(unittest.TestCase):
             response.json()["detail"],
             "Invalid or missing operator token.",
         )
+
+
+class OnboardingRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.env_patch = patch.dict(
+            os.environ,
+            {
+                "OPERATOR_API_TOKEN": "test-operator-token",
+                "OPERATOR_SESSION_SIGNING_KEY": _TEST_SIGNING_KEY,
+            },
+            clear=False,
+        )
+        self.env_patch.start()
+        self.client = TestClient(server.app)
+
+    def tearDown(self):
+        self.env_patch.stop()
+
+    def test_get_onboarding_without_cookie_shows_operator_gate(self):
+        response = self.client.get("/onboarding")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Operator access required", response.text)
+        self.assertIn("name='op_token'", response.text)
+        # The connect button should NOT yet be visible.
+        self.assertNotIn("Connect to Square", response.text)
+
+    def test_get_onboarding_with_valid_session_shows_connect_button(self):
+        response = self.client.get("/onboarding", cookies=_valid_session_cookies())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Connect to Square", response.text)
+        self.assertIn("/oauth/square/start", response.text)
+        # Operator gate form should NOT be present.
+        self.assertNotIn("name='op_token'", response.text)
+
+    def test_post_onboarding_with_wrong_token_rerenders_gate_with_error(self):
+        response = self.client.post(
+            "/onboarding",
+            data={"op_token": "not-the-real-token"},
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("Operator access required", response.text)
+        self.assertIn("didn&#x27;t match", response.text)
+        # No session cookie should have been issued.
+        self.assertNotIn(OPERATOR_SESSION_COOKIE, response.cookies)
+
+    def test_post_onboarding_with_correct_token_sets_cookie_and_redirects(self):
+        response = self.client.post(
+            "/onboarding",
+            data={"op_token": "test-operator-token"},
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/onboarding")
+        # The Set-Cookie header should carry our session cookie with the
+        # security attributes we designed.
+        set_cookie = response.headers.get("set-cookie", "")
+        self.assertIn(OPERATOR_SESSION_COOKIE, set_cookie)
+        self.assertIn("HttpOnly", set_cookie)
+        self.assertIn("Secure", set_cookie)
+        self.assertIn("SameSite=lax", set_cookie)
+
+    def test_post_onboarding_uses_constant_time_comparison(self):
+        # Two near-miss tokens (one trailing char off + same length) both
+        # produce the same "didn't match" response; this is mostly a
+        # behavioural check that wrong tokens never leak whether they were
+        # close.
+        for wrong in ["test-operator-tokeX", "test-operator-toke", "x" * 20]:
+            response = self.client.post(
+                "/onboarding",
+                data={"op_token": wrong},
+                follow_redirects=False,
+            )
+            self.assertEqual(response.status_code, 401, msg=f"wrong={wrong!r}")
 
 
 if __name__ == "__main__":
