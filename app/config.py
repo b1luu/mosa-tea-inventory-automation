@@ -240,3 +240,29 @@ def get_operator_api_token():
 def get_alarm_notification_topic_arn():
     topic_arn = os.getenv("ALARM_NOTIFICATION_TOPIC_ARN", "").strip()
     return topic_arn or None
+
+
+def get_operator_session_signing_key():
+    key = os.getenv("OPERATOR_SESSION_SIGNING_KEY")
+    if not key:
+        raise ValueError(
+            "Missing required environment variable: OPERATOR_SESSION_SIGNING_KEY. "
+            "Set it (32+ random bytes, e.g. `secrets.token_urlsafe(32)`) before "
+            "running the operator-gated onboarding routes."
+        )
+    return key.strip()
+
+
+def get_operator_session_ttl_seconds():
+    raw_value = os.getenv("OPERATOR_SESSION_TTL_SECONDS", "7200").strip()
+    try:
+        value = int(raw_value)
+    except ValueError as error:
+        raise ValueError(
+            "Invalid OPERATOR_SESSION_TTL_SECONDS value. Use a positive integer."
+        ) from error
+    if value <= 0:
+        raise ValueError(
+            "Invalid OPERATOR_SESSION_TTL_SECONDS value. Use a positive integer."
+        )
+    return value

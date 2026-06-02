@@ -1,17 +1,41 @@
 import json
+import os
+import time
 import unittest
 from unittest.mock import patch
 
 from app.lambda_oauth import lambda_handler
+from app.operator_session import COOKIE_NAME as OPERATOR_SESSION_COOKIE, issue_session_value
+
+
+_TEST_SIGNING_KEY = "test-signing-key-32-bytes-please-1234567890"
+
+
+def _session_cookie_header():
+    value, _ = issue_session_value(
+        ttl_seconds=3600, signing_key=_TEST_SIGNING_KEY, now=int(time.time())
+    )
+    return f"{OPERATOR_SESSION_COOKIE}={value}"
 
 
 class LambdaOAuthTests(unittest.TestCase):
+    def setUp(self):
+        self.env_patch = patch.dict(
+            os.environ,
+            {"OPERATOR_SESSION_SIGNING_KEY": _TEST_SIGNING_KEY},
+            clear=False,
+        )
+        self.env_patch.start()
+
+    def tearDown(self):
+        self.env_patch.stop()
+
     def test_lambda_handler_returns_redirect_for_oauth_start(self):
         event = {
             "requestContext": {"http": {"method": "GET", "path": "/oauth/square/start"}},
             "rawPath": "/oauth/square/start",
             "rawQueryString": "environment=sandbox",
-            "headers": {},
+            "headers": {"cookie": _session_cookie_header()},
         }
 
         with (
@@ -36,15 +60,15 @@ class LambdaOAuthTests(unittest.TestCase):
             },
             "rawPath": "/oauth/square/callback",
             "rawQueryString": "error=access_denied&error_description=Seller+denied+access",
-            "headers": {},
+            "headers": {"cookie": _session_cookie_header()},
         }
 
         result = lambda_handler(event, context=None)
 
         self.assertEqual(result["statusCode"], 400)
         self.assertEqual(result["headers"]["content-type"], "text/html; charset=utf-8")
-        self.assertIn("Square OAuth Error", result["body"])
-        self.assertIn("access_denied", result["body"])
+        self.assertIn("Connection cancelled", result["body"])
+        self.assertIn("Nothing was connected", result["body"])
 
     def test_lambda_handler_returns_json_for_refresh_route(self):
         auth_record = {

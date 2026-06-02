@@ -196,11 +196,13 @@ resource "aws_lambda_function" "oauth" {
       local.merchant_store_env,
       local.oauth_state_env,
       {
-        OPERATOR_API_TOKEN         = var.operator_api_token
-        SQUARE_OAUTH_CLIENT_ID     = var.square_oauth_client_id
-        SQUARE_OAUTH_CLIENT_SECRET = var.square_oauth_client_secret
-        SQUARE_OAUTH_REDIRECT_URI  = var.square_oauth_redirect_uri
-        SQUARE_OAUTH_SCOPES        = var.square_oauth_scopes
+        OPERATOR_API_TOKEN             = var.operator_api_token
+        OPERATOR_SESSION_SIGNING_KEY   = var.operator_session_signing_key
+        OPERATOR_SESSION_TTL_SECONDS   = tostring(var.operator_session_ttl_seconds)
+        SQUARE_OAUTH_CLIENT_ID         = var.square_oauth_client_id
+        SQUARE_OAUTH_CLIENT_SECRET     = var.square_oauth_client_secret
+        SQUARE_OAUTH_REDIRECT_URI      = var.square_oauth_redirect_uri
+        SQUARE_OAUTH_SCOPES            = var.square_oauth_scopes
       }
     )
   }
