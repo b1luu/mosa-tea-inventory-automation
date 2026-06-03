@@ -53,6 +53,35 @@ class LambdaOAuthTests(unittest.TestCase):
             "https://square.example/authorize?state=state-123",
         )
 
+    def test_lambda_handler_returns_set_cookie_in_cookies_array_not_headers(self):
+        # Regression: API Gateway HTTP API (v2 payload) drops Set-Cookie
+        # entries stuffed into the `headers` dict. They must come back in the
+        # top-level `cookies` array, otherwise the operator session cookie
+        # never reaches the browser and the boss can't complete onboarding.
+        event = {
+            "requestContext": {"http": {"method": "POST", "path": "/onboarding"}},
+            "rawPath": "/onboarding",
+            "rawQueryString": "",
+            "headers": {"content-type": "application/x-www-form-urlencoded"},
+            "body": "op_token=test-operator-token",
+        }
+
+        with patch(
+            "app.oauth_routes.get_operator_api_token",
+            return_value="test-operator-token",
+        ):
+            result = lambda_handler(event, context=None)
+
+        self.assertEqual(result["statusCode"], 303)
+        self.assertIn("cookies", result)
+        self.assertEqual(len(result["cookies"]), 1)
+        self.assertIn("mosa_operator_session=", result["cookies"][0])
+        self.assertIn("HttpOnly", result["cookies"][0])
+        self.assertIn("Secure", result["cookies"][0])
+        # And critically: Set-Cookie must NOT be in the headers dict (API
+        # Gateway v2 would drop it there).
+        self.assertNotIn("set-cookie", {k.lower() for k in result["headers"]})
+
     def test_lambda_handler_returns_html_error_for_callback_failure(self):
         event = {
             "requestContext": {
