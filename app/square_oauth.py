@@ -39,11 +39,17 @@ def _create_square_merchant_client(environment, access_token):
 
 
 def build_square_oauth_authorization_url(environment, state):
+    # NOTE: we intentionally do *not* set `session=false`. With session=false,
+    # Square's sandbox renders a blank page instead of the consent screen when
+    # the seller doesn't have a fresh login session, because sandbox doesn't
+    # render the "sign in to Square" form properly. Default behavior (omit the
+    # param) lets Square reuse the seller's existing dashboard session and go
+    # straight to the Allow/Deny consent screen — what we want in both
+    # sandbox and production.
     query = urlencode(
         {
             "client_id": get_square_oauth_client_id(),
             "scope": " ".join(get_square_oauth_scopes()),
-            "session": "false",
             "state": state,
             "redirect_uri": get_square_oauth_redirect_uri(),
         }

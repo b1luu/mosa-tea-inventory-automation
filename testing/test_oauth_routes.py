@@ -13,6 +13,31 @@ from app.operator_session import COOKIE_NAME as OPERATOR_SESSION_COOKIE, issue_s
 _TEST_SIGNING_KEY = "test-signing-key-32-bytes-please-1234567890"
 
 
+class SquareAuthorizationUrlTests(unittest.TestCase):
+    """The authorize URL must not include `session=false`. With that param,
+    Square's sandbox renders a blank consent page when the seller doesn't have
+    a fresh login session, which silently breaks the entire onboarding flow.
+    Default behavior (omit it) lets Square reuse the seller's existing
+    dashboard session and renders the consent screen normally."""
+
+    def test_authorization_url_does_not_force_session_false(self):
+        from app.square_oauth import build_square_oauth_authorization_url
+
+        with patch.dict(
+            os.environ,
+            {
+                "SQUARE_OAUTH_CLIENT_ID": "test-client-id",
+                "SQUARE_OAUTH_REDIRECT_URI": "https://example.com/oauth/square/callback",
+                "SQUARE_OAUTH_SCOPES": "MERCHANT_PROFILE_READ",
+            },
+            clear=False,
+        ):
+            url = build_square_oauth_authorization_url("sandbox", "state-xyz")
+
+        self.assertNotIn("session=false", url)
+        self.assertNotIn("session=", url)
+
+
 def _valid_session_cookies():
     value, _ = issue_session_value(
         ttl_seconds=3600, signing_key=_TEST_SIGNING_KEY, now=int(time.time())
