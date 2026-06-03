@@ -94,6 +94,21 @@ resource "aws_apigatewayv2_route" "oauth_refresh" {
   target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
 }
 
+# Operator-gated onboarding landing page (added in PR #1.5 alongside the
+# OAuth UI introduced in PR #1). Both routes share the existing `oauth`
+# integration since they live on the same FastAPI app on the OAuth Lambda.
+resource "aws_apigatewayv2_route" "onboarding_get" {
+  api_id    = aws_apigatewayv2_api.oauth.id
+  route_key = "GET /onboarding"
+  target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
+}
+
+resource "aws_apigatewayv2_route" "onboarding_post" {
+  api_id    = aws_apigatewayv2_api.oauth.id
+  route_key = "POST /onboarding"
+  target    = "integrations/${aws_apigatewayv2_integration.oauth.id}"
+}
+
 resource "aws_apigatewayv2_stage" "webhook" {
   api_id      = aws_apigatewayv2_api.webhook.id
   name        = var.webhook_api_stage_name
