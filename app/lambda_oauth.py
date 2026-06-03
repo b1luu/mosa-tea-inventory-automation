@@ -112,13 +112,28 @@ def _build_lambda_response(messages):
     return response
 
 
+def _merge_incoming_cookies(headers, event):
+    """API Gateway HTTP API (v2 payload) strips the `Cookie` request header into
+    a separate top-level ``cookies`` array. Without merging it back, FastAPI's
+    ``request.cookies`` is always empty — so any cookie-based flow (e.g. the
+    operator session) is silently broken even though the cookie was sent.
+
+    Returns a new headers dict with the merged Cookie header (if any).
+    """
+    merged = dict(headers or {})
+    incoming = event.get("cookies") or []
+    if incoming and not any(k.lower() == "cookie" for k in merged):
+        merged["cookie"] = "; ".join(incoming)
+    return merged
+
+
 def lambda_handler(event, context):
     messages = asyncio.run(
         _invoke_oauth_app(
             _get_method(event),
             _get_path(event),
             _get_query_string(event),
-            event.get("headers") or {},
+            _merge_incoming_cookies(event.get("headers") or {}, event),
             _get_request_body(event),
         )
     )

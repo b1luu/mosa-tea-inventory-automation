@@ -30,6 +30,33 @@ class LambdaOAuthTests(unittest.TestCase):
     def tearDown(self):
         self.env_patch.stop()
 
+    def test_lambda_handler_merges_event_cookies_into_request_headers(self):
+        # API Gateway HTTP API (v2) strips the request `Cookie` header into a
+        # top-level `cookies` array. Our handler must merge it back so FastAPI's
+        # request.cookies works — otherwise every cookie-based flow (operator
+        # session, OAuth state cookies, etc.) silently fails because the
+        # framework thinks there were no cookies on the request.
+        value, _ = issue_session_value(
+            ttl_seconds=3600, signing_key=_TEST_SIGNING_KEY, now=int(time.time())
+        )
+        event = {
+            "requestContext": {"http": {"method": "GET", "path": "/onboarding"}},
+            "rawPath": "/onboarding",
+            "rawQueryString": "",
+            "headers": {},
+            # API Gateway v2 sends cookies here, NOT in headers:
+            "cookies": [f"{OPERATOR_SESSION_COOKIE}={value}"],
+        }
+
+        result = lambda_handler(event, context=None)
+
+        # If the cookie was forwarded to FastAPI, /onboarding renders the
+        # Connect page (authenticated). If it was ignored, /onboarding renders
+        # the operator gate (unauthenticated).
+        self.assertEqual(result["statusCode"], 200)
+        self.assertIn("Connect Mosa Tea to Square", result["body"])
+        self.assertNotIn("Operator access required", result["body"])
+
     def test_lambda_handler_returns_redirect_for_oauth_start(self):
         event = {
             "requestContext": {"http": {"method": "GET", "path": "/oauth/square/start"}},
