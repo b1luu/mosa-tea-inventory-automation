@@ -2,13 +2,21 @@ name: Deploy Lambda Functions
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: "Target environment for the deploy"
+        options:
+          - sandbox
+          - production
+        default: sandbox
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: deploy-lambda-functions
+  group: deploy-lambda-functions-${{ inputs.environment }}
   cancel-in-progress: false
 
 env:
@@ -16,12 +24,17 @@ env:
   PYTHON_VERSION: "3.14"
   RUNTIME313_PYTHON_VERSION: "3.13"
   AWS_REGION: ${{ vars.AWS_REGION }}
-  WORKER_LAMBDA_FUNCTION_NAME: ${{ vars.WORKER_LAMBDA_FUNCTION_NAME }}
-  LEGACY_LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
-  WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
-  MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
-  OAUTH_LAMBDA_FUNCTION_NAME: ${{ vars.OAUTH_LAMBDA_FUNCTION_NAME }}
-  BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME: ${{ vars.BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME }}
+  TARGET_ENVIRONMENT: ${{ inputs.environment }}
+  # Lambda function names are sourced from PROD_* repo vars when deploying to
+  # production, and from the unprefixed sandbox vars otherwise. The legacy
+  # fallback variable is forced empty in production so a missing PROD_* var
+  # cannot silently fall through to a sandbox function.
+  WORKER_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_WORKER_LAMBDA_FUNCTION_NAME || vars.WORKER_LAMBDA_FUNCTION_NAME }}
+  LEGACY_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && '' || vars.LAMBDA_FUNCTION_NAME }}
+  WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME || vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
+  MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME || vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
+  OAUTH_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_OAUTH_LAMBDA_FUNCTION_NAME || vars.OAUTH_LAMBDA_FUNCTION_NAME }}
+  BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME || vars.BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME }}
   AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
 jobs:
@@ -31,6 +44,13 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Announce target environment
+        run: |
+          echo "Target environment: ${TARGET_ENVIRONMENT}"
+          if [ "${TARGET_ENVIRONMENT}" = "production" ]; then
+            echo "::warning::Production deploy selected. This affects real merchant traffic."
+          fi
+
       - name: Require main branch
         run: |
           if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
@@ -45,16 +65,35 @@ jobs:
             exit 1
           fi
 
-          WORKER_FUNCTION_NAME="${WORKER_LAMBDA_FUNCTION_NAME:-${LEGACY_LAMBDA_FUNCTION_NAME}}"
-
-          if [ -z "${WORKER_FUNCTION_NAME}" ]; then
-            echo "::error::Set repository variable WORKER_LAMBDA_FUNCTION_NAME (or legacy LAMBDA_FUNCTION_NAME) before deploying."
-            exit 1
-          fi
-
           if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
             echo "::error::Set repository secret AWS_ROLE_TO_ASSUME before deploying."
             exit 1
+          fi
+
+          if [ "${TARGET_ENVIRONMENT}" = "production" ]; then
+            MISSING=""
+            for ENTRY in \
+              "PROD_WORKER_LAMBDA_FUNCTION_NAME=${WORKER_LAMBDA_FUNCTION_NAME}" \
+              "PROD_WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME=${WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME}" \
+              "PROD_MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME=${MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME}" \
+              "PROD_OAUTH_LAMBDA_FUNCTION_NAME=${OAUTH_LAMBDA_FUNCTION_NAME}" \
+              "PROD_BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME=${BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME}"; do
+              NAME="${ENTRY%%=*}"
+              VALUE="${ENTRY#*=}"
+              if [ -z "${VALUE}" ]; then
+                MISSING="${MISSING} ${NAME}"
+              fi
+            done
+            if [ -n "${MISSING}" ]; then
+              echo "::error::Production deploy requires these GitHub repository variables to be set:${MISSING}"
+              exit 1
+            fi
+          else
+            WORKER_FUNCTION_NAME="${WORKER_LAMBDA_FUNCTION_NAME:-${LEGACY_LAMBDA_FUNCTION_NAME}}"
+            if [ -z "${WORKER_FUNCTION_NAME}" ]; then
+              echo "::error::Set repository variable WORKER_LAMBDA_FUNCTION_NAME (or legacy LAMBDA_FUNCTION_NAME) before deploying."
+              exit 1
+            fi
           fi
 
       - name: Check out repository
