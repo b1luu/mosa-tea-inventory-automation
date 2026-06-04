@@ -1,0 +1,90 @@
+# Production-environment terraform.tfvars template.
+#
+# Copy this file to `production.tfvars` (which is gitignored) and fill in real
+# values before running `terraform apply -var-file=production.tfvars`.
+#
+# Every resource name in this file ends with `-prod` so production resources
+# cannot collide with the sandbox stack in the same AWS account. Do not change
+# these suffixes unless you also update the matching PROD_* GitHub repository
+# variables that the Deploy Lambda Functions workflow reads.
+#
+# See docs/production-rollout-runbook.md for the full step-by-step sequence.
+
+aws_region = "us-west-2"
+
+project_name     = "mosa-tea"
+environment_name = "production"
+
+square_environment = "production"
+
+# Keep this at python3.13 for Terraform until the AWS provider supports python3.14.
+lambda_runtime = "python3.13"
+lambda_role_path = "/service-role/"
+
+# Production is greenfield: let Terraform manage everything cleanly. Sandbox
+# sets these to false only because it imported pre-existing manually-created
+# resources; production has no such legacy to work around.
+manage_lambda_role_policies = true
+manage_lambda_permissions   = true
+manage_resource_tags        = true
+create_cloudwatch_alarms    = true
+
+# Optional: wire alarms to an existing SNS topic for production paging.
+# alarm_notification_topic_arn = "arn:aws:sns:us-west-2:123456789012:mosa-tea-ops-prod"
+
+worker_lambda_function_name                 = "mosa-tea-webhook-worker-prod"
+webhook_ingress_lambda_function_name        = "mosa-tea-webhook-ingress-prod"
+manual_count_sync_lambda_function_name      = "mosa-tea-manual-count-sync-prod"
+binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check-prod"
+oauth_lambda_function_name                  = "mosa-tea-oauth-prod"
+
+webhook_api_name     = "mosa-tea-webhook-api-prod"
+manual_sync_api_name = "mosa-tea-manual-sync-api-prod"
+oauth_api_name       = "mosa-tea-oauth-api-prod"
+
+order_processing_table_name    = "mosa-tea-order-processing-prod"
+webhook_event_table_name       = "mosa-tea-webhook-events-prod"
+merchant_connection_table_name = "mosa-tea-merchant-connections-prod"
+merchant_binding_table_name    = "mosa-tea-merchant-bindings-prod"
+oauth_state_table_name         = "mosa-tea-oauth-state-prod"
+merchant_secret_prefix         = "mosa-tea-prod/merchant-auth"
+
+webhook_jobs_queue_name = "mosa-tea-webhook-jobs-prod"
+webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq-prod"
+webhook_queue_receive_wait_time_seconds                  = 20
+webhook_dlq_receive_wait_time_seconds                    = 20
+sqs_max_message_size                                     = 1048576
+webhook_dlq_visible_messages_alarm_threshold             = 1
+webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
+webhook_worker_errors_alarm_threshold                    = 1
+binding_coverage_check_errors_alarm_threshold            = 1
+binding_coverage_check_schedule_expression               = "rate(1 day)"
+
+# ---------------------------------------------------------------------------
+# Secrets — replace every placeholder with the real production value before
+# applying. Do not reuse sandbox values. Do not commit production.tfvars.
+# ---------------------------------------------------------------------------
+
+# Personal access token: NOT used in production (production reads tokens from
+# the merchant_connections table via OAuth). Set to a placeholder string so
+# Terraform validates; the runtime code path never reads it in production.
+square_access_token = "unused_in_production"
+
+# Square webhook signature key for the production app. Set this after creating
+# the production webhook subscription in Square's Developer Dashboard.
+square_webhook_signature_key = "replace_me_with_production_webhook_signing_key"
+
+# Operator API token + session signing key — generate fresh per-environment.
+# See Step 1 in docs/production-rollout-runbook.md for the generation command.
+operator_api_token           = "replace_me_with_freshly_generated_PRODUCTION_operator_token"
+operator_session_signing_key = "replace_me_with_freshly_generated_PRODUCTION_signing_key"
+operator_session_ttl_seconds = 7200
+
+# Square OAuth Production credentials — from Square Developer Dashboard →
+# your app → Production tab. These are different from the sandbox credentials.
+square_oauth_client_id     = "replace_me_with_production_square_oauth_client_id"
+square_oauth_client_secret = "replace_me_with_production_square_oauth_client_secret"
+
+# Filled in after the first `terraform apply` (which creates the production
+# API Gateway). See Step 5 in docs/production-rollout-runbook.md.
+square_oauth_redirect_uri = "PLACEHOLDER_replace_after_first_apply"
