@@ -44,7 +44,9 @@ webhook_jobs_queue_name = "mosa-tea-webhook-jobs"
 webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq"
 webhook_queue_receive_wait_time_seconds = 20
 webhook_dlq_receive_wait_time_seconds   = 20
-sqs_max_message_size                    = 1048576
+# sqs_max_message_size is intentionally omitted — the variables.tf default
+# (262144 bytes) is the AWS SQS hard limit. Setting a value above 262144
+# fails plan validation.
 webhook_dlq_visible_messages_alarm_threshold             = 1
 webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
 webhook_worker_errors_alarm_threshold                    = 1

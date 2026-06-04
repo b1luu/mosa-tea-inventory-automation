@@ -38,6 +38,16 @@ manual_count_sync_lambda_function_name      = "mosa-tea-manual-count-sync-prod"
 binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check-prod"
 oauth_lambda_function_name                  = "mosa-tea-oauth-prod"
 
+# IAM role names. Required overrides for production because Terraform
+# auto-loads `terraform.tfvars` (sandbox values) in addition to whatever
+# -var-file you pass, and sandbox sets three of these to legacy
+# manually-imported role names that would collide here (IAM role names are
+# globally unique per AWS account). Without these overrides production
+# `terraform apply` fails with `EntityAlreadyExists` on these three.
+webhook_ingress_lambda_role_name        = "mosa-tea-webhook-ingress-prod-role"
+worker_lambda_role_name                 = "mosa-tea-webhook-worker-prod-role"
+manual_count_sync_lambda_role_name      = "mosa-tea-manual-count-sync-prod-role"
+
 webhook_api_name     = "mosa-tea-webhook-api-prod"
 manual_sync_api_name = "mosa-tea-manual-sync-api-prod"
 oauth_api_name       = "mosa-tea-oauth-api-prod"
@@ -53,7 +63,9 @@ webhook_jobs_queue_name = "mosa-tea-webhook-jobs-prod"
 webhook_jobs_dlq_name   = "mosa-tea-webhook-jobs-dlq-prod"
 webhook_queue_receive_wait_time_seconds                  = 20
 webhook_dlq_receive_wait_time_seconds                    = 20
-sqs_max_message_size                                     = 1048576
+# sqs_max_message_size is intentionally omitted — the variables.tf default
+# (262144 bytes) is the AWS SQS hard limit. Setting a value above 262144
+# fails plan validation.
 webhook_dlq_visible_messages_alarm_threshold             = 1
 webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
 webhook_worker_errors_alarm_threshold                    = 1
