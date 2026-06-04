@@ -5,6 +5,7 @@
 .build/
 infra/.terraform/
 infra/tfplan*
+infra/*.tfplan
 infra/*.tfvars
 infra/*.tfstate
 infra/*.tfstate.*
@@ -50,3 +51,8 @@ htmlcov/
 # Internal operational notes (never committed; lives only locally + in
 # password manager). See docs/secrets-and-security.md for what belongs here.
 docs/internal/
+
+# Claude Code per-developer instructions. Stays local; not part of the
+# shared repo (see Brandon's user memory store under ~/.claude for context
+# Claude already has access to). Matches at any depth in the tree.
+CLAUDE.md
