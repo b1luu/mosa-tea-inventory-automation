@@ -35,6 +35,31 @@ variables that the deploy workflow reads. **Never mix `-prod` resource names
 with the sandbox Terraform workspace, or unsuffixed names with the production
 workspace.** Always run `terraform workspace show` before any apply.
 
+## Known gotchas (read this once)
+
+Two oddities of this stack to be aware of going in. Both are tracked for a
+follow-up cleanup PR; the runbook + template work around them.
+
+1. **`terraform.tfvars` auto-loads even when `-var-file=production.tfvars`
+   is set.** Terraform reads `infra/terraform.tfvars` (sandbox values)
+   automatically, then applies your `-var-file` on top. For any variable
+   set in sandbox but NOT in `production.tfvars`, the sandbox value silently
+   leaks into the production plan. The provided `production.tfvars.example`
+   already overrides every leaky key we know about — keep it that way when
+   editing. If you ever add a new variable to sandbox, add it to both
+   examples.
+
+2. **Three CloudWatch alarm names are not workspace-suffixed.** Specifically
+   `mosa-tea-binding-coverage-check-errors`,
+   `mosa-tea-webhook-jobs-dlq-visible-messages`,
+   `mosa-tea-webhook-jobs-oldest-message-age`, and
+   `mosa-tea-webhook-worker-errors`. CloudWatch alarm names are globally
+   unique per AWS account, and `PutMetricAlarm` is UPSERT. On the first
+   production apply these alarms get hijacked from sandbox — production
+   takes ownership and the alarms start watching production Lambdas/queues.
+   This is harmless for production but **leaves sandbox temporarily
+   un-alarmed**. The fix (workspace-suffixed names) is a separate PR.
+
 ---
 
 ## Step 1 — Generate fresh production secrets
