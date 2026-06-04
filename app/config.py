@@ -57,7 +57,7 @@ def get_square_oauth_redirect_uri():
 def get_square_oauth_scopes():
     scopes_value = os.getenv(
         "SQUARE_OAUTH_SCOPES",
-        "MERCHANT_PROFILE_READ,ORDERS_READ,INVENTORY_READ,INVENTORY_WRITE,ITEMS_READ",
+        "MERCHANT_PROFILE_READ,ORDERS_READ,INVENTORY_READ,INVENTORY_WRITE,ITEMS_READ,ITEMS_WRITE",
     )
     scopes = [scope.strip() for scope in scopes_value.split(",") if scope.strip()]
     if not scopes:
