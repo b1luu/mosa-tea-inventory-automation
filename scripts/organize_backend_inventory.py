@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 CATEGORY_NAME = "Backend Inventory"
 BACKUP_DIR = Path("data/backend_inventory_backups")
@@ -82,8 +82,8 @@ def _verify(client, item_id, category_id):
     return archived is True and getattr(rc, "id", None) == category_id
 
 
-def run(apply):
-    client = create_square_client()
+def run(apply, argv):
+    client, _ = create_square_client_from_args(argv)
     inv_var_ids = _load_inventory_variation_ids()
     items = _find_inventory_items(client, inv_var_ids)
     category_id, category_new = _ensure_backend_category(client, apply=apply)
@@ -137,8 +137,8 @@ def run(apply):
     return 0 if ok == len(items) else 1
 
 
-def revert(backup_file):
-    client = create_square_client()
+def revert(backup_file, argv):
+    client, _ = create_square_client_from_args(argv)
     backup = json.loads(Path(backup_file).read_text())
     restored = 0
     for entry in backup["items"]:
@@ -161,9 +161,17 @@ def revert(backup_file):
 
 def main():
     args = sys.argv[1:]
-    if args and args[0] == "--revert" and len(args) == 2:
-        return revert(args[1])
-    return run(apply="--apply" in args)
+    # --revert takes a backup file path; strip --revert + path before passing
+    # the rest (which may include --merchant / --environment) to revert().
+    if "--revert" in args:
+        idx = args.index("--revert")
+        if idx + 1 >= len(args):
+            print("Usage: --revert <backup_file>")
+            return 1
+        backup_file = args[idx + 1]
+        revert_argv = args[:idx] + args[idx + 2 :]
+        return revert(backup_file, revert_argv)
+    return run(apply="--apply" in args, argv=args)
 
 
 if __name__ == "__main__":

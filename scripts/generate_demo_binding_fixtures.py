@@ -17,9 +17,10 @@ The demo then runs fully offline against these committed fixtures.
 """
 
 import json
+import sys
 from pathlib import Path
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 
 FIXTURE_DIR = Path("testing/fixtures/catalog")
@@ -37,8 +38,7 @@ EXTRA_SIMULATED_VARIATION = {
 }
 
 
-def _pull_canonical_snapshot():
-    client = create_square_client()
+def _pull_canonical_snapshot(client):
     variation_map = {}
     modifier_map = {}
 
@@ -99,7 +99,8 @@ def _write(path, payload):
 
 
 def main():
-    canonical = _pull_canonical_snapshot()
+    client, _ = create_square_client_from_args(sys.argv[1:])
+    canonical = _pull_canonical_snapshot(client)
     simulated = _simulate_production_catalog(canonical)
     _write(CANONICAL_FILE, canonical)
     _write(SIMULATED_FILE, simulated)

@@ -23,7 +23,7 @@ import sys
 import uuid
 from pathlib import Path
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 OUTPUT_FILE = Path("data/backend_inventory_created_ids.json")
 
@@ -75,8 +75,8 @@ def create_and_capture(client, specs):
     return captured
 
 
-def run(apply):
-    client = create_square_client()
+def run(apply, argv):
+    client, _ = create_square_client_from_args(argv)
     specs = _specs_from_inventory_map()
     active_names = _active_item_names(client)
 
@@ -103,7 +103,8 @@ def run(apply):
 
 
 def main():
-    return run(apply="--apply" in sys.argv[1:])
+    argv = sys.argv[1:]
+    return run(apply="--apply" in argv, argv=argv)
 
 
 if __name__ == "__main__":

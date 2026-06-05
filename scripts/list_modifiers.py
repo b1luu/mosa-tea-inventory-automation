@@ -1,8 +1,9 @@
 import json
+import sys
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 
 def summarize_modifier(catalog_object):
@@ -43,7 +44,7 @@ def summarize_modifier_list(catalog_object):
 
 
 def main():
-    client = create_square_client()
+    client, _ = create_square_client_from_args(sys.argv[1:])
 
     try:
         modifier_lists = [

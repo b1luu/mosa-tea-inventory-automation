@@ -26,8 +26,8 @@ class ApplyInventoryAdjustmentsMainTests(unittest.TestCase):
             patch.object(sys, "argv", ["prog", "--apply", "order-1"]),
             patch.object(
                 apply_inventory_adjustments,
-                "create_square_client",
-                return_value="explicit-client",
+                "create_square_client_from_args",
+                return_value=("explicit-client", ["--apply", "order-1"]),
             ),
             patch.object(
                 apply_inventory_adjustments,

@@ -3,7 +3,7 @@ import sys
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 VALID_ORDER_STATES = ("OPEN", "COMPLETED", "CANCELED", "DRAFT")
 
@@ -75,13 +75,13 @@ def _parse_args(argv):
 
 
 def main():
+    client, remaining = create_square_client_from_args(sys.argv[1:])
+
     try:
-        state_filter, limit, all_pages, order_id_filter = _parse_args(sys.argv[1:])
+        state_filter, limit, all_pages, order_id_filter = _parse_args(remaining)
     except ValueError as error:
         print(error)
         return 1
-
-    client = create_square_client()
 
     try:
         locations_response = client.locations.list()
