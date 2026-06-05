@@ -3,7 +3,7 @@ import sys
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 
 def summarize_catalog_object(catalog_object):
@@ -61,17 +61,19 @@ def summarize_catalog_object(catalog_object):
 
 
 def main():
-    if len(sys.argv) < 2:
+    client, remaining = create_square_client_from_args(sys.argv[1:])
+
+    if not remaining:
         print(
             "Usage: ./.venv/bin/python -m scripts.inspect_catalog_object "
+            "[--merchant <merchant_id>] [--environment sandbox|production] "
             "<catalog_object_id> [<catalog_object_id> ...]"
         )
         return 1
 
-    client = create_square_client()
     summaries = []
 
-    for object_id in sys.argv[1:]:
+    for object_id in remaining:
         try:
             response = client.catalog.object.get(object_id=object_id)
         except ApiError as error:

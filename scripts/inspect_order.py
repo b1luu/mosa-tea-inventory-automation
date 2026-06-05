@@ -3,7 +3,7 @@ import sys
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 
 def summarize_line_item(line_item):
@@ -73,12 +73,16 @@ def summarize_order(order):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: ./.venv/bin/python -m scripts.inspect_order <order_id>")
+    client, remaining = create_square_client_from_args(sys.argv[1:])
+
+    if len(remaining) != 1:
+        print(
+            "Usage: ./.venv/bin/python -m scripts.inspect_order "
+            "[--merchant <merchant_id>] [--environment sandbox|production] <order_id>"
+        )
         return 1
 
-    order_id = sys.argv[1]
-    client = create_square_client()
+    order_id = remaining[0]
 
     try:
         response = client.orders.get(order_id=order_id)

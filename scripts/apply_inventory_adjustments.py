@@ -1,9 +1,9 @@
 import json
 import sys
 
-from app.client import create_square_client
 from app.json_utils import to_jsonable
 from app.order_processor import process_orders
+from app.script_client import create_square_client_from_args
 
 
 def _usage():
@@ -53,20 +53,20 @@ def _print_result(result):
 
 
 def main():
+    client, remaining = create_square_client_from_args(sys.argv[1:])
     try:
-        apply_changes, order_ids = _parse_args(sys.argv[1:])
+        apply_changes, order_ids = _parse_args(remaining)
     except ValueError as error:
         print(error)
         return 1
 
-    # This operator tool intentionally writes against the env-token account, so
-    # it supplies an explicit client rather than relying on a silent fallback.
-    # This operator tool intentionally writes against the env-token account, so
-    # it supplies an explicit client rather than relying on a silent fallback.
+    # This operator tool intentionally supplies an explicit client (either
+    # env-token or merchant-OAuth via --merchant), so process_orders never
+    # falls back to an implicit token.
     result = process_orders(
         order_ids,
         apply_changes=apply_changes,
-        client=create_square_client(),
+        client=client,
     )
     _print_result(result)
     return 0

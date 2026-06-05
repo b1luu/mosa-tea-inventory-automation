@@ -1,8 +1,9 @@
 import json
+import sys
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
+from app.script_client import create_square_client_from_args
 
 # Simple catalog exploration script for Square Sandbox.
 # This file creates an authenticated client, lists Catalog ITEM objects,
@@ -24,5 +25,5 @@ def catalog_list(client):
 
 
 if __name__ == "__main__":
-    client = create_square_client()
+    client, _ = create_square_client_from_args(sys.argv[1:])
     catalog_list(client)

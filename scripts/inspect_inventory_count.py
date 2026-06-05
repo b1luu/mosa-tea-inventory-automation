@@ -5,13 +5,13 @@ from pathlib import Path
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
 from app.inventory_stock_units import (
     convert_inventory_amount_to_stock_unit,
     has_stock_unit_mapping,
 )
 from app.json_utils import to_jsonable
 from app.order_inventory_projection import load_inventory_item_map
+from app.script_client import create_square_client_from_args
 from testing.order_projection_utils import (
     load_fixture_order,
     load_scenario_order,
@@ -279,16 +279,16 @@ def _load_projection_source(client, source):
 
 
 def main():
+    client, remaining = create_square_client_from_args(sys.argv[1:])
     try:
         inventory_key, catalog_object_id, location_id, projection_source = _parse_args(
-            sys.argv[1:]
+            remaining
         )
         target = _resolve_target(inventory_key, catalog_object_id)
     except ValueError as error:
         print(error)
         return 1
 
-    client = create_square_client()
     try:
         projection_source, projected_order = _load_projection_source(client, projection_source)
     except ValueError as error:

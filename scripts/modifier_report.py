@@ -16,12 +16,13 @@ Usage:
     ./.venv/bin/python -m scripts.modifier_report
 """
 
+import sys
 from collections import defaultdict
 
 from square.core.api_error import ApiError
 
-from app.client import create_square_client
 from app.order_inventory_projection import load_recipe_map
+from app.script_client import create_square_client_from_args
 
 
 def _modifier_roles(modifier_id, recipe_map):
@@ -169,7 +170,7 @@ def _print_report(list_rows, name_rows, summary):
 
 
 def main():
-    client = create_square_client()
+    client, _ = create_square_client_from_args(sys.argv[1:])
     try:
         modifier_lists, modifiers = _load_catalog(client)
     except ApiError as error:
