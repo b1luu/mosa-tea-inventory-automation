@@ -1,0 +1,349 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from scripts.catalog_snapshot import (
+    _build_client_id_map,
+    _make_client_id,
+    _rewrite_ids,
+    _slugify,
+    _strip_out_of_scope_refs,
+    _strip_server_fields,
+    export_snapshot,
+    replay_snapshot,
+)
+
+
+def _make_obj(obj_id, model_dump_payload):
+    """Build a fake SDK catalog object with model_dump() returning the given payload."""
+    obj = MagicMock()
+    obj.id = obj_id
+    obj.model_dump.return_value = model_dump_payload
+    return obj
+
+
+class SlugifyTests(unittest.TestCase):
+    def test_alnum_passthrough(self):
+        self.assertEqual(_slugify("Latte"), "latte")
+
+    def test_spaces_become_underscores(self):
+        self.assertEqual(_slugify("Iced Vanilla Latte"), "iced_vanilla_latte")
+
+    def test_strips_leading_trailing_underscores(self):
+        self.assertEqual(_slugify("  16oz cup  "), "16oz_cup")
+
+    def test_punctuation_collapses_and_strips_trailing_underscores(self):
+        # _slugify replaces non-alnum chars with _ and then strips leading +
+        # trailing underscores. So "Tea (Earl Grey)" — which ends with `)`
+        # that becomes `_` — gets that trailing underscore stripped.
+        self.assertEqual(_slugify("Tea (Earl Grey)"), "tea__earl_grey")
+
+
+class MakeClientIdTests(unittest.TestCase):
+    def test_uses_item_name(self):
+        obj = {"id": "ABC", "type": "ITEM", "item_data": {"name": "Latte"}}
+        self.assertEqual(_make_client_id(obj, set()), "#item_latte")
+
+    def test_uses_modifier_list_name(self):
+        obj = {
+            "id": "ABC",
+            "type": "MODIFIER_LIST",
+            "modifier_list_data": {"name": "Size"},
+        }
+        self.assertEqual(_make_client_id(obj, set()), "#modifier_list_size")
+
+    def test_falls_back_to_real_id_when_no_name(self):
+        obj = {"id": "ABC123", "type": "ITEM", "item_data": {}}
+        self.assertEqual(_make_client_id(obj, set()), "#item_abc123")
+
+    def test_tie_break_on_duplicate_slug(self):
+        obj1 = {"id": "AAAAAA", "type": "ITEM", "item_data": {"name": "Latte"}}
+        used = {"#item_latte"}
+        self.assertEqual(_make_client_id(obj1, used), "#item_latte_aaaaaa")
+
+
+class StripOutOfScopeRefsTests(unittest.TestCase):
+    def test_strips_image_ids_from_item(self):
+        obj = {
+            "type": "ITEM",
+            "item_data": {
+                "name": "Latte",
+                "image_ids": ["IMG_ABC"],
+                "variations": [],
+            },
+        }
+        cleaned = _strip_out_of_scope_refs(obj)
+        self.assertNotIn("image_ids", cleaned["item_data"])
+        self.assertEqual(cleaned["item_data"]["name"], "Latte")
+
+    def test_strips_tax_ids_from_item(self):
+        obj = {"type": "ITEM", "item_data": {"tax_ids": ["TAX_ABC"], "name": "X"}}
+        self.assertNotIn("tax_ids", _strip_out_of_scope_refs(obj)["item_data"])
+
+    def test_preserves_unrelated_fields(self):
+        obj = {"type": "ITEM", "item_data": {"name": "X", "description": "Y"}}
+        self.assertEqual(_strip_out_of_scope_refs(obj), obj)
+
+    def test_walks_nested_structures(self):
+        obj = {
+            "type": "ITEM",
+            "item_data": {
+                "variations": [
+                    {
+                        "type": "ITEM_VARIATION",
+                        "item_variation_data": {"image_ids": ["IMG_X"]},
+                    }
+                ]
+            },
+        }
+        cleaned = _strip_out_of_scope_refs(obj)
+        var = cleaned["item_data"]["variations"][0]
+        self.assertNotIn("image_ids", var["item_variation_data"])
+
+
+class RewriteIdsTests(unittest.TestCase):
+    def test_rewrites_top_level_id(self):
+        id_map = {"ABC": "#item_latte"}
+        self.assertEqual(_rewrite_ids("ABC", id_map), "#item_latte")
+
+    def test_rewrites_nested_references(self):
+        id_map = {"CAT_DRINKS": "#category_drinks", "MOD_SIZE": "#modifier_list_size"}
+        obj = {
+            "id": "ITEM_X",
+            "item_data": {
+                "category_id": "CAT_DRINKS",
+                "modifier_list_info": [{"modifier_list_id": "MOD_SIZE"}],
+            },
+        }
+        rewritten = _rewrite_ids(obj, id_map)
+        self.assertEqual(rewritten["item_data"]["category_id"], "#category_drinks")
+        self.assertEqual(
+            rewritten["item_data"]["modifier_list_info"][0]["modifier_list_id"],
+            "#modifier_list_size",
+        )
+
+    def test_leaves_unknown_strings_alone(self):
+        id_map = {"ABC": "#x"}
+        obj = {"name": "Latte", "description": "Not an ID"}
+        self.assertEqual(_rewrite_ids(obj, id_map), obj)
+
+
+class StripServerFieldsTests(unittest.TestCase):
+    def test_strips_updated_at_and_version(self):
+        obj = {
+            "id": "#item_x",
+            "type": "ITEM",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "version": 42,
+            "is_deleted": False,
+            "item_data": {"name": "X"},
+        }
+        cleaned = _strip_server_fields(obj)
+        self.assertNotIn("updated_at", cleaned)
+        self.assertNotIn("version", cleaned)
+        self.assertNotIn("is_deleted", cleaned)
+        self.assertEqual(cleaned["id"], "#item_x")
+
+    def test_strips_present_at_location_fields(self):
+        obj = {
+            "type": "ITEM",
+            "present_at_all_locations": True,
+            "present_at_location_ids": ["L1"],
+            "absent_at_location_ids": [],
+            "item_data": {"name": "X"},
+        }
+        cleaned = _strip_server_fields(obj)
+        self.assertNotIn("present_at_all_locations", cleaned)
+        self.assertNotIn("present_at_location_ids", cleaned)
+        self.assertNotIn("absent_at_location_ids", cleaned)
+
+
+class BuildClientIdMapTests(unittest.TestCase):
+    def test_returns_map_of_real_to_client_ids(self):
+        objects = [
+            {"id": "CAT1", "type": "CATEGORY", "category_data": {"name": "Drinks"}},
+            {"id": "ITM1", "type": "ITEM", "item_data": {"name": "Latte"}},
+        ]
+        id_map = _build_client_id_map(objects)
+        self.assertEqual(id_map["CAT1"], "#category_drinks")
+        self.assertEqual(id_map["ITM1"], "#item_latte")
+
+
+class ExportSnapshotIntegrationTests(unittest.TestCase):
+    def test_export_writes_file_with_rewritten_ids(self):
+        category = _make_obj(
+            "CAT_DRINKS",
+            {"id": "CAT_DRINKS", "type": "CATEGORY", "category_data": {"name": "Drinks"}},
+        )
+        item = _make_obj(
+            "ITM_LATTE",
+            {
+                "id": "ITM_LATTE",
+                "type": "ITEM",
+                "updated_at": "2026-01-01T00:00:00Z",
+                "version": 1,
+                "item_data": {
+                    "name": "Latte",
+                    "category_id": "CAT_DRINKS",
+                    "image_ids": ["IMG_SHOULD_BE_STRIPPED"],
+                    "tax_ids": ["TAX_SHOULD_BE_STRIPPED"],
+                    "variations": [],
+                },
+            },
+        )
+
+        client = MagicMock()
+        client.catalog.list = MagicMock(
+            side_effect=lambda types: {
+                "CATEGORY": [category],
+                "MODIFIER_LIST": [],
+                "MODIFIER": [],
+                "ITEM": [item],
+            }[types]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "scripts.catalog_snapshot.SNAPSHOT_DIR",
+                Path(tmpdir),
+            ):
+                exit_code = export_snapshot(client, "test_account")
+
+            self.assertEqual(exit_code, 0)
+            out_file = Path(tmpdir) / "test_account.json"
+            self.assertTrue(out_file.exists())
+            snapshot = json.loads(out_file.read_text())
+
+        self.assertEqual(snapshot["snapshot_meta"]["total_objects"], 2)
+        self.assertEqual(
+            snapshot["snapshot_meta"]["object_counts"],
+            {"CATEGORY": 1, "ITEM": 1},
+        )
+
+        objects_by_type = {o["type"]: o for o in snapshot["objects"]}
+        self.assertEqual(objects_by_type["CATEGORY"]["id"], "#category_drinks")
+        self.assertEqual(objects_by_type["ITEM"]["id"], "#item_latte")
+        self.assertEqual(
+            objects_by_type["ITEM"]["item_data"]["category_id"],
+            "#category_drinks",
+        )
+        # Out-of-scope refs stripped
+        self.assertNotIn("image_ids", objects_by_type["ITEM"]["item_data"])
+        self.assertNotIn("tax_ids", objects_by_type["ITEM"]["item_data"])
+
+    def test_export_deduplicates_by_id(self):
+        # Modifiers can be returned both via list(types=MODIFIER) and as
+        # children of MODIFIER_LIST in some sdk versions. The dedup logic
+        # must keep us from double-exporting them.
+        mod1 = _make_obj(
+            "MOD_X",
+            {"id": "MOD_X", "type": "MODIFIER", "modifier_data": {"name": "Foo"}},
+        )
+
+        client = MagicMock()
+        client.catalog.list = MagicMock(
+            side_effect=lambda types: {
+                "CATEGORY": [],
+                "MODIFIER_LIST": [],
+                "MODIFIER": [mod1, mod1],  # duplicate input
+                "ITEM": [],
+            }[types]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "scripts.catalog_snapshot.SNAPSHOT_DIR",
+                Path(tmpdir),
+            ):
+                export_snapshot(client, "dedup_test")
+
+            snapshot = json.loads(
+                (Path(tmpdir) / "dedup_test.json").read_text()
+            )
+        self.assertEqual(len(snapshot["objects"]), 1)
+
+
+class ReplaySnapshotIntegrationTests(unittest.TestCase):
+    def _write_snapshot(self, tmpdir, objects):
+        path = Path(tmpdir) / "test.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "snapshot_meta": {
+                        "account_slug": "test",
+                        "exported_at": "2026-01-01T00:00:00Z",
+                        "object_counts": {"ITEM": len(objects)},
+                        "total_objects": len(objects),
+                    },
+                    "objects": objects,
+                }
+            )
+        )
+        return path
+
+    def test_replay_dry_run_does_not_call_batch_upsert(self):
+        objects = [
+            {"id": "#item_x", "type": "ITEM", "item_data": {"name": "X"}}
+        ]
+        client = MagicMock()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_snapshot(tmpdir, objects)
+            with patch(
+                "scripts.catalog_snapshot.SNAPSHOT_DIR",
+                Path(tmpdir),
+            ):
+                exit_code = replay_snapshot(client, "test", apply=False)
+        self.assertEqual(exit_code, 0)
+        client.catalog.batch_upsert.assert_not_called()
+
+    def test_replay_apply_calls_batch_upsert_with_cleaned_objects(self):
+        objects = [
+            {
+                "id": "#item_x",
+                "type": "ITEM",
+                "updated_at": "2026-01-01T00:00:00Z",
+                "version": 5,
+                "item_data": {"name": "X"},
+            }
+        ]
+        client = MagicMock()
+        client.catalog.batch_upsert.return_value = SimpleNamespace(
+            objects=[SimpleNamespace(id="real_id_1")],
+            id_mappings=[SimpleNamespace(client_object_id="#item_x", object_id="real_id_1")],
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_snapshot(tmpdir, objects)
+            with patch(
+                "scripts.catalog_snapshot.SNAPSHOT_DIR",
+                Path(tmpdir),
+            ):
+                exit_code = replay_snapshot(client, "test", apply=True)
+
+        self.assertEqual(exit_code, 0)
+        client.catalog.batch_upsert.assert_called_once()
+        call = client.catalog.batch_upsert.call_args
+        # Confirm server-assigned fields were stripped before send.
+        sent_objects = call.kwargs["batches"][0]["objects"]
+        self.assertEqual(len(sent_objects), 1)
+        self.assertNotIn("updated_at", sent_objects[0])
+        self.assertNotIn("version", sent_objects[0])
+        self.assertEqual(sent_objects[0]["item_data"]["name"], "X")
+
+    def test_replay_with_missing_file_returns_error(self):
+        client = MagicMock()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "scripts.catalog_snapshot.SNAPSHOT_DIR",
+                Path(tmpdir),
+            ):
+                exit_code = replay_snapshot(client, "nonexistent", apply=True)
+        self.assertEqual(exit_code, 1)
+        client.catalog.batch_upsert.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()
