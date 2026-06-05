@@ -171,6 +171,105 @@ class BuildClientIdMapTests(unittest.TestCase):
         self.assertEqual(id_map["CAT1"], "#category_drinks")
         self.assertEqual(id_map["ITM1"], "#item_latte")
 
+    def test_captures_nested_item_variation_ids(self):
+        # Regression: in v1 we only collected top-level ids, so ITEM_VARIATION
+        # ids nested inside item_data.variations leaked through as raw Square
+        # IDs in the exported snapshot.
+        objects = [
+            {
+                "id": "ITM_LATTE",
+                "type": "ITEM",
+                "item_data": {
+                    "name": "Latte",
+                    "variations": [
+                        {
+                            "id": "VAR_LATTE_DEFAULT",
+                            "type": "ITEM_VARIATION",
+                            "item_variation_data": {
+                                "name": "Default",
+                                "item_id": "ITM_LATTE",
+                            },
+                        }
+                    ],
+                },
+            }
+        ]
+        id_map = _build_client_id_map(objects)
+        self.assertEqual(id_map["ITM_LATTE"], "#item_latte")
+        self.assertEqual(id_map["VAR_LATTE_DEFAULT"], "#item_variation_default")
+
+    def test_captures_nested_modifiers_in_modifier_lists(self):
+        # Modifiers can appear both top-level (via list(types=MODIFIER)) and
+        # nested inside MODIFIER_LIST.modifier_list_data.modifiers. The walker
+        # must collect both; dedup keeps it from double-counting.
+        objects = [
+            {
+                "id": "ML_SIZE",
+                "type": "MODIFIER_LIST",
+                "modifier_list_data": {
+                    "name": "Size",
+                    "modifiers": [
+                        {
+                            "id": "MOD_SMALL",
+                            "type": "MODIFIER",
+                            "modifier_data": {
+                                "name": "Small",
+                                "modifier_list_id": "ML_SIZE",
+                            },
+                        }
+                    ],
+                },
+            },
+            {
+                "id": "MOD_SMALL",
+                "type": "MODIFIER",
+                "modifier_data": {"name": "Small", "modifier_list_id": "ML_SIZE"},
+            },
+        ]
+        id_map = _build_client_id_map(objects)
+        self.assertEqual(id_map["ML_SIZE"], "#modifier_list_size")
+        self.assertEqual(id_map["MOD_SMALL"], "#modifier_small")
+        # No duplicate entries
+        self.assertEqual(len(id_map), 2)
+
+    def test_unique_client_ids_when_two_variations_share_a_name(self):
+        # Many sandbox items have a single variation literally named "" (empty)
+        # or "Default". The collision tie-break should produce unique client ids.
+        objects = [
+            {
+                "id": "ITM_A",
+                "type": "ITEM",
+                "item_data": {
+                    "name": "Latte",
+                    "variations": [
+                        {
+                            "id": "VAR_A",
+                            "type": "ITEM_VARIATION",
+                            "item_variation_data": {"name": "Default"},
+                        }
+                    ],
+                },
+            },
+            {
+                "id": "ITM_B",
+                "type": "ITEM",
+                "item_data": {
+                    "name": "Matcha",
+                    "variations": [
+                        {
+                            "id": "VAR_B",
+                            "type": "ITEM_VARIATION",
+                            "item_variation_data": {"name": "Default"},
+                        }
+                    ],
+                },
+            },
+        ]
+        id_map = _build_client_id_map(objects)
+        self.assertNotEqual(id_map["VAR_A"], id_map["VAR_B"])
+        self.assertTrue(id_map["VAR_A"].startswith("#item_variation_default"))
+        self.assertTrue(id_map["VAR_B"].startswith("#item_variation_default"))
+
 
 class ExportSnapshotIntegrationTests(unittest.TestCase):
     def test_export_writes_file_with_rewritten_ids(self):
@@ -199,6 +298,7 @@ class ExportSnapshotIntegrationTests(unittest.TestCase):
         client.catalog.list = MagicMock(
             side_effect=lambda types: {
                 "CATEGORY": [category],
+                "MEASUREMENT_UNIT": [],
                 "MODIFIER_LIST": [],
                 "MODIFIER": [],
                 "ITEM": [item],
@@ -247,6 +347,7 @@ class ExportSnapshotIntegrationTests(unittest.TestCase):
         client.catalog.list = MagicMock(
             side_effect=lambda types: {
                 "CATEGORY": [],
+                "MEASUREMENT_UNIT": [],
                 "MODIFIER_LIST": [],
                 "MODIFIER": [mod1, mod1],  # duplicate input
                 "ITEM": [],

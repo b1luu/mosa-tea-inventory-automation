@@ -51,7 +51,13 @@ SNAPSHOT_DIR = Path("data/catalog_snapshots")
 # Order in which we list types from Square. Determines the order objects
 # appear in the snapshot file (nice for humans reading the JSON), not the
 # upsert order (BatchUpsertCatalogObjects resolves dependencies server-side).
-SNAPSHOT_TYPES = ("CATEGORY", "MODIFIER_LIST", "MODIFIER", "ITEM")
+SNAPSHOT_TYPES = (
+    "CATEGORY",
+    "MEASUREMENT_UNIT",
+    "MODIFIER_LIST",
+    "MODIFIER",
+    "ITEM",
+)
 
 # Fields that reference catalog objects we intentionally don't include in v1.
 # Stripped during export so replay doesn't fail referencing things that don't
@@ -143,20 +149,39 @@ def replay_snapshot(client, account_slug, apply):
 
 
 def _build_client_id_map(objects):
-    """Build {real_id: #client_id} for each object in the snapshot.
+    """Build {real_id: #client_id} for every catalog object in the snapshot,
+    including nested ones (e.g., ITEM_VARIATION inside an ITEM's variations).
+
+    Walks each top-level object recursively. Any dict that has both a "type"
+    and an "id" field is treated as a catalog object and gets a client-id.
+    Without this recursive walk, nested ITEM_VARIATION ids leak through as
+    raw Square IDs and break replay (the target account has no record of
+    those ids).
 
     Client IDs are prefixed with # so Square's BatchUpsertCatalogObjects
-    treats them as in-batch temp IDs. The map is used to rewrite every
-    string reference (categoryid, modifier_list_id, etc.) during export.
+    treats them as in-batch temp IDs.
     """
     mapping = {}
     used_client_ids = set()
     for obj in objects:
-        real_id = obj["id"]
-        client_id = _make_client_id(obj, used_client_ids)
-        mapping[real_id] = client_id
-        used_client_ids.add(client_id)
+        _collect_object_ids(obj, mapping, used_client_ids)
     return mapping
+
+
+def _collect_object_ids(node, mapping, used_client_ids):
+    """Walk a JSON-like structure and add every {type, id}-shaped dict to the map."""
+    if isinstance(node, dict):
+        node_type = node.get("type")
+        node_id = node.get("id")
+        if isinstance(node_type, str) and isinstance(node_id, str) and node_id not in mapping:
+            client_id = _make_client_id(node, used_client_ids)
+            mapping[node_id] = client_id
+            used_client_ids.add(client_id)
+        for value in node.values():
+            _collect_object_ids(value, mapping, used_client_ids)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_object_ids(value, mapping, used_client_ids)
 
 
 def _make_client_id(obj, used_client_ids):
@@ -175,9 +200,11 @@ def _make_client_id(obj, used_client_ids):
 def _extract_name(obj):
     for data_key in (
         "item_data",
+        "item_variation_data",
         "modifier_data",
         "modifier_list_data",
         "category_data",
+        "measurement_unit_data",
     ):
         data = obj.get(data_key) or {}
         if data.get("name"):
