@@ -1,4 +1,4 @@
-# Production-environment terraform.tfvars template.
+# Production-environment tfvars template.
 #
 # Copy this file to `production.tfvars` (which is gitignored) and fill in real
 # values before running `terraform apply -var-file=production.tfvars`.
@@ -38,12 +38,11 @@ manual_count_sync_lambda_function_name      = "mosa-tea-manual-count-sync-prod"
 binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check-prod"
 oauth_lambda_function_name                  = "mosa-tea-oauth-prod"
 
-# IAM role names. Required overrides for production because Terraform
-# auto-loads `terraform.tfvars` (sandbox values) in addition to whatever
-# -var-file you pass, and sandbox sets three of these to legacy
-# manually-imported role names that would collide here (IAM role names are
-# globally unique per AWS account). Without these overrides production
-# `terraform apply` fails with `EntityAlreadyExists` on these three.
+# IAM role names. Production has its own -prod-suffixed roles. The sandbox
+# tfvars sets three of these to legacy manually-imported role names; if
+# someone mistakenly applies sandbox values against production they would
+# collide here (IAM role names are globally unique per AWS account). Listing
+# them explicitly keeps production self-contained.
 webhook_ingress_lambda_role_name        = "mosa-tea-webhook-ingress-prod-role"
 worker_lambda_role_name                 = "mosa-tea-webhook-worker-prod-role"
 manual_count_sync_lambda_role_name      = "mosa-tea-manual-count-sync-prod-role"
