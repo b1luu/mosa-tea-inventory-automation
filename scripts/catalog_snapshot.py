@@ -64,8 +64,14 @@ SNAPSHOT_TYPES = (
 # exist in the target account.
 OUT_OF_SCOPE_REF_FIELDS = ("image_ids", "tax_ids")
 
-# Fields that Square assigns server-side. Stripped during replay so upsert
-# doesn't conflict with the target account's freshly-generated values.
+# Fields stripped during replay. Two categories rolled into one set because
+# the strip mechanism is identical:
+#   1. Server-assigned (Square sets these — upserts conflict if we resend):
+#      updated_at, version, created_at, is_deleted
+#   2. Per-source-merchant references that don't transfer across accounts:
+#      present_at_all_locations, present_at_location_ids, absent_at_location_ids,
+#      location_overrides (Square errors out with "unknown location id" if these
+#      reference locations that don't exist in the target account).
 SERVER_ASSIGNED_FIELDS = frozenset({
     "updated_at",
     "version",
@@ -74,6 +80,7 @@ SERVER_ASSIGNED_FIELDS = frozenset({
     "present_at_all_locations",
     "present_at_location_ids",
     "absent_at_location_ids",
+    "location_overrides",
 })
 
 
