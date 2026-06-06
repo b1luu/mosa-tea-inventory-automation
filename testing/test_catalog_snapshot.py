@@ -10,6 +10,7 @@ from scripts.catalog_snapshot import (
     _make_client_id,
     _rewrite_ids,
     _slugify,
+    _strip_nested_duplicates,
     _strip_out_of_scope_refs,
     _strip_server_fields,
     export_snapshot,
@@ -159,6 +160,78 @@ class StripServerFieldsTests(unittest.TestCase):
         self.assertNotIn("present_at_all_locations", cleaned)
         self.assertNotIn("present_at_location_ids", cleaned)
         self.assertNotIn("absent_at_location_ids", cleaned)
+
+
+class StripNestedDuplicatesTests(unittest.TestCase):
+    def test_drops_modifiers_array_inside_modifier_list_data(self):
+        # The exact bug: Square returns modifiers both as top-level objects
+        # (from list(types="MODIFIER")) and nested inside MODIFIER_LIST. Sending
+        # both forms in batch_upsert produces "duplicate ID #modifier_X".
+        obj = {
+            "type": "MODIFIER_LIST",
+            "id": "#modifier_list_ice_level",
+            "modifier_list_data": {
+                "name": "Ice Level",
+                "selection_type": "SINGLE",
+                "modifiers": [
+                    {
+                        "type": "MODIFIER",
+                        "id": "#modifier_no_ice",
+                        "modifier_data": {
+                            "name": "No Ice",
+                            "modifier_list_id": "#modifier_list_ice_level",
+                        },
+                    }
+                ],
+            },
+        }
+        cleaned = _strip_nested_duplicates(obj)
+        self.assertNotIn("modifiers", cleaned["modifier_list_data"])
+        # Other fields on modifier_list_data are preserved
+        self.assertEqual(cleaned["modifier_list_data"]["name"], "Ice Level")
+        self.assertEqual(cleaned["modifier_list_data"]["selection_type"], "SINGLE")
+
+    def test_leaves_top_level_modifier_untouched(self):
+        obj = {
+            "type": "MODIFIER",
+            "id": "#modifier_no_ice",
+            "modifier_data": {
+                "name": "No Ice",
+                "modifier_list_id": "#modifier_list_ice_level",
+            },
+        }
+        cleaned = _strip_nested_duplicates(obj)
+        self.assertEqual(cleaned, obj)
+
+    def test_leaves_item_with_nested_variations_untouched(self):
+        # ITEM_VARIATION nested under item_data.variations stays — we don't
+        # list ITEM_VARIATION at top level, so there's no duplicate.
+        obj = {
+            "type": "ITEM",
+            "id": "#item_latte",
+            "item_data": {
+                "name": "Latte",
+                "variations": [
+                    {
+                        "type": "ITEM_VARIATION",
+                        "id": "#item_variation_default",
+                        "item_variation_data": {"name": "Default"},
+                    }
+                ],
+            },
+        }
+        cleaned = _strip_nested_duplicates(obj)
+        self.assertEqual(cleaned, obj)
+
+    def test_handles_modifier_list_without_nested_modifiers_array(self):
+        # Defensive: if a MODIFIER_LIST has no modifiers array (e.g., empty
+        # list, or omitted), nothing breaks.
+        obj_no_modifiers = {
+            "type": "MODIFIER_LIST",
+            "id": "#ml_empty",
+            "modifier_list_data": {"name": "Empty"},
+        }
+        self.assertEqual(_strip_nested_duplicates(obj_no_modifiers), obj_no_modifiers)
 
 
 class BuildClientIdMapTests(unittest.TestCase):
