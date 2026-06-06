@@ -42,7 +42,7 @@ If you want notifications, set:
 
 - `alarm_notification_topic_arn`
 
-to an existing SNS topic ARN in your local ignored `terraform.tfvars`.
+to an existing SNS topic ARN in your local ignored `sandbox.tfvars`.
 
 The same SNS topic is also reused by the scheduled binding coverage check when it finds:
 
@@ -72,7 +72,7 @@ Safe to keep in git:
 
 Do not commit:
 
-- filled-in `terraform.tfvars`
+- filled-in `sandbox.tfvars`
 - Square access tokens
 - operator token values
 - webhook signature keys
@@ -96,14 +96,14 @@ Files:
 - [`infra/lambda.tf`](../infra/lambda.tf)
 - [`infra/api_gateway.tf`](../infra/api_gateway.tf)
 - [`infra/outputs.tf`](../infra/outputs.tf)
-- [`infra/terraform.tfvars.example`](../infra/terraform.tfvars.example)
+- [`infra/sandbox.tfvars.example`](../infra/sandbox.tfvars.example)
 
 ## Adopt Existing AWS Resources
 
 This project already has live AWS resources, so the first safe adoption path is:
 
-1. create a local `infra/terraform.tfvars` from the example
-2. set the existing Lambda IAM role names in `terraform.tfvars`
+1. create a local `infra/sandbox.tfvars` from the example
+2. set the existing Lambda IAM role names in `sandbox.tfvars`
 3. run `terraform init`
 4. import existing resources into state
 5. run `terraform plan`
@@ -165,7 +165,7 @@ Then from `infra/`:
 
 ```bash
 terraform init
-terraform plan -var-file=terraform.tfvars
+terraform plan -var-file=sandbox.tfvars
 ```
 
 Current package ownership:
@@ -191,7 +191,7 @@ For the new OAuth slice, Terraform also expects:
 - `square_oauth_client_secret`
 - `square_oauth_redirect_uri`
 
-Those are required for the deployed callback flow and should be supplied through your local ignored `terraform.tfvars`.
+Those are required for the deployed callback flow and should be supplied through your local ignored `sandbox.tfvars`.
 
 ## OAuth Bootstrap Sequence
 
@@ -199,13 +199,13 @@ Because the dedicated OAuth API is a new resource, the final deployed callback U
 
 That means OAuth setup is a two-step bootstrap:
 
-1. Put the Square sandbox application credentials into local `terraform.tfvars`.
+1. Put the Square sandbox application credentials into local `sandbox.tfvars`.
 2. Use a temporary `square_oauth_redirect_uri` value for the first apply.
 3. Run `terraform apply` to create the OAuth API, OAuth Lambda, and OAuth state table.
 4. Read the generated `oauth_callback_url` Terraform output.
 5. Update both:
    - the Square Sandbox Redirect URL in the Square Developer Dashboard
-   - `square_oauth_redirect_uri` in local `terraform.tfvars`
+   - `square_oauth_redirect_uri` in local `sandbox.tfvars`
 6. Run `terraform apply` again so the deployed Lambda config and Square app configuration match exactly.
 
 Until that second apply is complete, the deployed OAuth callback should be treated as not fully wired.

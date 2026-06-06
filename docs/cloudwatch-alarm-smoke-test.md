@@ -9,7 +9,7 @@ Use this after applying the baseline CloudWatch alarms to verify:
 
 ## Preconditions
 
-- `alarm_notification_topic_arn` is set in local ignored `infra/terraform.tfvars`
+- `alarm_notification_topic_arn` is set in local ignored `infra/sandbox.tfvars`
 - the SNS email subscription is confirmed
 - Terraform apply has already completed successfully
 
@@ -81,7 +81,7 @@ Expected:
 ## 7. Final Terraform convergence check
 
 ```bash
-terraform -chdir=infra plan -var-file=terraform.tfvars
+terraform -chdir=infra plan -var-file=sandbox.tfvars
 ```
 
 Expected:

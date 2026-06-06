@@ -37,17 +37,16 @@ workspace.** Always run `terraform workspace show` before any apply.
 
 ## Known gotchas (read this once)
 
-Two oddities of this stack to be aware of going in. Both are tracked for a
-follow-up cleanup PR; the runbook + template work around them.
+One oddity of this stack to be aware of. Tracked for a follow-up cleanup PR;
+the runbook works around it.
 
-1. **`terraform.tfvars` auto-loads even when `-var-file=production.tfvars`
-   is set.** Terraform reads `infra/terraform.tfvars` (sandbox values)
-   automatically, then applies your `-var-file` on top. For any variable
-   set in sandbox but NOT in `production.tfvars`, the sandbox value silently
-   leaks into the production plan. The provided `production.tfvars.example`
-   already overrides every leaky key we know about — keep it that way when
-   editing. If you ever add a new variable to sandbox, add it to both
-   examples.
+1. **`terraform.tfvars` auto-load — RESOLVED**. Previously Terraform read
+   `infra/terraform.tfvars` automatically for every workspace, so sandbox
+   values leaked into production plans for any variable not explicitly set
+   in `production.tfvars`. Fixed by renaming the sandbox file to
+   `sandbox.tfvars`, which is not auto-loaded. **Every `terraform` command
+   must now pass `-var-file=sandbox.tfvars` or `-var-file=production.tfvars`
+   explicitly** — no implicit default.
 
 2. **Three CloudWatch alarm names are not workspace-suffixed.** Specifically
    `mosa-tea-binding-coverage-check-errors`,
@@ -297,7 +296,7 @@ ones. Add them and re-run.
 When a future PR adds a new Lambda function:
 
 1. Add the function name variable in [`infra/variables.tf`](../infra/variables.tf).
-2. Add the new line to both [`infra/terraform.tfvars.example`](../infra/terraform.tfvars.example)
+2. Add the new line to both [`infra/sandbox.tfvars.example`](../infra/sandbox.tfvars.example)
    (sandbox naming) and [`infra/production.tfvars.example`](../infra/production.tfvars.example)
    (with `-prod` suffix).
 3. In [`.github/workflows/deploy-lambda.yml`](../.github/workflows/deploy-lambda.yml):

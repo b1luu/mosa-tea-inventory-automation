@@ -145,7 +145,7 @@ For an infra-aware version after `terraform -chdir=infra init`, run:
 The default sanity check does not run a live AWS drift check and does not apply infrastructure. If you want to confirm the imported AWS stack still matches Terraform, run:
 
 ```bash
-terraform -chdir=infra plan -var-file=terraform.tfvars
+terraform -chdir=infra plan -var-file=sandbox.tfvars
 ```
 
 ## Live Demo
@@ -319,8 +319,8 @@ The live AWS stack has been imported into Terraform state and reconciled until `
 That means:
 
 - the deployed Lambdas, API Gateway resources, SQS queues, DynamoDB tables, IAM roles, log groups, and event source mapping are now tracked as code
-- infrastructure drift can be detected with `terraform -chdir=infra plan -var-file=terraform.tfvars`
-- secrets stay out of the public repo by living only in ignored local `terraform.tfvars`
+- infrastructure drift can be detected with `terraform -chdir=infra plan -var-file=sandbox.tfvars`
+- secrets stay out of the public repo by living only in ignored local `sandbox.tfvars`
 
 This was done as an import-first adoption, not by recreating the stack from scratch.
 
