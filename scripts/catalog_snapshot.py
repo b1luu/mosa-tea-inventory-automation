@@ -137,6 +137,7 @@ def replay_snapshot(client, account_slug, apply):
         return 0
 
     cleaned = [_strip_server_fields(obj) for obj in objects]
+    cleaned = [_strip_nested_duplicates(obj) for obj in cleaned]
     response = client.catalog.batch_upsert(
         idempotency_key=str(uuid.uuid4()),
         batches=[{"objects": cleaned}],
@@ -252,6 +253,41 @@ def _strip_server_fields(obj):
         }
     if isinstance(obj, list):
         return [_strip_server_fields(v) for v in obj]
+    return obj
+
+
+def _strip_nested_duplicates(obj):
+    """Drop nested catalog objects that are also present as top-level entries.
+
+    Square's BatchUpsertCatalogObjects rejects payloads where the same
+    catalog object appears both at top-level and nested inside a parent
+    (it sees the same client-id twice and errors with
+    ``Object with duplicate ID``).
+
+    In practice this happens with MODIFIERs: Square returns them both via
+    ``list(types="MODIFIER")`` (top-level) and inside
+    ``MODIFIER_LIST.modifier_list_data.modifiers`` (nested). We send only
+    the top-level form; Square reconstructs the list↔modifier relationship
+    via each MODIFIER's back-reference (``modifier_data.modifier_list_id``).
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            if (
+                obj.get("type") == "MODIFIER_LIST"
+                and k == "modifier_list_data"
+                and isinstance(v, dict)
+            ):
+                result[k] = {
+                    ik: _strip_nested_duplicates(iv)
+                    for ik, iv in v.items()
+                    if ik != "modifiers"
+                }
+            else:
+                result[k] = _strip_nested_duplicates(v)
+        return result
+    if isinstance(obj, list):
+        return [_strip_nested_duplicates(v) for v in obj]
     return obj
 
 
