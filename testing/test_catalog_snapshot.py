@@ -161,6 +161,43 @@ class StripServerFieldsTests(unittest.TestCase):
         self.assertNotIn("present_at_location_ids", cleaned)
         self.assertNotIn("absent_at_location_ids", cleaned)
 
+    def test_strips_nested_location_overrides_from_item_variations(self):
+        # Per-merchant references: each ITEM_VARIATION can have a
+        # location_overrides array of per-location price/inventory settings.
+        # The location_ids inside reference the SOURCE merchant's locations,
+        # which don't exist in the target. Square rejects the batch with
+        # "Object contains unknown location id" if we leave them in.
+        obj = {
+            "type": "ITEM",
+            "id": "#item_latte",
+            "item_data": {
+                "name": "Latte",
+                "variations": [
+                    {
+                        "type": "ITEM_VARIATION",
+                        "id": "#item_variation_default",
+                        "item_variation_data": {
+                            "name": "Default",
+                            "price_money": {"amount": 500, "currency": "USD"},
+                            "location_overrides": [
+                                {
+                                    "location_id": "LB1MECVA7EZ8Z",
+                                    "track_inventory": True,
+                                    "price_money": {"amount": 550, "currency": "USD"},
+                                }
+                            ],
+                        },
+                    }
+                ],
+            },
+        }
+        cleaned = _strip_server_fields(obj)
+        var = cleaned["item_data"]["variations"][0]
+        self.assertNotIn("location_overrides", var["item_variation_data"])
+        # Default price + name preserved
+        self.assertEqual(var["item_variation_data"]["name"], "Default")
+        self.assertEqual(var["item_variation_data"]["price_money"]["amount"], 500)
+
 
 class StripNestedDuplicatesTests(unittest.TestCase):
     def test_drops_modifiers_array_inside_modifier_list_data(self):
