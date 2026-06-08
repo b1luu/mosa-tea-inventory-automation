@@ -28,6 +28,7 @@ Examples:
         --merchant <new-test-merchant-id> \\
         --apply
 
+;6klj;
 Scope (v1):
 - Captures ITEM (with nested variations), MODIFIER_LIST, MODIFIER, CATEGORY.
 - Skips IMAGE, TAX, DISCOUNT, custom attributes, quick-amount settings.

@@ -108,7 +108,7 @@
     "HD5IAR2GT4I4G4L64CQ7LJ6H": {
       "id": "HD5IAR2GT4I4G4L64CQ7LJ6H",
       "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
-      "name": "Brown Sugar H\u00fan-Ku\u00e9 (Tapioca Jelly)"
+      "name": "Brown Sugar Hún-Kué (Tapioca Jelly)"
     },
     "HTY6R66P7Q2UE4XFYS4L6QM4": {
       "id": "HTY6R66P7Q2UE4XFYS4L6QM4",
@@ -209,35 +209,35 @@
   "variations": {
     "2FARBPJVB7OGMWUFLJUO63QJ": {
       "id": "2FARBPJVB7OGMWUFLJUO63QJ",
-      "item_name": "Hot Tie Guan Yin Milk Tea with Osmanthus Honey",
+      "item_name": "Hot Tie Guan Yin Oolong Milk Tea with Osmanthus Honey 熱桂花蜜鐵觀音奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "2GVQJKC2SVP7ALXQ4EXODBJJ": {
       "id": "2GVQJKC2SVP7ALXQ4EXODBJJ",
-      "item_name": "Signature Black Tea \u719f\u6210\u7d05\u8336",
+      "item_name": "Signature Black Tea 熟成紅茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "2NHO2FXDWTJSZIGU5ZCXTS6T": {
       "id": "2NHO2FXDWTJSZIGU5ZCXTS6T",
-      "item_name": "Hot Genmai Jasmine Green Tea",
+      "item_name": "Hot Genmai Jasmine Green Tea 熱玄米綠茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "3CIY22QYNOUQSCFPS6OEV77W": {
       "id": "3CIY22QYNOUQSCFPS6OEV77W",
-      "item_name": "Strawberry Matcha Latte \u8349\u8393\u62b9\u8336\u62ff\u9435",
+      "item_name": "Strawberry Matcha Latte 草莓抹茶拿鐵",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "3IUNOTOZ23VKQF3CT3FZGQJO": {
       "id": "3IUNOTOZ23VKQF3CT3FZGQJO",
-      "item_name": "Hot Four Seasons Tea",
+      "item_name": "Hot Four Seasons Tea 熱四季青茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -272,21 +272,21 @@
     },
     "4PPGTR4WKW5LI2Q5VL2RWG62": {
       "id": "4PPGTR4WKW5LI2Q5VL2RWG62",
-      "item_name": "Tie Guan Yin Oolong Tea with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3",
+      "item_name": "Tie Guan Yin Oolong Tea with Osmanthus Honey 桂花鐵觀音",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "5QYGSH5A7D3EOYGTBZMVEC7D": {
       "id": "5QYGSH5A7D3EOYGTBZMVEC7D",
-      "item_name": "Tie Guan Yin Milk Tea with Osmanthus Honey \u6842\u82b1\u871c\u9435\u89c0\u97f3\u5976\u8336",
+      "item_name": "Tie Guan Yin Oolong Milk Tea with Osmanthus Honey 桂花蜜鐵觀音奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "72KIPS2KHWEK6RAT452MAB2P": {
       "id": "72KIPS2KHWEK6RAT452MAB2P",
-      "item_name": "Tie Guan Yin Oolong Tea \u9435\u89c0\u97f3\u70cf\u9f8d\u8336",
+      "item_name": "Tie Guan Yin Oolong Tea 鐵觀音烏龍茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -300,7 +300,7 @@
     },
     "75VND7AVP4WBXIAK5D3OYG6C": {
       "id": "75VND7AVP4WBXIAK5D3OYG6C",
-      "item_name": "Fresh Fruit Tea \u65b0\u9bae\u6c34\u679c\u8336",
+      "item_name": "Fresh Fruit Tea 新鮮水果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -328,14 +328,14 @@
     },
     "7TBAWV3PPUHTQQ75HKMSZQZR": {
       "id": "7TBAWV3PPUHTQQ75HKMSZQZR",
-      "item_name": "Roasted Buckwheat Barley Tea \u854e\u9ea5\u9ea5\u8336",
+      "item_name": "Roasted Buckwheat Barley Tea 蕎麥麥茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "7VVQ526562N3Z3GTKROKFNFI": {
       "id": "7VVQ526562N3Z3GTKROKFNFI",
-      "item_name": "Hot Genmai Jasmine Green Au Lait",
+      "item_name": "Hot Genmai Jasmine Green Au Lait 熱玄米綠歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -349,7 +349,7 @@
     },
     "AQCPLG5NND3HT5SE3NLHNVXD": {
       "id": "AQCPLG5NND3HT5SE3NLHNVXD",
-      "item_name": "Signature Black Milk Tea \u719f\u6210\u5976\u8336",
+      "item_name": "Signature Black Milk Tea 熟成奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -363,14 +363,14 @@
     },
     "B526AZ22TDNVJGUAE4HRXJKS": {
       "id": "B526AZ22TDNVJGUAE4HRXJKS",
-      "item_name": "TGY Special \u7c89\u7cbf\u9435\u89c0\u97f3\u5976\u8336",
+      "item_name": "TGY Special 粉粿鐵觀音奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "BU4ESSWPHPWD5HVHDJAAXNHT": {
       "id": "BU4ESSWPHPWD5HVHDJAAXNHT",
-      "item_name": "Tie Guan Yin Milk Tea \u9435\u89c0\u97f3\u5976\u8336",
+      "item_name": "Tie Guan Yin Oolong Milk Tea 鐵觀音奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -391,7 +391,7 @@
     },
     "CYCWISFBGJBMVQJT327EKXKA": {
       "id": "CYCWISFBGJBMVQJT327EKXKA",
-      "item_name": "Mango Matcha Latte \u8292\u679c\u62b9\u8336\u62ff\u9435",
+      "item_name": "Mango Matcha Latte 芒果抹茶拿鐵",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -412,14 +412,14 @@
     },
     "DSU5CV4X365YAPIZTLCKJ5TH": {
       "id": "DSU5CV4X365YAPIZTLCKJ5TH",
-      "item_name": "Hot Genmai Jasmine Green Milk Tea",
+      "item_name": "Hot Genmai Jasmine Green Milk Tea 熱玄米綠奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "DX2LRA7T4EFSSFH6POETDJHY": {
       "id": "DX2LRA7T4EFSSFH6POETDJHY",
-      "item_name": "Matcha Latte \u62b9\u8336\u62ff\u9435",
+      "item_name": "Matcha Latte 抹茶拿鐵",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -440,28 +440,28 @@
     },
     "EJJASVYVTOW2RW42KNIANNZO": {
       "id": "EJJASVYVTOW2RW42KNIANNZO",
-      "item_name": "Hot Spice Apple Tea Cider \u71b1\u860b\u679c\u8336",
+      "item_name": "Hot Spice Apple Tea Cider 熱蘋果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "EN2VSTOAJGNMPKU5LMXF3MR6": {
       "id": "EN2VSTOAJGNMPKU5LMXF3MR6",
-      "item_name": "Fresh Apple Tea \u9bae\u860b\u679c\u679c\u8336",
+      "item_name": "Fresh Apple Tea 鮮蘋果果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "EN3MUM4GFV7IMYIUH2QMIUSM": {
       "id": "EN3MUM4GFV7IMYIUH2QMIUSM",
-      "item_name": "Roasted Buckwheat Barley Au Lait \u854e\u9ea5\u9ea5\u6b50\u857e",
+      "item_name": "Roasted Buckwheat Barley Au Lait 蕎麥麥歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "EZ77LLZT4T3W6JMWFPZKRNPS": {
       "id": "EZ77LLZT4T3W6JMWFPZKRNPS",
-      "item_name": "Hot Tie Guan Yin Au Lait with Osmanthus Honey",
+      "item_name": "Hot Tie Guan Yin Oolong Au Lait with Osmanthus Honey 熱桂花鐵觀音歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -482,7 +482,7 @@
     },
     "FYZX4EUOH6P37MKZ6TZNYW3I": {
       "id": "FYZX4EUOH6P37MKZ6TZNYW3I",
-      "item_name": "Pistachio Mist \u958b\u5fc3\u96f2\u6735",
+      "item_name": "Pistachio Mist 開心雲朵",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -496,21 +496,21 @@
     },
     "GBS2JYH7YIFDVMWL4CVS3MFF": {
       "id": "GBS2JYH7YIFDVMWL4CVS3MFF",
-      "item_name": "Hot Roasted Buckwheat Barley Milk Tea",
+      "item_name": "Hot Roasted Buckwheat Barley Milk Tea 熱蕎麥麥奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "GL4SND76TJYPY6RBUU32N4HF": {
       "id": "GL4SND76TJYPY6RBUU32N4HF",
-      "item_name": "Fresh Lemon Tea \u9bae\u6ab8\u6aac\u679c\u8336",
+      "item_name": "Fresh Lemon Tea 鮮檸檬果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "GWLUEE5JMJLJITJRR42G6GHV": {
       "id": "GWLUEE5JMJLJITJRR42G6GHV",
-      "item_name": "Fresh Grapefruit Tea \u9bae\u8461\u8404\u67da\u679c\u8336",
+      "item_name": "Fresh Grapefruit Tea 鮮葡萄柚果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -524,7 +524,7 @@
     },
     "HWDEB3422IYXRP4WV47TY7IF": {
       "id": "HWDEB3422IYXRP4WV47TY7IF",
-      "item_name": "Hot Four Seasons Milk Tea",
+      "item_name": "Hot Four Seasons Milk Tea 熱四季青奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -538,49 +538,49 @@
     },
     "IPAOWQYVBTMVYEWOQQAYXI7J": {
       "id": "IPAOWQYVBTMVYEWOQQAYXI7J",
-      "item_name": "Grapefruit Bloom \u67da\u9999\u56db\u5b63",
+      "item_name": "Grapefruit Bloom 柚香四季",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "J23B26YNDV2WAAJIKDXKD3YR": {
       "id": "J23B26YNDV2WAAJIKDXKD3YR",
-      "item_name": "Hot Matcha Latte",
+      "item_name": "Hot Matcha Latte 熱抹茶拿鐵",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "JNMEIPGCJLSLJVD7BNPZWE7R": {
       "id": "JNMEIPGCJLSLJVD7BNPZWE7R",
-      "item_name": "Hot Tie Guan Yin Oolong Tea with Osmanthus Honey",
+      "item_name": "Hot Tie Guan Yin Oolong Tea with Osmanthus Honey 熱桂花鐵觀音",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "KBA6LSBZUFPV3O2QP2LD7FPI": {
       "id": "KBA6LSBZUFPV3O2QP2LD7FPI",
-      "item_name": "Hot Four Seasons Au Lait",
+      "item_name": "Hot Four Seasons Au Lait 熱四季青歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "KESNSNPZO3QYTJHW4STNDJNR": {
       "id": "KESNSNPZO3QYTJHW4STNDJNR",
-      "item_name": "Fresh Orange Tea \u9bae\u67f3\u6a59\u679c\u8336",
+      "item_name": "Fresh Orange Tea 鮮柳橙果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "LVX3VUS2O4XOP6WR63VTO2WK": {
       "id": "LVX3VUS2O4XOP6WR63VTO2WK",
-      "item_name": "Hot Signature Black Milk Tea",
+      "item_name": "Hot Signature Black Milk Tea 熱熟成奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "MFEUN6CYRHERVYYWV7H7WWVZ": {
       "id": "MFEUN6CYRHERVYYWV7H7WWVZ",
-      "item_name": "Genmai Jasmine Green Milk Tea \u7384\u7c73\u7da0\u5976\u8336",
+      "item_name": "Genmai Jasmine Green Milk Tea 玄米綠奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -601,21 +601,21 @@
     },
     "NRVPY6OAHI42VTZEMYHTDQ4N": {
       "id": "NRVPY6OAHI42VTZEMYHTDQ4N",
-      "item_name": "Brown Sugar Mist \u9ed1\u7cd6\u96f2\u6735",
+      "item_name": "Brown Sugar Mist 黑糖雲朵",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "NWWYPDJQNXMVE2KZANH3ZYDZ": {
       "id": "NWWYPDJQNXMVE2KZANH3ZYDZ",
-      "item_name": "Free Drink (100\u263c Reward)",
+      "item_name": "Free Drink (100☼ Reward)",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "OVRXSRTC3OETYH5GZOAN4UKH": {
       "id": "OVRXSRTC3OETYH5GZOAN4UKH",
-      "item_name": "Signature Black Au Lait \u719f\u6210\u6b50\u857e",
+      "item_name": "Signature Black Au Lait 熟成歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -629,7 +629,7 @@
     },
     "PF3JSGPSK2QSRWPDSJDNX5PJ": {
       "id": "PF3JSGPSK2QSRWPDSJDNX5PJ",
-      "item_name": "Hot Tie Guan Yin Au Lait",
+      "item_name": "Hot Tie Guan Yin Oolong Au Lait 熱鐵觀音歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -643,14 +643,14 @@
     },
     "PWOPJQGW3GQHLEYIBUNOEAZD": {
       "id": "PWOPJQGW3GQHLEYIBUNOEAZD",
-      "item_name": "Four Seasons Au Lait \u56db\u5b63\u9752\u6b50\u857e",
+      "item_name": "Four Seasons Au Lait 四季青歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "QFNOAWWK3VZXJTZJAU4JRCFO": {
       "id": "QFNOAWWK3VZXJTZJAU4JRCFO",
-      "item_name": "Fresh Strawberry Tea \u9bae\u8349\u8393\u679c\u8336",
+      "item_name": "Fresh Strawberry Tea 鮮草莓果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -678,14 +678,14 @@
     },
     "RJU3MBQFNVHFUUDMTAXDQ43P": {
       "id": "RJU3MBQFNVHFUUDMTAXDQ43P",
-      "item_name": "Genmai Matcha with Matcha Jelly \u62b9\u8336\u51cd\u7384\u7c73\u62b9\u8336",
+      "item_name": "Genmai Matcha with Matcha Jelly 抹茶凍玄米抹茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "SA4SIBUCOLBU3XQ3BZPYXXP4": {
       "id": "SA4SIBUCOLBU3XQ3BZPYXXP4",
-      "item_name": "Genmai Jasmine Green Tea \u7384\u7c73\u7da0\u8336",
+      "item_name": "Genmai Jasmine Green Tea 玄米綠茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -699,28 +699,28 @@
     },
     "UCXQBKF6EKHTD5CT2MLACMO5": {
       "id": "UCXQBKF6EKHTD5CT2MLACMO5",
-      "item_name": "Hot Tie Guan Yin Oolong Tea",
+      "item_name": "Hot Tie Guan Yin Oolong Tea 熱鐵觀音烏龍茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "UE3LLFVD7P6AATRKRBYZCZ5D": {
       "id": "UE3LLFVD7P6AATRKRBYZCZ5D",
-      "item_name": "Hot Tie Guan Yin Milk Tea",
+      "item_name": "Hot Tie Guan Yin Oolong Milk Tea 熱鐵觀音奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "UMBGTNZ3VXRWVFZQ3D2UESYF": {
       "id": "UMBGTNZ3VXRWVFZQ3D2UESYF",
-      "item_name": "Roasted Buckwheat Barley Milk Tea \u854e\u9ea5\u9ea5\u5976\u8336",
+      "item_name": "Roasted Buckwheat Barley Milk Tea 蕎麥麥奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "UT2LQ5DFYMM3TJDOGVGSJ542": {
       "id": "UT2LQ5DFYMM3TJDOGVGSJ542",
-      "item_name": "Four Seasons Milk Tea \u56db\u5b63\u9752\u5976\u8336",
+      "item_name": "Four Seasons Milk Tea 四季青奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -741,21 +741,21 @@
     },
     "VXCZ6EMJHEJN5QYCQ3EYHPFT": {
       "id": "VXCZ6EMJHEJN5QYCQ3EYHPFT",
-      "item_name": "Genmai Jasmine Green Au Lait \u7384\u7c73\u7da0\u6b50\u857e",
+      "item_name": "Genmai Jasmine Green Au Lait 玄米綠歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "W5F3TM6WNOY5ZFX2GQCY3XXU": {
       "id": "W5F3TM6WNOY5ZFX2GQCY3XXU",
-      "item_name": "Roasted Buckwheat Four Seasons Tea \u854e\u9ea5\u9752\u8336",
+      "item_name": "Roasted Buckwheat Four Seasons Tea 蕎麥青茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "W5OZ3N4RCU3WO7CEL7FQ7KNH": {
       "id": "W5OZ3N4RCU3WO7CEL7FQ7KNH",
-      "item_name": "Hot Roasted Buckwheat Barley Tea",
+      "item_name": "Hot Roasted Buckwheat Barley Tea 熱蕎麥麥茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -769,21 +769,21 @@
     },
     "WDJUOLPURFXN7OYF57TQG4D6": {
       "id": "WDJUOLPURFXN7OYF57TQG4D6",
-      "item_name": "Four Seasons Tea \u56db\u5b63\u9752\u8336",
+      "item_name": "Four Seasons Tea 四季青茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "WH5ZLKHGHG3MJ5B3QM2KD23B": {
       "id": "WH5ZLKHGHG3MJ5B3QM2KD23B",
-      "item_name": "Hot Roasted Buckwheat Barley Au Lait",
+      "item_name": "Hot Roasted Buckwheat Barley Au Lait 熱蕎麥麥歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "X2PJTAY45YI2UCSUG2CEXWTO": {
       "id": "X2PJTAY45YI2UCSUG2CEXWTO",
-      "item_name": "Hot Signature Black Tea",
+      "item_name": "Hot Signature Black Tea 熱熟成紅茶",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -811,14 +811,14 @@
     },
     "XLWAAW46HMU4PZRUALKDDV3G": {
       "id": "XLWAAW46HMU4PZRUALKDDV3G",
-      "item_name": "Hot Signature Black Au Lait",
+      "item_name": "Hot Signature Black Au Lait 熱熟成歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
     },
     "YBWRTRH3ZE2OHQ5PL3V662WE": {
       "id": "YBWRTRH3ZE2OHQ5PL3V662WE",
-      "item_name": "Tie Guan Yin Au Lait with Osmanthus Honey \u6842\u82b1\u9435\u89c0\u97f3\u6b50\u857e",
+      "item_name": "Tie Guan Yin Oolong Au Lait with Osmanthus Honey 桂花鐵觀音歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -832,7 +832,7 @@
     },
     "YHYT7XWXSTTUUYZLV4XJVOAB": {
       "id": "YHYT7XWXSTTUUYZLV4XJVOAB",
-      "item_name": "Taiwanese Retro \u81fa\u7063\u73cd\u73e0\u9bae\u5976\u8336",
+      "item_name": "Taiwanese Retro 臺灣珍珠鮮奶茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -846,14 +846,14 @@
     },
     "YU6LD7JKK46GF6NC5XH3PXR5": {
       "id": "YU6LD7JKK46GF6NC5XH3PXR5",
-      "item_name": "Tie Guan Yin Au Lait \u9435\u89c0\u97f3\u6b50\u857e",
+      "item_name": "Tie Guan Yin Oolong Au Lait 鐵觀音歐蕾",
       "sellable": true,
       "stockable": true,
       "variation_name": null
     },
     "Z7FNN52NHCZ7LEGUSD3GUIVX": {
       "id": "Z7FNN52NHCZ7LEGUSD3GUIVX",
-      "item_name": "Hot Spice Mango Tea Cider \u71b1\u8292\u679c\u8336",
+      "item_name": "Hot Spice Mango Tea Cider 熱芒果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
@@ -867,10 +867,17 @@
     },
     "ZHKPXHX6LYJE4ULT4VTUSAQG": {
       "id": "ZHKPXHX6LYJE4ULT4VTUSAQG",
-      "item_name": "Fresh Mango Tea \u9bae\u8292\u679c\u679c\u8336",
+      "item_name": "Fresh Mango Tea 鮮芒果果茶",
       "sellable": true,
       "stockable": true,
       "variation_name": null
+    },
+    "MOSAEXT1C228C1A6565C188": {
+      "id": "MOSAEXT1C228C1A6565C188",
+      "item_name": "Hot Roasted Buckwheat Four Seasons Tea 熱蕎麥青茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
     }
   }
 }

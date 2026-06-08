@@ -26,14 +26,41 @@ from pathlib import Path
 from app.script_client import create_square_client_from_args
 
 OUTPUT_FILE = Path("data/backend_inventory_created_ids.json")
+CANONICAL_FIXTURE_PATH = Path("testing/fixtures/catalog/sandbox_canonical_catalog.json")
 
 
 def _specs_from_inventory_map():
+    """Build create specs from inventory_item_map.json, enriching each with the
+    canonical variation_name from the catalog fixture.
+
+    The variation_name is load-bearing: the binding builder name-matches
+    (item_name, variation_name) between the live merchant's catalog and the
+    canonical fixture, so production variations must use the same variation_name
+    the fixture uses (e.g. "Regular" / "600 g bags"). Previously this script
+    hard-coded "unit" and the binding builder matched zero inventory items.
+    """
     data = json.loads(Path("data/inventory_item_map.json").read_text())
-    return [
-        {"inventory_key": key, "name": item["name"]}
-        for key, item in sorted(data["inventory_items"].items())
-    ]
+    fixture = json.loads(CANONICAL_FIXTURE_PATH.read_text())
+    canonical_variations = fixture.get("variations", {})
+
+    specs = []
+    for key, item in sorted(data["inventory_items"].items()):
+        canon_id = item["square_variation_id"]
+        canon_var = canonical_variations.get(canon_id)
+        if not canon_var:
+            raise RuntimeError(
+                f"inventory_key {key!r} references canonical variation {canon_id} "
+                f"which is not present in {CANONICAL_FIXTURE_PATH}. The fixture and "
+                f"the inventory map are out of sync."
+            )
+        specs.append(
+            {
+                "inventory_key": key,
+                "name": item["name"],
+                "variation_name": canon_var.get("variation_name") or "Regular",
+            }
+        )
+    return specs
 
 
 def _active_item_names(client):
@@ -60,7 +87,7 @@ def create_and_capture(client, specs):
                             "type": "ITEM_VARIATION",
                             "id": f"#var_{spec['inventory_key']}",
                             "item_variation_data": {
-                                "name": "unit",
+                                "name": spec["variation_name"],
                                 "track_inventory": True,
                                 "stockable": True,
                                 "sellable": False,

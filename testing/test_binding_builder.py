@@ -100,6 +100,26 @@ class BindingBuilderTests(unittest.TestCase):
             result["mapping"]["modifier_aliases"], {"LIVE-M1": "CANON-SUGAR-100"}
         )
 
+    def test_regular_variation_name_matches_empty_canonical(self):
+        # Square's dashboard auto-assigns variation_name='Regular' when an item
+        # has one variation; API-built canonicals often leave the field blank.
+        # Both forms semantically mean "the sole variation," so they must match.
+        canonical_with_blank = {
+            "variations": {"CANON-DRINK": _variation("TGY Special", variation_name=None)},
+            "modifiers": {},
+        }
+        target_with_regular = {
+            "variations": {"LIVE-1": _variation("TGY Special", variation_name="Regular")},
+            "modifiers": {},
+        }
+        result = build_binding_from_catalogs(
+            target_with_regular,
+            canonical_with_blank,
+            canonical_targets=self._targets(),
+            inventory_item_map=self._inventory_item_map(),
+        )
+        self.assertEqual(result["mapping"]["sold_variation_aliases"], {"LIVE-1": "CANON-DRINK"})
+
     def test_renamed_drink_becomes_unmapped_not_misrouted(self):
         # A rename must fail safe (unmapped), never silently map to the wrong id.
         target = {"variations": {"LIVE-1": _variation("TGY Spesh")}, "modifiers": {}}

@@ -27,8 +27,22 @@ BACKUP_DIR = Path("data/backend_inventory_backups")
 
 
 def _load_inventory_variation_ids():
+    # Source 1: canonical inventory_item_map.json — these are the Default Test
+    # Account variation IDs (the source merchant the map was built against).
     data = json.loads(Path("data/inventory_item_map.json").read_text())
-    return {v["square_variation_id"] for v in data["inventory_items"].values()}
+    ids = {v["square_variation_id"] for v in data["inventory_items"].values()}
+
+    # Source 2: if create_backend_inventory has been run against a different
+    # merchant (e.g., production or a fresh test account), it writes the new
+    # variation IDs to this file. Merge them in so this script can find items
+    # in any account where create_backend_inventory was applied — not only
+    # the canonical source merchant.
+    captured_path = Path("data/backend_inventory_created_ids.json")
+    if captured_path.exists():
+        captured = json.loads(captured_path.read_text())
+        ids.update(captured.values())
+
+    return ids
 
 
 def _find_inventory_items(client, inventory_variation_ids):
