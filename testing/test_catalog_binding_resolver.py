@@ -53,6 +53,43 @@ class CatalogBindingResolverTests(unittest.TestCase):
         )
         self.assertEqual(canonicalized["location_id"], realistic_location_id)
 
+    def test_canonicalize_drops_ignored_line_items_keeps_others(self):
+        # Mixed order: one mapped item, one ignored item, one unknown item.
+        # Ignored item should be dropped (no block). Unknown item stays so
+        # downstream projection fails and blocks the order (safety net for
+        # forgotten recipe additions).
+        order_summary = {
+            "id": "order-1",
+            "location_id": "LB1MECVA7EZ8Z",
+            "line_items": [
+                {"catalog_object_id": "LIVE-SOLD-1", "name": "Mapped Drink"},
+                {"catalog_object_id": "LIVE-IGNORED", "name": "SSR Special"},
+                {"catalog_object_id": "LIVE-UNKNOWN", "name": "New Drink"},
+            ],
+        }
+        binding = {
+            "mapping": {
+                "sold_variation_aliases": {"LIVE-SOLD-1": "CANONICAL-SOLD-1"},
+                "modifier_aliases": {},
+                "ignored_live_variation_ids": ["LIVE-IGNORED"],
+            }
+        }
+
+        canonicalized = canonicalize_order_summary(order_summary, binding)
+
+        ids = [li["catalog_object_id"] for li in canonicalized["line_items"]]
+        self.assertEqual(ids, ["CANONICAL-SOLD-1", "LIVE-UNKNOWN"])
+        # Input order untouched
+        self.assertEqual(len(order_summary["line_items"]), 3)
+
+    def test_canonicalize_no_ignored_list_still_works(self):
+        order_summary = {
+            "line_items": [{"catalog_object_id": "LIVE-1"}]
+        }
+        binding = {"mapping": {"sold_variation_aliases": {"LIVE-1": "C-1"}}}
+        canonicalized = canonicalize_order_summary(order_summary, binding)
+        self.assertEqual(canonicalized["line_items"][0]["catalog_object_id"], "C-1")
+
     def test_resolve_inventory_variation_id_returns_bound_id(self):
         binding = {
             "mapping": {
