@@ -237,7 +237,7 @@ resource "aws_lambda_function" "binding_coverage_check" {
     variables = merge(
       local.merchant_store_env,
       {
-        ALARM_NOTIFICATION_TOPIC_ARN = coalesce(var.alarm_notification_topic_arn, "")
+        ALARM_NOTIFICATION_TOPIC_ARN = var.alarm_notification_topic_arn != null ? var.alarm_notification_topic_arn : ""
         SQUARE_OAUTH_CLIENT_ID       = var.square_oauth_client_id
         SQUARE_OAUTH_CLIENT_SECRET   = var.square_oauth_client_secret
       }
