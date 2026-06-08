@@ -33,10 +33,27 @@ def _normalize_name(name):
     return re.sub(r"\s+", " ", str(name)).strip().casefold()
 
 
+def _normalize_variation_name(name):
+    """Like _normalize_name, but also treats Square's default 'Regular' label
+    as equivalent to an empty variation name.
+
+    Background: Square's dashboard auto-assigns variation_name='Regular' when
+    a merchant creates an item with one variation. Catalogs built via the API
+    (including the original canonical fixture) often leave the field blank/None.
+    Both forms semantically mean 'the sole variation,' so we collapse them so
+    that live merchants whose catalogs were created via the dashboard match
+    canonical entries that left the field blank (and vice versa).
+    """
+    normalized = _normalize_name(name)
+    if normalized == "regular":
+        return ""
+    return normalized
+
+
 def _variation_name_key(variation):
     return (
         _normalize_name(variation.get("item_name")),
-        _normalize_name(variation.get("variation_name")),
+        _normalize_variation_name(variation.get("variation_name")),
     )
 
 
