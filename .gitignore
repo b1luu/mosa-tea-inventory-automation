@@ -24,6 +24,10 @@ data/webhook_events.db
 data/processed_orders.json
 data/backend_inventory_backups/
 data/backend_inventory_created_ids.json
+# Per-merchant initial stock counts for the seed_inventory_counts script.
+# Contains commercially-sensitive on-hand quantities — never commit. Keep
+# locally only; the script reads them once and writes nothing back.
+data/initial_stock_counts*.json
 
 # Other env files (keep .env.example committable; block real ones)
 .env.local
