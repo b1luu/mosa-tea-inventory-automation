@@ -305,6 +305,10 @@
       "grapefruit_bloom",
       "genmai_matcha_with_matcha_jelly"
     ],
+    "recipes_with_built_in_cream_foam": [
+      "brown_sugar_mist",
+      "pistachio_mist"
+    ],
     "cold_cup_lid": {
       "inventory_key": "cold_cup_lid",
       "amount": 1,
@@ -459,6 +463,36 @@
           "amount": 300,
           "unit": "ml",
           "notes": "Brewed TGY volume per drink. Projection converts this into dry leaf grams."
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 35.714285714285715,
+          "unit": "ml",
+          "notes": "Built-in Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "heavy_cream",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Built-in Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "cream_foam_powder",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Built-in Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 2.642857142857143,
+          "unit": "g",
+          "notes": "Built-in Brown Sugar Cream Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "brown_sugar",
+          "amount": 2.642857142857143,
+          "unit": "g",
+          "notes": "Built-in Brown Sugar Cream Foam derived from a 14-serving batch."
         }
       ]
     },
@@ -820,6 +854,36 @@
       "ingredients": [
         {
           "tea_base_key": "genmai_green"
+        },
+        {
+          "inventory_key": "milk",
+          "amount": 39.285714285714285,
+          "unit": "ml",
+          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "heavy_cream",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "cream_foam_powder",
+          "amount": 8.571428571428571,
+          "unit": "g",
+          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "powdered_sugar",
+          "amount": 5.357142857142857,
+          "unit": "g",
+          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
+        },
+        {
+          "inventory_key": "pistachio",
+          "amount": 8.928571428571429,
+          "unit": "g",
+          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
         }
       ]
     },
