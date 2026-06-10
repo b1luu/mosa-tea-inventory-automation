@@ -274,12 +274,12 @@ def _resolve_straw_ingredient(recipe, modifier_ids):
     ]
 
 
-def _resolve_lid_ingredient(sold_variation_id, modifier_ids):
+def _resolve_lid_ingredient(recipe, modifier_ids):
     packaging_config = get_default_packaging_config()
     if not packaging_config:
         return []
 
-    if _is_hot_sold_variation(sold_variation_id):
+    if _is_hot_sold_variation(recipe["sold_variation_id"]):
         lid_config = packaging_config["hot_lid"]
         return [
             {
@@ -291,10 +291,14 @@ def _resolve_lid_ingredient(sold_variation_id, modifier_ids):
         ]
 
     cream_foam_modifier_ids = set(packaging_config.get("cream_foam_modifier_ids", []))
-    has_cream_foam = any(
+    built_in_cream_foam_recipes = set(
+        packaging_config.get("recipes_with_built_in_cream_foam", [])
+    )
+    has_cream_foam_modifier = any(
         modifier_id in cream_foam_modifier_ids for modifier_id in (modifier_ids or [])
     )
-    if not has_cream_foam:
+    has_built_in_cream_foam = recipe.get("drink_key") in built_in_cream_foam_recipes
+    if not (has_cream_foam_modifier or has_built_in_cream_foam):
         return []
 
     lid_config = packaging_config["cold_cup_lid"]
@@ -355,7 +359,7 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
         sold_variation_id
     )
     straw_ingredients = _resolve_straw_ingredient(recipe, modifier_ids)
-    lid_ingredients = _resolve_lid_ingredient(sold_variation_id, modifier_ids)
+    lid_ingredients = _resolve_lid_ingredient(recipe, modifier_ids)
     expanded_ingredients = _expand_ingredients(
         resolved_ingredients
         + modifier_additions
