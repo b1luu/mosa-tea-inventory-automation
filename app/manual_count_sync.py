@@ -49,7 +49,8 @@ SUPPORTED_INVENTORY_KEYS = {
     "sample_cup",
     "matcha",
     "matcha_jelly_matcha",
-
+    "ssr_oolong",
+    "creme_brulee_powder",
 }
 
 
