@@ -115,3 +115,11 @@ This decision does not mean:
 - OAuth infra should be merged before sandbox validation
 
 It only locks in the production auth and reauthorization model.
+
+## Where The Flow Is Written Down
+
+The step-by-step connect flow — who must sign in (the Square account owner in
+production), which onboarding page to use per environment, and the
+sandbox-vs-production browser differences — is in
+[`production-onboarding-runbook.md`](production-onboarding-runbook.md) under
+"The OAuth connect flow — who does it, and where" (dated 2026-10-07).

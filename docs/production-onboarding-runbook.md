@@ -32,6 +32,84 @@ rehearsal exists largely to *surface* these.
    plus a production webhook subscription pointed at it.
 3. Production merchant connected via OAuth (token in the merchant store).
 
+## The OAuth connect flow — who does it, and where
+
+> **As of 2026-10-07.** Both deployed onboarding pages (sandbox and production)
+> were confirmed reachable on this date. The production connect itself has not
+> been run against the real shop yet (see Status above).
+
+### Who has to do it
+
+- **Production: the Mosa Tea Square account owner.** The person who signs in on
+  Square's consent screen must be the owner of the shop's Square account, or a
+  team member Square treats as having full permissions. A regular team-member
+  login is rejected by Square with *"only the business owner can authorize
+  applications for this Square account"*. The developer's own Square login
+  cannot connect the real shop.
+  - Source: Square staff replies on the Square Developer Forums
+    ([non-owner logins thread](https://developer.squareup.com/forums/t/oauth-scope-authorization-for-non-owner-logins/14728)).
+    This is not stated as a formal rule in Square's OAuth docs and the thread is
+    old, so treat "owner signs in" as the plan and "full-permission team
+    member" as unconfirmed.
+- **Sandbox: the developer.** The merchant is a sandbox test account under the
+  developer's own Square developer account, so no owner is involved.
+
+### Where it runs
+
+| Environment | Onboarding page | Use |
+|---|---|---|
+| Local (`uvicorn server:app --port 8002`) | `http://localhost:8002/onboarding` | Sandbox development only. Never valid for production — see [`production-oauth-decision.md`](production-oauth-decision.md). |
+| Deployed sandbox | `https://<sandbox-oauth-api-id>.execute-api.us-west-2.amazonaws.com/onboarding` | Rehearsal (Stage 0). |
+| Deployed production | `https://<prod-oauth-api-id>.execute-api.us-west-2.amazonaws.com/onboarding` | The real merchant connect. |
+
+The API IDs are the host of `square_oauth_redirect_uri` in the gitignored
+`infra/sandbox.tfvars` / `infra/production.tfvars`; Step 9 of
+[`production-rollout-runbook.md`](production-rollout-runbook.md) has the `aws`
+command that prints the production URL. The local port must match
+`SQUARE_OAUTH_REDIRECT_URI` in `.env`.
+
+### The steps
+
+1. Open the onboarding page for the environment. It shows **Operator access
+   required**.
+2. Paste that environment's operator token (production and sandbox tokens
+   differ) → **Continue**. This sets an operator session cookie valid ~2 hours.
+3. The page becomes **Connect Mosa Tea to Square**. Make sure the right Square
+   seller account is signed in in this browser, then click **Connect to
+   Square**.
+4. On Square's site, the account owner signs in (if not already) and reviews
+   the consent screen: **6 permissions**, ending with *"Modify your item
+   library"* → **Allow**.
+5. Square redirects to `/oauth/square/callback`, which stores the merchant's
+   tokens in the merchant store.
+6. The **Connected** page shows merchant name, merchant ID, environment and the
+   6 granted permissions. In production the merchant must be the real shop, not
+   "Default Test Account".
+
+Connecting does **not** enable inventory writes — those stay off until the
+binding is validated, approved and activated (the onboarding sequence below).
+
+### Browser differences between sandbox and production
+
+- **Production:** use a fresh incognito window so no other Square login is
+  picked up, and have the owner sign in when Square asks.
+- **Sandbox:** do **not** use incognito. First open the test account's Seller
+  Dashboard from the Square Developer Console (Sandbox test accounts → Open)
+  and leave it open; then load the onboarding page in the same browser.
+  Otherwise the flow stops on Square's page with *"To start the OAuth flow for
+  a sandbox account, first launch the seller test account from the Developer
+  Dashboard"* and no callback ever reaches our server
+  ([Square OAuth walkthrough](https://developer.squareup.com/docs/oauth-api/walkthrough)).
+
+### How the owner can do it
+
+Either works; neither needs the owner to touch a CLI or AWS:
+
+- The owner opens the production link themselves and pastes the production
+  operator token from the shared password manager.
+- The developer drives steps 1–3 on a shared screen and the owner signs in to
+  Square and clicks **Allow** at step 4.
+
 ## Scope justification — what each permission is for
 
 The production OAuth ask, every scope mapped to the Square endpoint it gates and
