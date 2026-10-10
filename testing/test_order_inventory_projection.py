@@ -586,6 +586,111 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined["heavy_cream"], 700 / 21)
         self.assertAlmostEqual(combined["creme_brulee_powder"], 280 / 21)
 
+    def _project_brown_sugar_drink(self, drink_key, modifier_ids):
+        # Brown Sugar series: the tea comes from the shared Tea Base modifier
+        # (300ml of the chosen tea), brown sugar from the Brown Sugar Sweetness
+        # modifier (one 37g shot at Regular Sweet).
+        from app.order_inventory_projection import load_recipe_map
+        recipes = load_recipe_map()
+        sold_variation_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("drink_key") == drink_key
+        )
+        projected = project_line_item_usage(sold_variation_id, "1", modifier_ids)
+        return {u["inventory_key"]: float(u["total_amount"]) for u in projected["usage"]}
+
+    def test_brown_sugar_milk_tea_deducts_selected_tea_creamer_and_one_shot(self):
+        tgy_tea = "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_milk_tea", [tgy_tea, regular_sweet]
+        )
+        self.assertAlmostEqual(combined["tgy"], 160 * 300 / 6000)
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        self.assertNotIn("sugar_syrup", combined)
+        self.assertNotIn("milk", combined)
+        self.assertEqual(combined["u600_cup"], 1.0)
+        self.assertEqual(combined["small_straw"], 1.0)
+
+    def test_brown_sugar_sweetness_scales_the_shot(self):
+        black_tea = "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC"
+        expected_by_sweetness = {
+            "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F": 18.5,
+            "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952": 37.0,
+            "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A": 74.0,
+        }
+        for sweetness_modifier_id, expected_grams in expected_by_sweetness.items():
+            combined = self._project_brown_sugar_drink(
+                "brown_sugar_milk_tea", [black_tea, sweetness_modifier_id]
+            )
+            self.assertAlmostEqual(combined["brown_sugar"], expected_grams)
+            self.assertAlmostEqual(combined["black_tea"], 140 * 300 / 6000)
+
+    def test_brown_sugar_tea_au_lait_deducts_milk_and_blended_tea_base(self):
+        genmai_green_tea = "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D"
+        less_sweet = "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_tea_au_lait", [genmai_green_tea, less_sweet]
+        )
+        self.assertAlmostEqual(combined["milk"], 150.0)
+        self.assertAlmostEqual(combined["genmai"], 120 * 150 / 6000)
+        self.assertAlmostEqual(combined["green_tea"], 160 * 150 / 6000)
+        self.assertAlmostEqual(combined["brown_sugar"], 18.5)
+        self.assertNotIn("non_dairy_creamer", combined)
+
+    def test_brown_sugar_frost_uses_two_shots_regardless_of_sweetness(self):
+        buckwheat_four_seasons_tea = "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F"
+        for sweetness_modifier_id in (
+            "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F",
+            "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A",
+        ):
+            combined = self._project_brown_sugar_drink(
+                "brown_sugar_frost", [buckwheat_four_seasons_tea, sweetness_modifier_id]
+            )
+            self.assertAlmostEqual(combined["brown_sugar"], 74.0)
+            self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+            self.assertAlmostEqual(combined["4s"], 160 * 225 / 6000)
+            self.assertAlmostEqual(combined["buckwheat"], 120 * 37.5 / 6000)
+            self.assertAlmostEqual(combined["barley"], 240 * 37.5 / 6000)
+
+    def test_hot_brown_sugar_milk_tea_matches_cold_recipe_with_hot_packaging(self):
+        from app.order_inventory_projection import load_recipe_map
+        recipes = load_recipe_map()
+        cold_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("drink_key") == "brown_sugar_milk_tea"
+        )
+        hot_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("same_as_sold_variation_id") == cold_id
+        )
+        buckwheat_barley_tea = "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        projected = project_line_item_usage(
+            hot_id, "1", [buckwheat_barley_tea, regular_sweet]
+        )
+        combined = {u["inventory_key"]: float(u["total_amount"]) for u in projected["usage"]}
+        self.assertEqual(projected["drink_key"], "brown_sugar_milk_tea")
+        self.assertAlmostEqual(combined["buckwheat"], 120 * 150 / 6000)
+        self.assertAlmostEqual(combined["barley"], 240 * 150 / 6000)
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        self.assertEqual(combined["hot_cup"], 1.0)
+        self.assertEqual(combined["hot_lid"], 1.0)
+        self.assertNotIn("u600_cup", combined)
+        self.assertNotIn("small_straw", combined)
+
+    def test_brown_sugar_milk_tea_without_tea_base_modifier_deducts_no_tea(self):
+        # The live Tea Base list is optional, so a few real tickets carry no tea
+        # choice. The drink still deducts creamer and brown sugar.
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink("brown_sugar_milk_tea", [regular_sweet])
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        for tea_key in ("tgy", "black_tea", "4s", "genmai", "green_tea", "buckwheat", "barley"):
+            self.assertNotIn(tea_key, combined)
+
     def test_brown_sugar_mist_built_in_cream_foam_no_modifier(self):
         # Brown Sugar Mist has Brown Sugar Cream Foam built-in — no cream
         # foam modifier is selected on the order, but the projection must
