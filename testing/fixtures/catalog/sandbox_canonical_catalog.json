@@ -95,11 +95,6 @@
       "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
       "name": "Brown Sugar Cream Foam"
     },
-    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
-      "id": "G56XRZ7WHJ7XMA6OOXDCIEWW",
-      "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
-      "name": "Pistachio Foam"
-    },
     "HBLOG26AKQNVOTYJJT3YFAMR": {
       "id": "HBLOG26AKQNVOTYJJT3YFAMR",
       "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
@@ -209,6 +204,51 @@
       "id": "MOSAEXT_MOD_SILKY_CUSTARD_3F0BC385",
       "name": "Silky Custard",
       "modifier_list_id": "MOSAEXT_LIST_TOPPINGS"
+    },
+    "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6": {
+      "id": "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6",
+      "name": "Tie Guan Yin Oolong Tea 鐵觀音烏龍茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC": {
+      "id": "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC",
+      "name": "Signature Black Tea 熟成紅茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_TEA_4S_CE9F98A4": {
+      "id": "MOSAEXT_MOD_BS_TEA_4S_CE9F98A4",
+      "name": "Four Seasons Tea 四季青茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D": {
+      "id": "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D",
+      "name": "Genmai Jasmine Green Tea 玄米綠茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD": {
+      "id": "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD",
+      "name": "Roasted Buckwheat Barley Tea 蕎麥麥茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F": {
+      "id": "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F",
+      "name": "Roasted Buckwheat Four Seasons Tea 蕎麥青茶",
+      "modifier_list_id": "MOSAEXT_LIST_BS_TEA_BASE"
+    },
+    "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F": {
+      "id": "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F",
+      "name": "Less Sweet",
+      "modifier_list_id": "MOSAEXT_LIST_BS_SWEETNESS"
+    },
+    "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952": {
+      "id": "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952",
+      "name": "Regular Sweet",
+      "modifier_list_id": "MOSAEXT_LIST_BS_SWEETNESS"
+    },
+    "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A": {
+      "id": "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A",
+      "name": "Extra Sweet",
+      "modifier_list_id": "MOSAEXT_LIST_BS_SWEETNESS"
     }
   },
   "variations": {
@@ -264,13 +304,6 @@
     "4CLJVUZQCIVAEU4F7APU6QGX": {
       "id": "4CLJVUZQCIVAEU4F7APU6QGX",
       "item_name": "Milk",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": "Regular"
-    },
-    "4F4NTG7FT3L2DJLRYGBGLPR6": {
-      "id": "4F4NTG7FT3L2DJLRYGBGLPR6",
-      "item_name": "Pistachio",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -484,13 +517,6 @@
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
-    },
-    "FYZX4EUOH6P37MKZ6TZNYW3I": {
-      "id": "FYZX4EUOH6P37MKZ6TZNYW3I",
-      "item_name": "Pistachio Mist 開心雲朵",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": null
     },
     "G2ECIVTMKE4Z5TTM35Y4EQDV": {
       "id": "G2ECIVTMKE4Z5TTM35Y4EQDV",
@@ -884,13 +910,6 @@
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_INV_SSR_OOLONG_12378155": {
-      "id": "MOSAEXT_INV_SSR_OOLONG_12378155",
-      "item_name": "SSR Oolong",
-      "variation_name": "Regular",
-      "sellable": false,
-      "stockable": true
-    },
     "MOSAEXT_INV_CUSTARD_POWDER_7CFC8C92": {
       "id": "MOSAEXT_INV_CUSTARD_POWDER_7CFC8C92",
       "item_name": "Creme Brulee Powder",
@@ -898,51 +917,37 @@
       "sellable": false,
       "stockable": true
     },
-    "MOSAEXT_SSR_TEA_C59590B1": {
-      "id": "MOSAEXT_SSR_TEA_C59590B1",
-      "item_name": "SSR Oolong Tea 糯香烏龍茶",
+    "MOSAEXT_BS_MILK_TEA_D2131117": {
+      "id": "MOSAEXT_BS_MILK_TEA_D2131117",
+      "item_name": "Browns Sugar Milk Tea 黑糖奶茶",
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_SSR_AU_LAIT_54B58365": {
-      "id": "MOSAEXT_SSR_AU_LAIT_54B58365",
-      "item_name": "SSR Oolong Au Lait 糯香烏龍歐蕾",
+    "MOSAEXT_BS_AU_LAIT_61B22DEE": {
+      "id": "MOSAEXT_BS_AU_LAIT_61B22DEE",
+      "item_name": "Brown Sugar Tea Au Lait 黑糖歐蕾",
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_SSR_MILK_TEA_883193B2": {
-      "id": "MOSAEXT_SSR_MILK_TEA_883193B2",
-      "item_name": "SSR Oolong Milk Tea 糯香烏龍奶茶",
+    "MOSAEXT_BS_FROST_3D963EF3": {
+      "id": "MOSAEXT_BS_FROST_3D963EF3",
+      "item_name": "Brown Sugar Frost 黑糖奶茶冰沙",
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_SSR_SPECIAL_DA9E203A": {
-      "id": "MOSAEXT_SSR_SPECIAL_DA9E203A",
-      "item_name": "SSR Special 糯香烏龍奶酪奶茶",
+    "MOSAEXT_BS_HOT_MILK_TEA_B480679A": {
+      "id": "MOSAEXT_BS_HOT_MILK_TEA_B480679A",
+      "item_name": "Hot Brown Sugar Milk Tea 熱黑糖奶茶",
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_SSR_HOT_TEA_57277132": {
-      "id": "MOSAEXT_SSR_HOT_TEA_57277132",
-      "item_name": "Hot SSR Oolong Tea 熱糯香烏龍茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_HOT_AU_LAIT_43486897": {
-      "id": "MOSAEXT_SSR_HOT_AU_LAIT_43486897",
-      "item_name": "Hot SSR Oolong Au Lait 熱糯香烏龍歐蕾",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58": {
-      "id": "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58",
-      "item_name": "Hot SSR Oolong Milk Tea 熱糯香烏龍奶茶",
+    "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5": {
+      "id": "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5",
+      "item_name": "Hot Brown Sugar Au Lait 熱黑糖歐蕾",
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true

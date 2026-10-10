@@ -218,40 +218,6 @@
         }
       ]
     },
-    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
-      "ingredients": [
-        {
-          "inventory_key": "milk",
-          "amount": 39.285714285714285,
-          "unit": "ml",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "heavy_cream",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "cream_foam_powder",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 5.357142857142857,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "pistachio",
-          "amount": 8.928571428571429,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        }
-      ]
-    },
     "MOSAEXT_MOD_SILKY_CUSTARD_3F0BC385": {
       "ingredients": [
         {
@@ -278,7 +244,10 @@
     "EHC2F422OXEQBMVP5AF3ABWW": 0.25,
     "HBLOG26AKQNVOTYJJT3YFAMR": 0.5,
     "BHWIDHGY2Z5HBG4AQCQE3RH3": 0.75,
-    "MSBCTUUEB2HSJ6JIAZ6PWX44": 1.0
+    "MSBCTUUEB2HSJ6JIAZ6PWX44": 1.0,
+    "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F": 0.5,
+    "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952": 1.0,
+    "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A": 2.0
   },
   "default_sugar_config": {
     "inventory_key": "sugar_syrup",
@@ -322,8 +291,7 @@
       "genmai_matcha_with_matcha_jelly"
     ],
     "recipes_with_built_in_cream_foam": [
-      "brown_sugar_mist",
-      "pistachio_mist"
+      "brown_sugar_mist"
     ],
     "cold_cup_lid": {
       "inventory_key": "cold_cup_lid",
@@ -336,8 +304,7 @@
       "unit": "lid"
     },
     "cream_foam_modifier_ids": [
-      "G2IKLVV2HGABCPEHQNAEUHQZ",
-      "G56XRZ7WHJ7XMA6OOXDCIEWW"
+      "G2IKLVV2HGABCPEHQNAEUHQZ"
     ],
     "hot_allowed_topping_modifier_ids": [
       "UIFT45SSDNEZBUDPKFGF6VES",
@@ -365,9 +332,8 @@
       "UE3LLFVD7P6AATRKRBYZCZ5D",
       "JNMEIPGCJLSLJVD7BNPZWE7R",
       "UCXQBKF6EKHTD5CT2MLACMO5",
-      "MOSAEXT_SSR_HOT_TEA_57277132",
-      "MOSAEXT_SSR_HOT_AU_LAIT_43486897",
-      "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58"
+      "MOSAEXT_BS_HOT_MILK_TEA_B480679A",
+      "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5"
     ]
   },
   "sold_variation_recipes": {
@@ -867,45 +833,6 @@
         }
       ]
     },
-    "FYZX4EUOH6P37MKZ6TZNYW3I": {
-      "drink_key": "pistachio_mist",
-      "drink_name": "Pistachio Mist",
-      "ingredients": [
-        {
-          "tea_base_key": "genmai_green"
-        },
-        {
-          "inventory_key": "milk",
-          "amount": 39.285714285714285,
-          "unit": "ml",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "heavy_cream",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "cream_foam_powder",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 5.357142857142857,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "pistachio",
-          "amount": 8.928571428571429,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        }
-      ]
-    },
     "MFEUN6CYRHERVYYWV7H7WWVZ": {
       "drink_key": "genmai_green_milk_tea",
       "drink_name": "Genmai Green Milk Tea",
@@ -1324,92 +1251,250 @@
     "MOSAEXT1C228C1A6565C188": {
       "same_as_sold_variation_id": "W5F3TM6WNOY5ZFX2GQCY3XXU"
     },
-    "MOSAEXT_SSR_TEA_C59590B1": {
-      "drink_key": "ssr_oolong_brewed_tea",
-      "drink_name": "SSR Oolong Tea",
+    "MOSAEXT_BS_MILK_TEA_D2131117": {
+      "drink_key": "brown_sugar_milk_tea",
+      "drink_name": "Brown Sugar Milk Tea",
+      "sugar_config": {
+        "inventory_key": "brown_sugar",
+        "full_amount": 37,
+        "unit": "g"
+      },
       "ingredients": [
         {
-          "inventory_key": "ssr_oolong",
-          "amount": 300,
-          "unit": "ml",
-          "notes": "Brewed SSR Oolong volume per drink. Projection converts to dry leaf grams via yield_conversion."
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea. Brown sugar is one 37 g shot scaled by the Brown Sugar Sweetness modifier."
         }
-      ]
-    },
-    "MOSAEXT_SSR_AU_LAIT_54B58365": {
-      "drink_key": "ssr_oolong_au_lait",
-      "drink_name": "SSR Oolong Au Lait",
-      "ingredients": [
-        {
-          "inventory_key": "ssr_oolong",
-          "amount": 200,
-          "unit": "ml",
-          "notes": "Brewed SSR Oolong volume per Au Lait."
+      ],
+      "modifier_overrides": {
+        "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6": {
+          "ingredients": [
+            {
+              "inventory_key": "tgy",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Tie Guan Yin Oolong Tea."
+            }
+          ]
         },
+        "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC": {
+          "ingredients": [
+            {
+              "inventory_key": "black_tea",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Signature Black Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_4S_CE9F98A4": {
+          "ingredients": [
+            {
+              "inventory_key": "4s",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Four Seasons Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D": {
+          "ingredients": [
+            {
+              "tea_base_key": "genmai_green",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Genmai Jasmine Green Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD": {
+          "ingredients": [
+            {
+              "tea_base_key": "roasted_buckwheat_barley",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Barley Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F": {
+          "ingredients": [
+            {
+              "tea_base_key": "four_seasons_roasted_buckwheat_barley",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Four Seasons Tea."
+            }
+          ]
+        }
+      }
+    },
+    "MOSAEXT_BS_AU_LAIT_61B22DEE": {
+      "drink_key": "brown_sugar_tea_au_lait",
+      "drink_name": "Brown Sugar Tea Au Lait",
+      "sugar_config": {
+        "inventory_key": "brown_sugar",
+        "full_amount": 37,
+        "unit": "g"
+      },
+      "ingredients": [
         {
           "inventory_key": "milk",
           "amount": 150,
           "unit": "ml",
-          "notes": "Standard milk usage per Au Lait."
+          "notes": "Standard milk usage per Au Lait. Brown sugar is one 37 g shot scaled by the Brown Sugar Sweetness modifier."
         }
-      ]
-    },
-    "MOSAEXT_SSR_MILK_TEA_883193B2": {
-      "drink_key": "ssr_oolong_milk_tea",
-      "drink_name": "SSR Oolong Milk Tea",
-      "ingredients": [
-        {
-          "inventory_key": "ssr_oolong",
-          "amount": 300,
-          "unit": "ml",
-          "notes": "Brewed SSR Oolong volume per drink."
+      ],
+      "modifier_overrides": {
+        "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6": {
+          "ingredients": [
+            {
+              "inventory_key": "tgy",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Tie Guan Yin Oolong Tea."
+            }
+          ]
         },
+        "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC": {
+          "ingredients": [
+            {
+              "inventory_key": "black_tea",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Signature Black Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_4S_CE9F98A4": {
+          "ingredients": [
+            {
+              "inventory_key": "4s",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Four Seasons Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D": {
+          "ingredients": [
+            {
+              "tea_base_key": "genmai_green",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Genmai Jasmine Green Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD": {
+          "ingredients": [
+            {
+              "tea_base_key": "roasted_buckwheat_barley",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Barley Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F": {
+          "ingredients": [
+            {
+              "tea_base_key": "four_seasons_roasted_buckwheat_barley",
+              "amount": 200,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Four Seasons Tea."
+            }
+          ]
+        }
+      }
+    },
+    "MOSAEXT_BS_FROST_3D963EF3": {
+      "drink_key": "brown_sugar_frost",
+      "drink_name": "Brown Sugar Frost",
+      "sugar_config": null,
+      "ingredients": [
         {
           "inventory_key": "non_dairy_creamer",
           "amount": 37,
           "unit": "g",
-          "notes": "Standard non-dairy creamer usage per milk tea."
+          "notes": "Standard non-dairy creamer usage per Frost."
+        },
+        {
+          "inventory_key": "brown_sugar",
+          "amount": 74,
+          "unit": "g",
+          "notes": "Two 37 g shots of brown sugar per Frost, not scaled by the sweetness modifier."
         }
-      ]
-    },
-    "MOSAEXT_SSR_SPECIAL_DA9E203A": {
-      "drink_key": "ssr_special",
-      "drink_name": "SSR Special",
-      "ingredients": [
-        {
-          "inventory_key": "ssr_oolong",
-          "amount": 300,
-          "unit": "ml",
-          "notes": "Brewed SSR Oolong volume per drink."
+      ],
+      "modifier_overrides": {
+        "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6": {
+          "ingredients": [
+            {
+              "inventory_key": "tgy",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Tie Guan Yin Oolong Tea."
+            }
+          ]
         },
-        {
-          "inventory_key": "non_dairy_creamer",
-          "amount": 37,
-          "unit": "g",
-          "notes": "Standard non-dairy creamer usage per milk tea base."
+        "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC": {
+          "ingredients": [
+            {
+              "inventory_key": "black_tea",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Signature Black Tea."
+            }
+          ]
         },
-        {
-          "inventory_key": "heavy_cream",
-          "amount": 33.333333333333336,
-          "unit": "g",
-          "notes": "Silky Custard topping derived from a 21-cup batch (700g heavy cream + 700ml water + 280g Creme Brulee Powder, ~80g per scoop)."
+        "MOSAEXT_MOD_BS_TEA_4S_CE9F98A4": {
+          "ingredients": [
+            {
+              "inventory_key": "4s",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Four Seasons Tea."
+            }
+          ]
         },
-        {
-          "inventory_key": "creme_brulee_powder",
-          "amount": 13.333333333333334,
-          "unit": "g",
-          "notes": "Silky Custard topping derived from a 21-cup batch (700g heavy cream + 700ml water + 280g Creme Brulee Powder, ~80g per scoop)."
+        "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D": {
+          "ingredients": [
+            {
+              "tea_base_key": "genmai_green",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Genmai Jasmine Green Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD": {
+          "ingredients": [
+            {
+              "tea_base_key": "roasted_buckwheat_barley",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Barley Tea."
+            }
+          ]
+        },
+        "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F": {
+          "ingredients": [
+            {
+              "tea_base_key": "four_seasons_roasted_buckwheat_barley",
+              "amount": 300,
+              "unit": "ml",
+              "notes": "Selected Tea Base modifier: Roasted Buckwheat Four Seasons Tea."
+            }
+          ]
         }
-      ]
+      }
     },
-    "MOSAEXT_SSR_HOT_TEA_57277132": {
-      "same_as_sold_variation_id": "MOSAEXT_SSR_TEA_C59590B1"
+    "MOSAEXT_BS_HOT_MILK_TEA_B480679A": {
+      "same_as_sold_variation_id": "MOSAEXT_BS_MILK_TEA_D2131117"
     },
-    "MOSAEXT_SSR_HOT_AU_LAIT_43486897": {
-      "same_as_sold_variation_id": "MOSAEXT_SSR_AU_LAIT_54B58365"
-    },
-    "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58": {
-      "same_as_sold_variation_id": "MOSAEXT_SSR_MILK_TEA_883193B2"
+    "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5": {
+      "same_as_sold_variation_id": "MOSAEXT_BS_AU_LAIT_61B22DEE"
     }
   }
 }

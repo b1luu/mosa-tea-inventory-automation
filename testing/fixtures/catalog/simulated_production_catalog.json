@@ -95,11 +95,6 @@
       "modifier_list_id": "PRODSIM-ML-PCB7PO5WYAAIBMAEGJ6665M2",
       "name": "Brown Sugar Cream Foam"
     },
-    "PRODSIM-M-0020": {
-      "id": "PRODSIM-M-0020",
-      "modifier_list_id": "PRODSIM-ML-PCB7PO5WYAAIBMAEGJ6665M2",
-      "name": "Pistachio Foam"
-    },
     "PRODSIM-M-0021": {
       "id": "PRODSIM-M-0021",
       "modifier_list_id": "PRODSIM-ML-HVIOJ357F3ZE5A7AUTBVZVKO",
@@ -259,13 +254,6 @@
     "PRODSIM-V-0008": {
       "id": "PRODSIM-V-0008",
       "item_name": "Milk",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": "Regular"
-    },
-    "PRODSIM-V-0009": {
-      "id": "PRODSIM-V-0009",
-      "item_name": "Pistachio",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -479,13 +467,6 @@
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
-    },
-    "PRODSIM-V-0040": {
-      "id": "PRODSIM-V-0040",
-      "item_name": "Pistachio Mist 開心雲朵",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": null
     },
     "PRODSIM-V-0041": {
       "id": "PRODSIM-V-0041",
@@ -878,13 +859,6 @@
       "sellable": true,
       "stockable": false,
       "variation_name": "$25"
-    },
-    "PRODSIM-V-SSR-OOLONG": {
-      "id": "PRODSIM-V-SSR-OOLONG",
-      "item_name": "SSR Oolong",
-      "sellable": false,
-      "stockable": true,
-      "variation_name": "Regular"
     },
     "PRODSIM-V-CUSTARD-POWDER": {
       "id": "PRODSIM-V-CUSTARD-POWDER",

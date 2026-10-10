@@ -107,9 +107,9 @@
       ]
     },
     "sandbox_historical_fixture_day_200": {
-      "description": "200-drink replay built from exported real completed-order fixtures, rotated across the valid fixture library.",
+      "description": "191-drink replay built from exported real completed-order fixtures, rotated across the valid fixture library.",
       "ordering_strategy": "interleaved",
-      "drill_batches": [12, 20, 28, 32, 40, 40],
+      "drill_batches": [12, 20, 28, 31, 36, 36],
       "dispatch_offsets_minutes": [0, 35, 90, 180, 285, 390],
       "entries": [
         {
@@ -164,11 +164,6 @@
         },
         {
           "fixture_name": "completed_matcha_latte_lychee_jelly.json",
-          "order_count": 9,
-          "burst_size": 1
-        },
-        {
-          "fixture_name": "completed_matcha_latte_pistachio_foam.json",
           "order_count": 9,
           "burst_size": 1
         },

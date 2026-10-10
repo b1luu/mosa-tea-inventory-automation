@@ -521,76 +521,6 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["small_straw"], 1.0)
         self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
 
-    def test_pistachio_foam_modifier_fixture(self):
-        order_fixture = load_fixture("completed_matcha_latte_pistachio_foam.json")
-        projected_line_items, combined_usage = project_fixture_order(order_fixture)
-
-        self.assertEqual(len(projected_line_items), 1)
-        self.assertEqual(projected_line_items[0]["drink_key"], "matcha_latte")
-
-        combined_by_key = {
-            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
-        }
-        self.assertEqual(combined_by_key["matcha"], 8.75)
-        self.assertEqual(combined_by_key["milk"], 189.28571428571428)
-        self.assertAlmostEqual(combined_by_key["heavy_cream"], 8.571428571428571)
-        self.assertAlmostEqual(
-            combined_by_key["cream_foam_powder"], 8.571428571428571
-        )
-        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 5.357142857142857)
-        self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
-        self.assertEqual(combined_by_key["small_straw"], 1.0)
-        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
-
-    def test_ssr_oolong_tea_deducts_brewed_leaves_only(self):
-        # Find SSR Oolong Tea by drink_key (synthetic canonical id varies per
-        # generation). 1 drink = 300ml brewed SSR Oolong → 100/4700 * 300 = 6.383g
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_tea_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_oolong_brewed_tea"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_tea_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 300 / 4700)
-        self.assertEqual(combined["u600_cup"], 1.0)
-        self.assertEqual(combined["small_straw"], 1.0)
-        self.assertNotIn("cold_cup_lid", combined)
-
-    def test_ssr_oolong_au_lait_deducts_milk(self):
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_au_lait_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_oolong_au_lait"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_au_lait_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 200 / 4700)
-        self.assertEqual(combined["milk"], 150.0)
-
-    def test_ssr_special_deducts_built_in_silky_custard(self):
-        # SSR Special is the SSR milk tea + Silky Custard built in.
-        # Expect ssr_oolong + non_dairy_creamer + heavy_cream + creme_brulee_powder.
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_special_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_special"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_special_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 300 / 4700)
-        self.assertEqual(combined["non_dairy_creamer"], 37.0)
-        # Built-in Silky Custard (21-cup batch derivation)
-        self.assertAlmostEqual(combined["heavy_cream"], 700 / 21)
-        self.assertAlmostEqual(combined["creme_brulee_powder"], 280 / 21)
-
     def test_silky_custard_modifier_on_other_drink(self):
         # Adding the Silky Custard modifier to any drink deducts the same
         # heavy_cream + creme_brulee_powder amounts as the built-in inlining.
@@ -607,6 +537,122 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
         self.assertAlmostEqual(combined["heavy_cream"], 700 / 21)
         self.assertAlmostEqual(combined["creme_brulee_powder"], 280 / 21)
+
+    def _project_brown_sugar_drink(self, drink_key, modifier_ids):
+        # Brown Sugar series: the tea comes from the Tea Base modifier (300ml of
+        # the chosen tea, 200ml for the Au Lait), brown sugar from the Brown
+        # Sugar Sweetness modifier (one 37g shot at Regular Sweet).
+        from app.order_inventory_projection import load_recipe_map
+        recipes = load_recipe_map()
+        sold_variation_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("drink_key") == drink_key
+        )
+        projected = project_line_item_usage(sold_variation_id, "1", modifier_ids)
+        return {u["inventory_key"]: float(u["total_amount"]) for u in projected["usage"]}
+
+    def test_brown_sugar_milk_tea_deducts_selected_tea_creamer_and_one_shot(self):
+        tgy_tea = "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_milk_tea", [tgy_tea, regular_sweet]
+        )
+        self.assertAlmostEqual(combined["tgy"], 160 * 300 / 6000)
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        self.assertNotIn("sugar_syrup", combined)
+        self.assertNotIn("milk", combined)
+        self.assertEqual(combined["u600_cup"], 1.0)
+        self.assertEqual(combined["small_straw"], 1.0)
+
+    def test_brown_sugar_sweetness_scales_the_shot(self):
+        black_tea = "MOSAEXT_MOD_BS_TEA_BLACK_6448B6FC"
+        expected_by_sweetness = {
+            "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F": 18.5,
+            "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952": 37.0,
+            "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A": 74.0,
+        }
+        for sweetness_modifier_id, expected_grams in expected_by_sweetness.items():
+            combined = self._project_brown_sugar_drink(
+                "brown_sugar_milk_tea", [black_tea, sweetness_modifier_id]
+            )
+            self.assertAlmostEqual(combined["brown_sugar"], expected_grams)
+            self.assertAlmostEqual(combined["black_tea"], 140 * 300 / 6000)
+
+    def test_brown_sugar_tea_au_lait_deducts_milk_and_blended_tea_base(self):
+        genmai_green_tea = "MOSAEXT_MOD_BS_TEA_GENMAI_GREEN_9912088D"
+        less_sweet = "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_tea_au_lait", [genmai_green_tea, less_sweet]
+        )
+        # 200ml of tea like the other Au Laits, split evenly across the blend.
+        self.assertAlmostEqual(combined["milk"], 150.0)
+        self.assertAlmostEqual(combined["genmai"], 120 * 100 / 6000)
+        self.assertAlmostEqual(combined["green_tea"], 160 * 100 / 6000)
+        self.assertAlmostEqual(combined["brown_sugar"], 18.5)
+        self.assertNotIn("non_dairy_creamer", combined)
+
+    def test_brown_sugar_tea_au_lait_uses_200ml_of_single_origin_tea(self):
+        tgy_tea = "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_tea_au_lait", [tgy_tea, regular_sweet]
+        )
+        self.assertAlmostEqual(combined["tgy"], 160 * 200 / 6000)
+        self.assertAlmostEqual(combined["milk"], 150.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+
+    def test_brown_sugar_frost_uses_two_shots_regardless_of_sweetness(self):
+        buckwheat_four_seasons_tea = "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F"
+        for sweetness_modifier_id in (
+            "MOSAEXT_MOD_BS_SWEET_LESS_40ECA99F",
+            "MOSAEXT_MOD_BS_SWEET_EXTRA_57FEA76A",
+        ):
+            combined = self._project_brown_sugar_drink(
+                "brown_sugar_frost", [buckwheat_four_seasons_tea, sweetness_modifier_id]
+            )
+            self.assertAlmostEqual(combined["brown_sugar"], 74.0)
+            self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+            self.assertAlmostEqual(combined["4s"], 160 * 225 / 6000)
+            self.assertAlmostEqual(combined["buckwheat"], 120 * 37.5 / 6000)
+            self.assertAlmostEqual(combined["barley"], 240 * 37.5 / 6000)
+
+    def test_hot_brown_sugar_milk_tea_matches_cold_recipe_with_hot_packaging(self):
+        from app.order_inventory_projection import load_recipe_map
+        recipes = load_recipe_map()
+        cold_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("drink_key") == "brown_sugar_milk_tea"
+        )
+        hot_id = next(
+            cid for cid, r in recipes["sold_variation_recipes"].items()
+            if r.get("same_as_sold_variation_id") == cold_id
+        )
+        buckwheat_barley_tea = "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_BARLEY_E33CF4DD"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        projected = project_line_item_usage(
+            hot_id, "1", [buckwheat_barley_tea, regular_sweet]
+        )
+        combined = {u["inventory_key"]: float(u["total_amount"]) for u in projected["usage"]}
+        self.assertEqual(projected["drink_key"], "brown_sugar_milk_tea")
+        self.assertAlmostEqual(combined["buckwheat"], 120 * 150 / 6000)
+        self.assertAlmostEqual(combined["barley"], 240 * 150 / 6000)
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        self.assertEqual(combined["hot_cup"], 1.0)
+        self.assertEqual(combined["hot_lid"], 1.0)
+        self.assertNotIn("u600_cup", combined)
+        self.assertNotIn("small_straw", combined)
+
+    def test_brown_sugar_milk_tea_without_tea_base_modifier_deducts_no_tea(self):
+        # The live Tea Base list is optional, so a few real tickets carry no tea
+        # choice. The drink still deducts creamer and brown sugar.
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink("brown_sugar_milk_tea", [regular_sweet])
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
+        for tea_key in ("tgy", "black_tea", "4s", "genmai", "green_tea", "buckwheat", "barley"):
+            self.assertNotIn(tea_key, combined)
 
     def test_brown_sugar_mist_built_in_cream_foam_no_modifier(self):
         # Brown Sugar Mist has Brown Sugar Cream Foam built-in — no cream
@@ -631,30 +677,6 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["cream_foam_powder"], 8.928571428571429)
         self.assertAlmostEqual(combined_by_key["powdered_sugar"], 2.642857142857143)
         self.assertAlmostEqual(combined_by_key["brown_sugar"], 2.642857142857143)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
-        self.assertEqual(combined_by_key["small_straw"], 1.0)
-        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
-
-    def test_pistachio_mist_built_in_cream_foam_no_modifier(self):
-        no_sugar_modifier_id = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(
-            "FYZX4EUOH6P37MKZ6TZNYW3I",
-            "1",
-            [no_sugar_modifier_id],
-        )
-
-        self.assertEqual(projected["drink_key"], "pistachio_mist")
-        combined_by_key = {
-            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
-        }
-        # Tea base resolves to genmai + green_tea
-        self.assertIn("genmai", combined_by_key)
-        self.assertIn("green_tea", combined_by_key)
-        self.assertAlmostEqual(combined_by_key["milk"], 39.285714285714285)
-        self.assertAlmostEqual(combined_by_key["heavy_cream"], 8.571428571428571)
-        self.assertAlmostEqual(combined_by_key["cream_foam_powder"], 8.571428571428571)
-        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 5.357142857142857)
-        self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
         self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
