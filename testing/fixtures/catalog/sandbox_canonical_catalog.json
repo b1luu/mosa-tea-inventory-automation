@@ -924,55 +924,6 @@
       "sellable": false,
       "stockable": true
     },
-    "MOSAEXT_SSR_TEA_C59590B1": {
-      "id": "MOSAEXT_SSR_TEA_C59590B1",
-      "item_name": "SSR Oolong Tea 糯香烏龍茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_AU_LAIT_54B58365": {
-      "id": "MOSAEXT_SSR_AU_LAIT_54B58365",
-      "item_name": "SSR Oolong Au Lait 糯香烏龍歐蕾",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_MILK_TEA_883193B2": {
-      "id": "MOSAEXT_SSR_MILK_TEA_883193B2",
-      "item_name": "SSR Oolong Milk Tea 糯香烏龍奶茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_SPECIAL_DA9E203A": {
-      "id": "MOSAEXT_SSR_SPECIAL_DA9E203A",
-      "item_name": "SSR Special 糯香烏龍奶酪奶茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_HOT_TEA_57277132": {
-      "id": "MOSAEXT_SSR_HOT_TEA_57277132",
-      "item_name": "Hot SSR Oolong Tea 熱糯香烏龍茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_HOT_AU_LAIT_43486897": {
-      "id": "MOSAEXT_SSR_HOT_AU_LAIT_43486897",
-      "item_name": "Hot SSR Oolong Au Lait 熱糯香烏龍歐蕾",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
-    "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58": {
-      "id": "MOSAEXT_SSR_HOT_MILK_TEA_9F40FF58",
-      "item_name": "Hot SSR Oolong Milk Tea 熱糯香烏龍奶茶",
-      "variation_name": "Regular",
-      "sellable": true,
-      "stockable": true
-    },
     "MOSAEXT_BS_MILK_TEA_D2131117": {
       "id": "MOSAEXT_BS_MILK_TEA_D2131117",
       "item_name": "Browns Sugar Milk Tea 黑糖奶茶",

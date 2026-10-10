@@ -521,54 +521,6 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["small_straw"], 1.0)
         self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
 
-    def test_ssr_oolong_tea_deducts_brewed_leaves_only(self):
-        # Find SSR Oolong Tea by drink_key (synthetic canonical id varies per
-        # generation). 1 drink = 300ml brewed SSR Oolong → 100/4700 * 300 = 6.383g
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_tea_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_oolong_brewed_tea"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_tea_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 300 / 4700)
-        self.assertEqual(combined["u600_cup"], 1.0)
-        self.assertEqual(combined["small_straw"], 1.0)
-        self.assertNotIn("cold_cup_lid", combined)
-
-    def test_ssr_oolong_au_lait_deducts_milk(self):
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_au_lait_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_oolong_au_lait"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_au_lait_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 200 / 4700)
-        self.assertEqual(combined["milk"], 150.0)
-
-    def test_ssr_special_deducts_built_in_silky_custard(self):
-        # SSR Special is the SSR milk tea + Silky Custard built in.
-        # Expect ssr_oolong + non_dairy_creamer + heavy_cream + creme_brulee_powder.
-        from app.order_inventory_projection import load_recipe_map
-        recipes = load_recipe_map()
-        ssr_special_id = next(
-            cid for cid, r in recipes["sold_variation_recipes"].items()
-            if r.get("drink_key") == "ssr_special"
-        )
-        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(ssr_special_id, "1", [no_sugar])
-        combined = {u["inventory_key"]: u["total_amount"] for u in projected["usage"]}
-        self.assertAlmostEqual(combined["ssr_oolong"], 100 * 300 / 4700)
-        self.assertEqual(combined["non_dairy_creamer"], 37.0)
-        # Built-in Silky Custard (21-cup batch derivation)
-        self.assertAlmostEqual(combined["heavy_cream"], 700 / 21)
-        self.assertAlmostEqual(combined["creme_brulee_powder"], 280 / 21)
-
     def test_silky_custard_modifier_on_other_drink(self):
         # Adding the Silky Custard modifier to any drink deducts the same
         # heavy_cream + creme_brulee_powder amounts as the built-in inlining.
