@@ -860,13 +860,6 @@
       "stockable": false,
       "variation_name": "$25"
     },
-    "PRODSIM-V-SSR-OOLONG": {
-      "id": "PRODSIM-V-SSR-OOLONG",
-      "item_name": "SSR Oolong",
-      "sellable": false,
-      "stockable": true,
-      "variation_name": "Regular"
-    },
     "PRODSIM-V-CUSTARD-POWDER": {
       "id": "PRODSIM-V-CUSTARD-POWDER",
       "item_name": "Creme Brulee Powder",

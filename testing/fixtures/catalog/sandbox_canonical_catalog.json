@@ -910,13 +910,6 @@
       "sellable": true,
       "stockable": true
     },
-    "MOSAEXT_INV_SSR_OOLONG_12378155": {
-      "id": "MOSAEXT_INV_SSR_OOLONG_12378155",
-      "item_name": "SSR Oolong",
-      "variation_name": "Regular",
-      "sellable": false,
-      "stockable": true
-    },
     "MOSAEXT_INV_CUSTARD_POWDER_7CFC8C92": {
       "id": "MOSAEXT_INV_CUSTARD_POWDER_7CFC8C92",
       "item_name": "Creme Brulee Powder",
