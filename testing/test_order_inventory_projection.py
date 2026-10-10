@@ -587,9 +587,9 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined["creme_brulee_powder"], 280 / 21)
 
     def _project_brown_sugar_drink(self, drink_key, modifier_ids):
-        # Brown Sugar series: the tea comes from the shared Tea Base modifier
-        # (300ml of the chosen tea), brown sugar from the Brown Sugar Sweetness
-        # modifier (one 37g shot at Regular Sweet).
+        # Brown Sugar series: the tea comes from the Tea Base modifier (300ml of
+        # the chosen tea, 200ml for the Au Lait), brown sugar from the Brown
+        # Sugar Sweetness modifier (one 37g shot at Regular Sweet).
         from app.order_inventory_projection import load_recipe_map
         recipes = load_recipe_map()
         sold_variation_id = next(
@@ -633,11 +633,22 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         combined = self._project_brown_sugar_drink(
             "brown_sugar_tea_au_lait", [genmai_green_tea, less_sweet]
         )
+        # 200ml of tea like the other Au Laits, split evenly across the blend.
         self.assertAlmostEqual(combined["milk"], 150.0)
-        self.assertAlmostEqual(combined["genmai"], 120 * 150 / 6000)
-        self.assertAlmostEqual(combined["green_tea"], 160 * 150 / 6000)
+        self.assertAlmostEqual(combined["genmai"], 120 * 100 / 6000)
+        self.assertAlmostEqual(combined["green_tea"], 160 * 100 / 6000)
         self.assertAlmostEqual(combined["brown_sugar"], 18.5)
         self.assertNotIn("non_dairy_creamer", combined)
+
+    def test_brown_sugar_tea_au_lait_uses_200ml_of_single_origin_tea(self):
+        tgy_tea = "MOSAEXT_MOD_BS_TEA_TGY_0A0DE0B6"
+        regular_sweet = "MOSAEXT_MOD_BS_SWEET_REGULAR_E4870952"
+        combined = self._project_brown_sugar_drink(
+            "brown_sugar_tea_au_lait", [tgy_tea, regular_sweet]
+        )
+        self.assertAlmostEqual(combined["tgy"], 160 * 200 / 6000)
+        self.assertAlmostEqual(combined["milk"], 150.0)
+        self.assertAlmostEqual(combined["brown_sugar"], 37.0)
 
     def test_brown_sugar_frost_uses_two_shots_regardless_of_sweetness(self):
         buckwheat_four_seasons_tea = "MOSAEXT_MOD_BS_TEA_BUCKWHEAT_4S_344A9D0F"
