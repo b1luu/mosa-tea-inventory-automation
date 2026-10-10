@@ -521,28 +521,6 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["small_straw"], 1.0)
         self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
 
-    def test_pistachio_foam_modifier_fixture(self):
-        order_fixture = load_fixture("completed_matcha_latte_pistachio_foam.json")
-        projected_line_items, combined_usage = project_fixture_order(order_fixture)
-
-        self.assertEqual(len(projected_line_items), 1)
-        self.assertEqual(projected_line_items[0]["drink_key"], "matcha_latte")
-
-        combined_by_key = {
-            usage["inventory_key"]: usage["total_amount"] for usage in combined_usage
-        }
-        self.assertEqual(combined_by_key["matcha"], 8.75)
-        self.assertEqual(combined_by_key["milk"], 189.28571428571428)
-        self.assertAlmostEqual(combined_by_key["heavy_cream"], 8.571428571428571)
-        self.assertAlmostEqual(
-            combined_by_key["cream_foam_powder"], 8.571428571428571
-        )
-        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 5.357142857142857)
-        self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
-        self.assertEqual(combined_by_key["small_straw"], 1.0)
-        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
-
     def test_ssr_oolong_tea_deducts_brewed_leaves_only(self):
         # Find SSR Oolong Tea by drink_key (synthetic canonical id varies per
         # generation). 1 drink = 300ml brewed SSR Oolong → 100/4700 * 300 = 6.383g
@@ -631,30 +609,6 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertAlmostEqual(combined_by_key["cream_foam_powder"], 8.928571428571429)
         self.assertAlmostEqual(combined_by_key["powdered_sugar"], 2.642857142857143)
         self.assertAlmostEqual(combined_by_key["brown_sugar"], 2.642857142857143)
-        self.assertEqual(combined_by_key["u600_cup"], 1.0)
-        self.assertEqual(combined_by_key["small_straw"], 1.0)
-        self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)
-
-    def test_pistachio_mist_built_in_cream_foam_no_modifier(self):
-        no_sugar_modifier_id = "IDFKCCIPYGFA67OPJMJ3SQVO"
-        projected = project_line_item_usage(
-            "FYZX4EUOH6P37MKZ6TZNYW3I",
-            "1",
-            [no_sugar_modifier_id],
-        )
-
-        self.assertEqual(projected["drink_key"], "pistachio_mist")
-        combined_by_key = {
-            usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]
-        }
-        # Tea base resolves to genmai + green_tea
-        self.assertIn("genmai", combined_by_key)
-        self.assertIn("green_tea", combined_by_key)
-        self.assertAlmostEqual(combined_by_key["milk"], 39.285714285714285)
-        self.assertAlmostEqual(combined_by_key["heavy_cream"], 8.571428571428571)
-        self.assertAlmostEqual(combined_by_key["cream_foam_powder"], 8.571428571428571)
-        self.assertAlmostEqual(combined_by_key["powdered_sugar"], 5.357142857142857)
-        self.assertAlmostEqual(combined_by_key["pistachio"], 8.928571428571429)
         self.assertEqual(combined_by_key["u600_cup"], 1.0)
         self.assertEqual(combined_by_key["small_straw"], 1.0)
         self.assertEqual(combined_by_key["cold_cup_lid"], 1.0)

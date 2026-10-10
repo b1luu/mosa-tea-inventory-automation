@@ -218,40 +218,6 @@
         }
       ]
     },
-    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
-      "ingredients": [
-        {
-          "inventory_key": "milk",
-          "amount": 39.285714285714285,
-          "unit": "ml",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "heavy_cream",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "cream_foam_powder",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 5.357142857142857,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "pistachio",
-          "amount": 8.928571428571429,
-          "unit": "g",
-          "notes": "Selected Cream Foam modifier: Pistachio Foam derived from a 14-serving batch."
-        }
-      ]
-    },
     "MOSAEXT_MOD_SILKY_CUSTARD_3F0BC385": {
       "ingredients": [
         {
@@ -322,8 +288,7 @@
       "genmai_matcha_with_matcha_jelly"
     ],
     "recipes_with_built_in_cream_foam": [
-      "brown_sugar_mist",
-      "pistachio_mist"
+      "brown_sugar_mist"
     ],
     "cold_cup_lid": {
       "inventory_key": "cold_cup_lid",
@@ -336,8 +301,7 @@
       "unit": "lid"
     },
     "cream_foam_modifier_ids": [
-      "G2IKLVV2HGABCPEHQNAEUHQZ",
-      "G56XRZ7WHJ7XMA6OOXDCIEWW"
+      "G2IKLVV2HGABCPEHQNAEUHQZ"
     ],
     "hot_allowed_topping_modifier_ids": [
       "UIFT45SSDNEZBUDPKFGF6VES",
@@ -864,45 +828,6 @@
           "amount": 150,
           "unit": "ml",
           "notes": "Standard milk usage per Au Lait."
-        }
-      ]
-    },
-    "FYZX4EUOH6P37MKZ6TZNYW3I": {
-      "drink_key": "pistachio_mist",
-      "drink_name": "Pistachio Mist",
-      "ingredients": [
-        {
-          "tea_base_key": "genmai_green"
-        },
-        {
-          "inventory_key": "milk",
-          "amount": 39.285714285714285,
-          "unit": "ml",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "heavy_cream",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "cream_foam_powder",
-          "amount": 8.571428571428571,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 5.357142857142857,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
-        },
-        {
-          "inventory_key": "pistachio",
-          "amount": 8.928571428571429,
-          "unit": "g",
-          "notes": "Built-in Pistachio Foam derived from a 14-serving batch."
         }
       ]
     },

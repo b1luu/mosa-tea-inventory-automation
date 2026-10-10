@@ -95,11 +95,6 @@
       "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
       "name": "Brown Sugar Cream Foam"
     },
-    "G56XRZ7WHJ7XMA6OOXDCIEWW": {
-      "id": "G56XRZ7WHJ7XMA6OOXDCIEWW",
-      "modifier_list_id": "PCB7PO5WYAAIBMAEGJ6665M2",
-      "name": "Pistachio Foam"
-    },
     "HBLOG26AKQNVOTYJJT3YFAMR": {
       "id": "HBLOG26AKQNVOTYJJT3YFAMR",
       "modifier_list_id": "HVIOJ357F3ZE5A7AUTBVZVKO",
@@ -264,13 +259,6 @@
     "4CLJVUZQCIVAEU4F7APU6QGX": {
       "id": "4CLJVUZQCIVAEU4F7APU6QGX",
       "item_name": "Milk",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": "Regular"
-    },
-    "4F4NTG7FT3L2DJLRYGBGLPR6": {
-      "id": "4F4NTG7FT3L2DJLRYGBGLPR6",
-      "item_name": "Pistachio",
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
@@ -484,13 +472,6 @@
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
-    },
-    "FYZX4EUOH6P37MKZ6TZNYW3I": {
-      "id": "FYZX4EUOH6P37MKZ6TZNYW3I",
-      "item_name": "Pistachio Mist 開心雲朵",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": null
     },
     "G2ECIVTMKE4Z5TTM35Y4EQDV": {
       "id": "G2ECIVTMKE4Z5TTM35Y4EQDV",
