@@ -307,6 +307,7 @@ Expected success behavior:
 - [Catalog modifier model](docs/catalog-modifier-model.md)
 - [Dependency management](docs/dependency-management.md)
 - [Ops runbook](docs/ops-runbook.md)
+- [Menu coverage & demand tracking decision](docs/menu-coverage-and-demand-tracking-decision.md)
 - [Order state handling decision](docs/order-state-handling-decision.md)
 - [Production OAuth decision](docs/production-oauth-decision.md)
 - [SQS dead-letter queue behavior](docs/sqs-dlq-behavior.md)
