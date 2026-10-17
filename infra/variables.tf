@@ -106,6 +106,30 @@ variable "webhook_worker_errors_alarm_threshold" {
   default     = 1
 }
 
+variable "oauth_refresh_errors_alarm_threshold" {
+  description = "Alarm when the scheduled OAuth refresh Lambda emits at least this many errors in a five-minute window."
+  type        = number
+  default     = 1
+}
+
+variable "oauth_refresh_lambda_function_name" {
+  description = "Lambda function name for the scheduled OAuth token refresh."
+  type        = string
+  default     = "mosa-tea-oauth-refresh"
+}
+
+variable "oauth_refresh_lambda_role_name" {
+  description = "IAM role name for the scheduled OAuth token refresh Lambda."
+  type        = string
+  default     = null
+}
+
+variable "oauth_refresh_schedule_expression" {
+  description = "EventBridge schedule for the OAuth token refresh. Daily gives about ten attempts inside the ten-day refresh window."
+  type        = string
+  default     = "rate(1 day)"
+}
+
 variable "binding_coverage_check_errors_alarm_threshold" {
   description = "Alarm when the scheduled binding coverage check Lambda emits at least this many errors in a five-minute window."
   type        = number

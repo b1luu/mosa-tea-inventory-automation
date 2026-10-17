@@ -72,6 +72,13 @@ resource "aws_iam_role" "binding_coverage_check" {
   tags               = local.common_tags
 }
 
+resource "aws_iam_role" "oauth_refresh" {
+  name               = coalesce(var.oauth_refresh_lambda_role_name, "${var.oauth_refresh_lambda_function_name}-role")
+  path               = var.lambda_role_path
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+  tags               = local.common_tags
+}
+
 resource "aws_iam_role_policy_attachment" "webhook_ingress_basic_execution" {
   count      = var.manage_lambda_role_policies ? 1 : 0
   role       = aws_iam_role.webhook_ingress.name
@@ -92,6 +99,11 @@ resource "aws_iam_role_policy_attachment" "manual_count_sync_basic_execution" {
 
 resource "aws_iam_role_policy_attachment" "oauth_basic_execution" {
   role       = aws_iam_role.oauth.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "oauth_refresh_basic_execution" {
+  role       = aws_iam_role.oauth_refresh.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -368,6 +380,38 @@ data "aws_iam_policy_document" "binding_coverage_check_runtime" {
       : "arn:aws:sns:${var.aws_region}:${data.aws_caller_identity.current.account_id}:unused-binding-coverage-alert-topic"
     ]
   }
+}
+
+data "aws_iam_policy_document" "oauth_refresh_runtime" {
+  statement {
+    sid    = "MerchantConnectionsRead"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [aws_dynamodb_table.merchant_connections.arn]
+  }
+
+  statement {
+    sid    = "MerchantSecretsRefresh"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:PutSecretValue"
+    ]
+    resources = [
+      "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.merchant_secret_prefix}*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "oauth_refresh_runtime" {
+  name   = "oauth-refresh-runtime-access"
+  role   = aws_iam_role.oauth_refresh.id
+  policy = data.aws_iam_policy_document.oauth_refresh_runtime.json
 }
 
 resource "aws_iam_role_policy" "binding_coverage_check_runtime" {

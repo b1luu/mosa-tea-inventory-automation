@@ -190,9 +190,29 @@ cat /tmp/binding_coverage_check.json
 
 ### OAuth refresh fails
 
-**When this fires:** the worker logs show auth or token-refresh failures while attempting merchant-scoped Square API calls.
+**When this fires:** either
+
+- the `mosa-tea-oauth-refresh-errors` alarm emails: the daily scheduled refresh (`mosa-tea-oauth-refresh-prod`) failed for at least one merchant. It renews tokens 10 days before expiry, so there is usually more than a week before order deductions are affected; or
+- the worker logs show auth or token-refresh failures while attempting merchant-scoped Square API calls (the worker also renews a token on demand within 5 minutes of expiry).
 
 **Diagnose:**
+
+The scheduler's log names each failed merchant and why (`failed` = Square or storage error; `failed_no_refresh_token` = only a reconnect can fix it):
+
+```bash
+aws --no-cli-pager logs filter-log-events \
+  --log-group-name /aws/lambda/mosa-tea-oauth-refresh-prod \
+  --filter-pattern oauth_refresh_failed \
+  --query 'events[-1].message' --output text
+```
+
+To see when each token expires without renewing anything:
+
+```bash
+aws lambda invoke --function-name mosa-tea-oauth-refresh-prod \
+  --payload '{"dry_run": true}' --cli-binary-format raw-in-base64-out /tmp/oauth-refresh.json \
+  && cat /tmp/oauth-refresh.json
+```
 
 ```bash
 ./.venv/bin/python -m scripts.show_merchant_setup \

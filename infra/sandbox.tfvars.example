@@ -21,6 +21,7 @@ worker_lambda_function_name          = "mosa-tea-webhook-worker"
 webhook_ingress_lambda_function_name = "mosa-tea-webhook-ingress"
 manual_count_sync_lambda_function_name = "mosa-tea-manual-count-sync"
 binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check"
+oauth_refresh_lambda_function_name          = "mosa-tea-oauth-refresh"
 
 # Optional: set these to the current live IAM role names before importing existing Lambdas.
 # webhook_ingress_lambda_role_name = "your-existing-webhook-ingress-role-name"

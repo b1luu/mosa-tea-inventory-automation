@@ -61,6 +61,27 @@ resource "aws_cloudwatch_metric_alarm" "webhook_worker_errors" {
   tags          = local.common_tags
 }
 
+resource "aws_cloudwatch_metric_alarm" "oauth_refresh_errors" {
+  count = var.create_cloudwatch_alarms ? 1 : 0
+
+  alarm_name          = "${var.project_name}-oauth-refresh-errors"
+  alarm_description   = "A scheduled OAuth token refresh failed. Check the oauth_refresh_failed log line; a merchant may need to reconnect before its token expires and order deductions stop."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = var.oauth_refresh_errors_alarm_threshold
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    FunctionName = aws_lambda_function.oauth_refresh.function_name
+  }
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.alarm_actions
+  tags          = local.common_tags
+}
+
 resource "aws_cloudwatch_metric_alarm" "binding_coverage_check_errors" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 

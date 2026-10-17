@@ -254,6 +254,57 @@ resource "aws_lambda_function" "binding_coverage_check" {
   tags = local.common_tags
 }
 
+resource "aws_cloudwatch_log_group" "oauth_refresh" {
+  name              = "/aws/lambda/${var.oauth_refresh_lambda_function_name}"
+  retention_in_days = var.log_retention_in_days
+  tags              = local.common_tags
+}
+
+resource "aws_lambda_function" "oauth_refresh" {
+  function_name = var.oauth_refresh_lambda_function_name
+  role          = aws_iam_role.oauth_refresh.arn
+  handler       = "app.lambda_oauth_refresh.lambda_handler"
+  runtime       = var.lambda_runtime
+  architectures = var.lambda_architectures
+  memory_size   = var.lambda_memory_size_mb
+  timeout       = var.lambda_timeout_seconds
+
+  filename         = var.runtime313_lambda_package_path
+  source_code_hash = filebase64sha256(var.runtime313_lambda_package_path)
+
+  lifecycle {
+    ignore_changes = [
+      runtime,
+      filename,
+      source_code_hash,
+      publish,
+      tags,
+      tags_all,
+    ]
+
+    # The only signal of a failed refresh is the error alarm, so it must have
+    # somewhere to send it.
+    precondition {
+      condition     = length(local.alarm_actions) > 0
+      error_message = "alarm_notification_topic_arn must be set: without it, a failed OAuth refresh reaches no one."
+    }
+  }
+
+  environment {
+    variables = merge(
+      local.merchant_store_env,
+      {
+        SQUARE_OAUTH_CLIENT_ID     = var.square_oauth_client_id
+        SQUARE_OAUTH_CLIENT_SECRET = var.square_oauth_client_secret
+      }
+    )
+  }
+
+  depends_on = [aws_cloudwatch_log_group.oauth_refresh]
+
+  tags = local.common_tags
+}
+
 resource "aws_lambda_event_source_mapping" "webhook_worker_queue" {
   event_source_arn        = aws_sqs_queue.webhook_jobs.arn
   function_name           = aws_lambda_function.webhook_worker.arn
