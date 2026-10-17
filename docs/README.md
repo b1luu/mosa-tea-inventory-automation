@@ -20,6 +20,7 @@
 - [Catalog modifier model](catalog-modifier-model.md)
 - [CloudWatch alarm smoke test](cloudwatch-alarm-smoke-test.md)
 - [Dependency management](dependency-management.md)
+- [Menu coverage & demand tracking decision](menu-coverage-and-demand-tracking-decision.md) — 2026-10-17: ignore lists, alerting, matcha jelly retirement, oat milk usage log
 - [Ops runbook](ops-runbook.md)
 - [Order state handling decision](order-state-handling-decision.md)
 - [Production onboarding runbook](production-onboarding-runbook.md)
