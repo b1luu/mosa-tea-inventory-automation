@@ -46,6 +46,7 @@ output "lambda_function_names" {
     manual_sync            = aws_lambda_function.manual_count_sync.function_name
     oauth                  = aws_lambda_function.oauth.function_name
     binding_coverage_check = aws_lambda_function.binding_coverage_check.function_name
+    oauth_refresh          = aws_lambda_function.oauth_refresh.function_name
   }
 }
 
@@ -68,5 +69,6 @@ output "cloudwatch_alarm_names" {
     webhook_jobs_oldest_message_age   = aws_cloudwatch_metric_alarm.webhook_jobs_oldest_message_age[0].alarm_name
     webhook_worker_errors             = aws_cloudwatch_metric_alarm.webhook_worker_errors[0].alarm_name
     binding_coverage_check_errors     = aws_cloudwatch_metric_alarm.binding_coverage_check_errors[0].alarm_name
+    oauth_refresh_errors              = aws_cloudwatch_metric_alarm.oauth_refresh_errors[0].alarm_name
   } : {}
 }

@@ -36,6 +36,7 @@ worker_lambda_function_name                 = "mosa-tea-webhook-worker-prod"
 webhook_ingress_lambda_function_name        = "mosa-tea-webhook-ingress-prod"
 manual_count_sync_lambda_function_name      = "mosa-tea-manual-count-sync-prod"
 binding_coverage_check_lambda_function_name = "mosa-tea-binding-coverage-check-prod"
+oauth_refresh_lambda_function_name          = "mosa-tea-oauth-refresh-prod"
 oauth_lambda_function_name                  = "mosa-tea-oauth-prod"
 
 # IAM role names. Production has its own -prod-suffixed roles. The sandbox
