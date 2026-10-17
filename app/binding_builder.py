@@ -93,6 +93,7 @@ def build_binding_from_catalogs(
     inventory_key_by_canonical_variation = {
         item["square_variation_id"]: inventory_key
         for inventory_key, item in inventory_item_map.items()
+        if item.get("square_variation_id")
     }
 
     canonical_variation_index = _index_canonical_variations(canonical_catalog)

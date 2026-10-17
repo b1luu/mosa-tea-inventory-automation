@@ -25,6 +25,8 @@ locals {
       WEBHOOK_EVENT_STORE_MODE        = "dynamodb"
       DYNAMODB_ORDER_PROCESSING_TABLE = aws_dynamodb_table.order_processing.name
       DYNAMODB_WEBHOOK_EVENT_TABLE    = aws_dynamodb_table.webhook_events.name
+      USAGE_LOG_STORE_MODE            = "dynamodb"
+      DYNAMODB_USAGE_LOG_TABLE        = aws_dynamodb_table.usage_log.name
     }
   )
 

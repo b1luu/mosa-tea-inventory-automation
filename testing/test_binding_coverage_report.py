@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from app.binding_coverage_report import build_binding_coverage_report
+from app.binding_coverage_report import build_binding_coverage_report, classify_binding_coverage
 from app.merchant_store import MerchantContext
 
 
@@ -406,6 +406,64 @@ class ArchivedBackfillTests(unittest.TestCase):
         )
         self.assertGreaterEqual(report["summary"]["blocking_issue_count"], 1)
         self.assertFalse(report["summary"]["ready_for_approval"])
+
+
+class ModifierIgnoreAndCountOnlyKeyTests(unittest.TestCase):
+    _TARGETS = {
+        "sold_variation_ids": set(),
+        "modifier_ids": {"CANONICAL-MOD-1"},
+        "inventory_keys": {"tea"},
+        "count_only_inventory_keys": {"sample_cup"},
+    }
+
+    def _classify(self, mapping, modifiers, variations=None):
+        live_catalog = {
+            "variations": variations or {"LIVE-INV-TEA": {"id": "LIVE-INV-TEA"}},
+            "modifiers": {modifier_id: {"id": modifier_id, "name": name} for modifier_id, name in modifiers.items()},
+        }
+        mapping = {
+            "sold_variation_aliases": {},
+            "modifier_aliases": {},
+            "inventory_variation_ids": {"tea": "LIVE-INV-TEA"},
+            **mapping,
+        }
+        return classify_binding_coverage({"mapping": mapping}, live_catalog, canonical_targets=self._TARGETS)
+
+    def test_ignored_live_modifier_is_visible_but_not_actionable(self):
+        report = self._classify(
+            {"ignored_live_modifier_ids": ["LIVE-ICE"]},
+            {"LIVE-ICE": "No Ice", "LIVE-OAT": "Sub w/ Oat Milk"},
+        )
+
+        self.assertEqual([m["id"] for m in report["modifiers"]["ignored_live_modifiers"]], ["LIVE-ICE"])
+        self.assertEqual([m["id"] for m in report["modifiers"]["unmapped_live_modifiers"]], ["LIVE-OAT"])
+        self.assertEqual(report["summary"]["warning_count"], 1)
+
+    def test_aliased_modifier_is_not_reported_as_ignored(self):
+        report = self._classify(
+            {"modifier_aliases": {"LIVE-MOD-1": "CANONICAL-MOD-1"}, "ignored_live_modifier_ids": ["LIVE-MOD-1"]},
+            {"LIVE-MOD-1": "Boba"},
+        )
+
+        self.assertEqual(report["modifiers"]["ignored_live_modifiers"], [])
+        self.assertEqual(report["modifiers"]["unmapped_live_modifiers"], [])
+
+    def test_count_only_inventory_key_is_not_a_warning(self):
+        report = self._classify(
+            {"inventory_variation_ids": {"tea": "LIVE-INV-TEA", "sample_cup": "LIVE-INV-SAMPLE", "mystery": "LIVE-INV-X"}},
+            {},
+            variations={key: {"id": key} for key in ("LIVE-INV-TEA", "LIVE-INV-SAMPLE", "LIVE-INV-X")},
+        )
+
+        self.assertEqual(
+            [entry["inventory_key"] for entry in report["inventory"]["count_only_inventory_keys"]],
+            ["sample_cup"],
+        )
+        self.assertEqual(
+            [entry["inventory_key"] for entry in report["inventory"]["unknown_inventory_keys"]],
+            ["mystery"],
+        )
+        self.assertEqual(report["summary"]["warning_count"], 1)
 
 
 if __name__ == "__main__":

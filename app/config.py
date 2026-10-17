@@ -147,6 +147,25 @@ def get_webhook_job_queue_url():
     return queue_url.strip()
 
 
+def get_usage_log_store_mode():
+    store_mode = os.getenv("USAGE_LOG_STORE_MODE", "sqlite").strip().lower()
+    if store_mode not in {"sqlite", "dynamodb"}:
+        raise ValueError(
+            "Invalid USAGE_LOG_STORE_MODE value. Use 'sqlite' or 'dynamodb'."
+        )
+    return store_mode
+
+
+def get_dynamodb_usage_log_table_name():
+    table_name = os.getenv("DYNAMODB_USAGE_LOG_TABLE")
+    if not table_name:
+        raise ValueError(
+            "Missing required environment variable: DYNAMODB_USAGE_LOG_TABLE. "
+            "Set it before using the DynamoDB-backed usage log."
+        )
+    return table_name.strip()
+
+
 def get_dynamodb_order_processing_table_name():
     table_name = os.getenv("DYNAMODB_ORDER_PROCESSING_TABLE")
     if not table_name:

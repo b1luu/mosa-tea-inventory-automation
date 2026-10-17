@@ -8,7 +8,7 @@ from app.inventory_stock_units import (
     has_stock_unit_mapping,
     summarize_combined_usage_in_display_units,
 )
-from app.order_inventory_projection import project_line_item_usage
+from app.order_inventory_projection import is_log_only_inventory_key, project_line_item_usage
 
 
 @dataclass(frozen=True)
@@ -150,6 +150,8 @@ def _build_adjustment_changes(order_ids, combined_usage, occurred_at):
     changes = []
 
     for usage in combined_usage:
+        if is_log_only_inventory_key(usage["inventory_key"]):
+            continue
         quantity = Decimal(str(usage["total_amount"]))
         if has_stock_unit_mapping(usage["inventory_key"]):
             converted = convert_inventory_amount_to_stock_unit(
@@ -210,6 +212,7 @@ def build_inventory_plan_from_order_summaries(
                 "order_id": order_identifier,
                 "location_id": order_summary.get("location_id"),
                 "state": order_summary.get("state"),
+                "created_at": order_summary.get("created_at"),
                 "line_item_count": len(extracted_line_items),
             }
         )

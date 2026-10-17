@@ -21,6 +21,7 @@ data/merchant_store.db
 data/oauth_state.db
 data/order_processing.db
 data/webhook_events.db
+data/usage_log.db
 data/processed_orders.json
 data/backend_inventory_backups/
 data/backend_inventory_created_ids.json

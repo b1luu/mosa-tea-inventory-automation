@@ -40,11 +40,6 @@
       "modifier_list_id": "76BWOEA3S4T3VERHORO6MPZ6",
       "name": "Taiwanese Retro"
     },
-    "AB2HPG7C7F2V3DXPPXCEBNH4": {
-      "id": "AB2HPG7C7F2V3DXPPXCEBNH4",
-      "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
-      "name": "Daily Jelly (Matcha Jelly)"
-    },
     "AO67JKYVROAETRWYO3YE3RIQ": {
       "id": "AO67JKYVROAETRWYO3YE3RIQ",
       "modifier_list_id": "HRNBKKMWSNKUWVLU6BCGO6AT",
@@ -120,11 +115,6 @@
       "modifier_list_id": "76BWOEA3S4T3VERHORO6MPZ6",
       "name": "Strawberry Matcha"
     },
-    "IQSH74JXSLK2GGAUH4HQVP4X": {
-      "id": "IQSH74JXSLK2GGAUH4HQVP4X",
-      "modifier_list_id": "2SAMXNURGN2INFWSS223ONEF",
-      "name": "Genmai"
-    },
     "LVFSXC7PNLAZAFNKBRXUSOI7": {
       "id": "LVFSXC7PNLAZAFNKBRXUSOI7",
       "modifier_list_id": "UFGMXSLM44S47EIEPOE7VLMG",
@@ -189,11 +179,6 @@
       "id": "VEDNAO6LH5WQET6TQTJGSPOB",
       "modifier_list_id": "FNKSO2WQTU6QGQLP5DI2L3JZ",
       "name": "100% Sugar"
-    },
-    "VP6AQIBJJOMA5KNBGKJTAHNU": {
-      "id": "VP6AQIBJJOMA5KNBGKJTAHNU",
-      "modifier_list_id": "2SAMXNURGN2INFWSS223ONEF",
-      "name": "Jasmine Green Tea & Genmai"
     },
     "Z3ZW4GLVWIAMBC4XI447XH2V": {
       "id": "Z3ZW4GLVWIAMBC4XI447XH2V",
@@ -706,13 +691,6 @@
       "sellable": true,
       "stockable": true,
       "variation_name": "Regular"
-    },
-    "RJU3MBQFNVHFUUDMTAXDQ43P": {
-      "id": "RJU3MBQFNVHFUUDMTAXDQ43P",
-      "item_name": "Genmai Matcha with Matcha Jelly 抹茶凍玄米抹茶",
-      "sellable": true,
-      "stockable": true,
-      "variation_name": null
     },
     "SA4SIBUCOLBU3XQ3BZPYXXP4": {
       "id": "SA4SIBUCOLBU3XQ3BZPYXXP4",

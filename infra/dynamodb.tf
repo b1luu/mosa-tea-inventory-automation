@@ -39,6 +39,38 @@ resource "aws_dynamodb_table" "order_processing" {
   }
 }
 
+# Per-order ingredient usage written by the worker: the demand record for
+# ingredients that are never recounted, and the only record for log-only ones.
+resource "aws_dynamodb_table" "usage_log" {
+  name         = var.usage_log_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "usage_key"
+  range_key    = "sold_at_order_id"
+
+  attribute {
+    name = "usage_key"
+    type = "S"
+  }
+
+  attribute {
+    name = "sold_at_order_id"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      tags_all,
+    ]
+  }
+}
+
 resource "aws_dynamodb_table" "webhook_events" {
   name         = var.webhook_event_table_name
   billing_mode = "PAY_PER_REQUEST"

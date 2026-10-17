@@ -107,9 +107,9 @@
       ]
     },
     "sandbox_historical_fixture_day_200": {
-      "description": "191-drink replay built from exported real completed-order fixtures, rotated across the valid fixture library.",
+      "description": "182-drink replay built from exported real completed-order fixtures, rotated across the valid fixture library.",
       "ordering_strategy": "interleaved",
-      "drill_batches": [12, 20, 28, 31, 36, 36],
+      "drill_batches": [12, 20, 28, 30, 32, 32],
       "dispatch_offsets_minutes": [0, 35, 90, 180, 285, 390],
       "entries": [
         {
@@ -134,11 +134,6 @@
         },
         {
           "fixture_name": "completed_fresh_mango_tea_four_seasons.json",
-          "order_count": 9,
-          "burst_size": 1
-        },
-        {
-          "fixture_name": "completed_genmai_matcha_with_matcha_jelly.json",
           "order_count": 9,
           "burst_size": 1
         },
