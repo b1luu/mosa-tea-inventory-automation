@@ -231,6 +231,13 @@ resource "aws_lambda_function" "binding_coverage_check" {
       tags,
       tags_all,
     ]
+
+    # The coverage check reports findings only through SNS, and its error
+    # alarm has no recipients without a topic. Refuse to deploy it silently.
+    precondition {
+      condition     = length(local.alarm_actions) > 0
+      error_message = "alarm_notification_topic_arn must be set: without it, binding coverage findings and check failures reach no one."
+    }
   }
 
   environment {

@@ -162,28 +162,6 @@
         }
       ]
     },
-    "AB2HPG7C7F2V3DXPPXCEBNH4": {
-      "ingredients": [
-        {
-          "inventory_key": "matcha_jelly_matcha",
-          "amount": 1.6260162601626016,
-          "unit": "g",
-          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 12.195121951219512,
-          "unit": "g",
-          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
-        },
-        {
-          "inventory_key": "tj_powder",
-          "amount": 4.878048780487805,
-          "unit": "g",
-          "notes": "Selected Toppings modifier: Matcha Jelly derived from a 36.9-serving batch."
-        }
-      ]
-    },
     "G2IKLVV2HGABCPEHQNAEUHQZ": {
       "ingredients": [
         {
@@ -235,6 +213,14 @@
       ]
     }
   },
+  "modifier_substitutions": {
+    "NASUMFZKO4P5GWA5YZNGENJ3": {
+      "replace": {
+        "milk": "oat_milk"
+      },
+      "notes": "Sub w/ Oat Milk: the drink's milk is poured as oat milk, 1:1 by volume."
+    }
+  },
   "sugar_modifier_multipliers": {
     "IDFKCCIPYGFA67OPJMJ3SQVO": 0.0,
     "NVT23ZGHPCB32GHQB5JL5VUU": 0.25,
@@ -281,14 +267,12 @@
       "LVFSXC7PNLAZAFNKBRXUSOI7",
       "6UYQEPDUVWLZEMR5HZHR73TY",
       "MEAKOBKUZMU6PVM3OVPDYMJ2",
-      "HD5IAR2GT4I4G4L64CQ7LJ6H",
-      "AB2HPG7C7F2V3DXPPXCEBNH4"
+      "HD5IAR2GT4I4G4L64CQ7LJ6H"
     ],
     "recipes_with_built_in_toppings": [
       "tgy_special",
       "taiwanese_retro",
-      "grapefruit_bloom",
-      "genmai_matcha_with_matcha_jelly"
+      "grapefruit_bloom"
     ],
     "recipes_with_built_in_cream_foam": [
       "brown_sugar_mist"
@@ -714,64 +698,6 @@
           "notes": "Standard frozen strawberry usage per drink."
         }
       ]
-    },
-    "RJU3MBQFNVHFUUDMTAXDQ43P": {
-      "drink_key": "genmai_matcha_with_matcha_jelly",
-      "drink_name": "Genmai Matcha w/ Matcha Jelly",
-      "ingredients": [
-        {
-          "inventory_key": "matcha",
-          "amount": 150,
-          "unit": "ml",
-          "notes": "Prepared matcha volume per drink. Projection converts this into dry matcha grams."
-        },
-        {
-          "inventory_key": "matcha_jelly_matcha",
-          "amount": 1.6260162601626016,
-          "unit": "g",
-          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
-        },
-        {
-          "inventory_key": "powdered_sugar",
-          "amount": 12.195121951219512,
-          "unit": "g",
-          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
-        },
-        {
-          "inventory_key": "tj_powder",
-          "amount": 4.878048780487805,
-          "unit": "g",
-          "notes": "Genmai Matcha w/ Matcha Jelly includes matcha jelly by default."
-        }
-      ],
-      "modifier_overrides": {
-        "IQSH74JXSLK2GGAUH4HQVP4X": {
-          "ingredients": [
-            {
-              "inventory_key": "genmai",
-              "amount": 200,
-              "unit": "ml",
-              "notes": "Selected Tea Base modifier: Genmai."
-            }
-          ]
-        },
-        "VP6AQIBJJOMA5KNBGKJTAHNU": {
-          "ingredients": [
-            {
-              "inventory_key": "genmai",
-              "amount": 100,
-              "unit": "ml",
-              "notes": "Selected Tea Base modifier: Jasmine Green Tea & Genmai."
-            },
-            {
-              "inventory_key": "green_tea",
-              "amount": 100,
-              "unit": "ml",
-              "notes": "Selected Tea Base modifier: Jasmine Green Tea & Genmai."
-            }
-          ]
-        }
-      }
     },
     "YBWRTRH3ZE2OHQ5PL3V662WE": {
       "drink_key": "tie_guan_yin_au_lait_with_osmanthus_honey",

@@ -31,6 +31,7 @@ def _build_merchant_summary(merchant_context):
 def _build_issue_summary(merchant_context, report):
     summary = report.get("summary") or {}
     sold_variations = report.get("sold_variations") or {}
+    modifiers = report.get("modifiers") or {}
     return {
         **_build_merchant_summary(merchant_context),
         "blocking_issue_count": int(summary.get("blocking_issue_count") or 0),
@@ -38,6 +39,12 @@ def _build_issue_summary(merchant_context, report):
         "unmapped_live_variation_count": len(
             sold_variations.get("unmapped_live_variations") or []
         ),
+        "unmapped_live_modifier_count": len(modifiers.get("unmapped_live_modifiers") or []),
+        "unmapped_names": [
+            entry.get("item_name") or entry.get("name") or entry.get("id")
+            for entry in (sold_variations.get("unmapped_live_variations") or [])
+            + (modifiers.get("unmapped_live_modifiers") or [])
+        ],
         "ready_for_approval": bool(summary.get("ready_for_approval")),
     }
 
@@ -53,9 +60,13 @@ def _build_error_summary(merchant_context, error):
 def _report_needs_alert(report):
     summary = report.get("summary") or {}
     sold_variations = report.get("sold_variations") or {}
+    modifiers = report.get("modifiers") or {}
+    # An unmapped modifier is skipped at deduction time, so any that remain after
+    # the binding's ignore list are a silent inventory gap worth an alert.
     return (
         int(summary.get("blocking_issue_count") or 0) > 0
         or bool(sold_variations.get("unmapped_live_variations"))
+        or bool(modifiers.get("unmapped_live_modifiers"))
     )
 
 
@@ -80,8 +91,11 @@ def _format_alert_message(checked_merchant_count, issue_summaries, error_summari
                 f"{issue['environment']} {merchant_name} "
                 f"(merchant_id={issue['merchant_id']}, location_id={issue['location_id']}) "
                 f"blocking_issue_count={issue['blocking_issue_count']} "
-                f"unmapped_live_variation_count={issue['unmapped_live_variation_count']}"
+                f"unmapped_live_variation_count={issue['unmapped_live_variation_count']} "
+                f"unmapped_live_modifier_count={issue['unmapped_live_modifier_count']}"
             )
+            if issue["unmapped_names"]:
+                lines.append(f"  unmapped: {', '.join(issue['unmapped_names'])}")
 
     if error_summaries:
         lines.extend(["", "evaluation_errors:"])

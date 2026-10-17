@@ -52,6 +52,7 @@ manual_sync_api_name = "mosa-tea-manual-sync-api-prod"
 oauth_api_name       = "mosa-tea-oauth-api-prod"
 
 order_processing_table_name    = "mosa-tea-order-processing-prod"
+usage_log_table_name           = "mosa-tea-usage-log-prod"
 webhook_event_table_name       = "mosa-tea-webhook-events-prod"
 merchant_connection_table_name = "mosa-tea-merchant-connections-prod"
 merchant_binding_table_name    = "mosa-tea-merchant-bindings-prod"

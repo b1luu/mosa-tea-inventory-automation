@@ -62,6 +62,17 @@ def get_modifier_additions_map():
     return recipe_map.get("modifier_additions", {})
 
 
+def get_modifier_substitutions_map():
+    recipe_map = load_recipe_map()
+    return recipe_map.get("modifier_substitutions", {})
+
+
+def is_log_only_inventory_key(inventory_key):
+    """Log-only ingredients have no Square item: usage goes to the usage log only."""
+    inventory_item = load_inventory_item_map().get(inventory_key) or {}
+    return inventory_item.get("tracking") == "log_only"
+
+
 def get_sugar_modifier_multipliers():
     recipe_map = load_recipe_map()
     return recipe_map.get("sugar_modifier_multipliers", {})
@@ -169,6 +180,27 @@ def _resolve_modifier_additions(modifier_ids):
             resolved_additions.extend(addition.get("ingredients", []))
 
     return resolved_additions
+
+
+def _apply_modifier_substitutions(ingredients, modifier_ids):
+    """Swap inventory keys for modifiers like "Sub w/ Oat Milk" (milk -> oat_milk).
+
+    Runs after tea bases are expanded, so a substitution also reaches
+    ingredients that come from a tea base.
+    """
+    substitutions = get_modifier_substitutions_map()
+    replacements = {}
+    for modifier_id in modifier_ids or []:
+        replacements.update(substitutions.get(modifier_id, {}).get("replace", {}))
+    if not replacements:
+        return ingredients
+
+    return [
+        {**ingredient, "inventory_key": replacements[ingredient["inventory_key"]]}
+        if ingredient["inventory_key"] in replacements
+        else ingredient
+        for ingredient in ingredients
+    ]
 
 
 def _resolve_scaled_sugar_ingredient(recipe, modifier_ids):
@@ -360,13 +392,16 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
     )
     straw_ingredients = _resolve_straw_ingredient(recipe, modifier_ids)
     lid_ingredients = _resolve_lid_ingredient(recipe, modifier_ids)
-    expanded_ingredients = _expand_ingredients(
-        resolved_ingredients
-        + modifier_additions
-        + scaled_sugar_ingredients
-        + default_packaging_ingredients
-        + straw_ingredients
-        + lid_ingredients
+    expanded_ingredients = _apply_modifier_substitutions(
+        _expand_ingredients(
+            resolved_ingredients
+            + modifier_additions
+            + scaled_sugar_ingredients
+            + default_packaging_ingredients
+            + straw_ingredients
+            + lid_ingredients
+        ),
+        modifier_ids,
     )
 
     for ingredient in expanded_ingredients:
@@ -389,7 +424,7 @@ def project_line_item_usage(sold_variation_id, quantity, modifier_ids=None):
         projected_usage.append(
             {
                 "inventory_key": inventory_key,
-                "square_variation_id": inventory_item["square_variation_id"],
+                "square_variation_id": inventory_item.get("square_variation_id"),
                 "recipe_unit": recipe_unit,
                 "recipe_amount": recipe_amount,
                 "inventory_unit": inventory_item["unit"],

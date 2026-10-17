@@ -13,6 +13,7 @@ def normalize_square_order_for_inventory_plan(order):
         "id": order.id,
         "location_id": order.location_id,
         "state": order.state,
+        "created_at": getattr(order, "created_at", None),
         "line_items": [
             {
                 "uid": line_item.uid,

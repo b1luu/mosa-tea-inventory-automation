@@ -286,6 +286,12 @@ variable "order_processing_table_name" {
   default     = "mosa-tea-order-processing"
 }
 
+variable "usage_log_table_name" {
+  description = "DynamoDB table for per-order ingredient usage (demand log)."
+  type        = string
+  default     = "mosa-tea-usage-log"
+}
+
 variable "webhook_event_table_name" {
   description = "DynamoDB table for webhook event ledger state."
   type        = string

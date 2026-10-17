@@ -34,6 +34,7 @@ oauth_api_name       = "mosa-tea-oauth-api"
 oauth_lambda_function_name = "mosa-tea-oauth"
 
 order_processing_table_name    = "mosa-tea-order-processing"
+usage_log_table_name           = "mosa-tea-usage-log"
 webhook_event_table_name       = "mosa-tea-webhook-events"
 merchant_connection_table_name = "mosa-tea-merchant-connections"
 merchant_binding_table_name    = "mosa-tea-merchant-bindings"

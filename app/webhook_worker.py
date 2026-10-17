@@ -22,6 +22,7 @@ from app.order_processing_store import (
     requeue_order_processing,
 )
 from app.order_processor import process_orders
+from app.usage_log_store import record_order_usage
 from app.webhook_event_store import (
     EVENT_STATUS_FAILED,
     EVENT_STATUS_PROCESSED,
@@ -83,6 +84,30 @@ def _resolve_processing_outcome(result):
         return PROCESSING_STATE_APPLIED
 
     return PROCESSING_STATE_FAILED
+
+
+def _record_applied_usage(merchant_processing_context, result):
+    """Log each applied order's ingredient usage, including log-only ingredients.
+
+    Runs before the order is marked applied: if this raises, the job is retried,
+    Square's idempotency key absorbs the repeat write, and these rows are
+    rewritten under the same keys.
+    """
+    for projected_order in result["projected_orders"]:
+        order_id = projected_order["order_id"]
+        record_order_usage(
+            merchant_processing_context["environment"],
+            merchant_processing_context["merchant_id"],
+            projected_order.get("location_id") or merchant_processing_context["location_id"],
+            order_id,
+            projected_order.get("created_at"),
+            [
+                usage
+                for line_item in result.get("projected_line_items", [])
+                if line_item["order_id"] == order_id
+                for usage in line_item["usage"]
+            ],
+        )
 
 
 def _resolve_merchant_processing_context(job):
@@ -186,6 +211,8 @@ def _process_claimed_order(order_id, *, job=None):
                     blockers=["writes_disabled_by_operator"],
                     base_result=result,
                 )
+            elif _resolve_processing_outcome(result) == PROCESSING_STATE_APPLIED:
+                _record_applied_usage(merchant_processing_context, result)
 
         processing_state = _transition_claimed_order_to_terminal_state(order_id, result)
     except Exception:

@@ -71,7 +71,7 @@ class LiveOrderDayProfileTests(unittest.TestCase):
         self.assertIn("sandbox_canary_mix_40", profiles)
         self.assertEqual(profiles["sandbox_canary_mix_40"]["total_drinks"], 40)
         self.assertIn("sandbox_historical_fixture_day_200", profiles)
-        self.assertEqual(profiles["sandbox_historical_fixture_day_200"]["total_drinks"], 191)
+        self.assertEqual(profiles["sandbox_historical_fixture_day_200"]["total_drinks"], 182)
 
     def test_peak_day_projection_consumes_200_cups(self):
         combined_usage = project_day_profile_usage("sandbox_peak_day_200")
@@ -139,8 +139,8 @@ class LiveOrderDayProfileTests(unittest.TestCase):
             include_projected_usage=False,
         )
 
-        self.assertEqual(summary["total_orders"], 163)
-        self.assertEqual(summary["total_drinks"], 191)
+        self.assertEqual(summary["total_orders"], 154)
+        self.assertEqual(summary["total_drinks"], 182)
 
     def test_historical_fixture_profile_uses_fixture_sources(self):
         planned_orders = build_day_profile_orders(

@@ -496,7 +496,6 @@ class ManualCountSyncTests(unittest.TestCase):
             "hot_lid",
             "sample_cup",
             "matcha",
-            "matcha_jelly_matcha",
         ]
 
         for inventory_key in inventory_keys:

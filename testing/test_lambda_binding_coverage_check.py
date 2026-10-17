@@ -26,7 +26,13 @@ def _merchant_context(
     )
 
 
-def _report(*, blocking_issue_count=0, unmapped_live_variations=None, warning_count=0):
+def _report(
+    *,
+    blocking_issue_count=0,
+    unmapped_live_variations=None,
+    unmapped_live_modifiers=None,
+    warning_count=0,
+):
     return {
         "summary": {
             "ready_for_approval": blocking_issue_count == 0,
@@ -35,6 +41,9 @@ def _report(*, blocking_issue_count=0, unmapped_live_variations=None, warning_co
         },
         "sold_variations": {
             "unmapped_live_variations": list(unmapped_live_variations or []),
+        },
+        "modifiers": {
+            "unmapped_live_modifiers": list(unmapped_live_modifiers or []),
         },
     }
 
@@ -160,6 +169,35 @@ class BindingCoverageCheckLambdaTests(unittest.TestCase):
             ):
                 lambda_handler({}, None)
 
+
+    def test_unmapped_modifier_alone_publishes_and_names_it(self):
+        merchants = [_merchant_context("merchant-1", display_name="Tea Shop")]
+
+        with (
+            patch(
+                "app.lambda_binding_coverage_check.list_merchant_contexts",
+                return_value=merchants,
+            ),
+            patch(
+                "app.lambda_binding_coverage_check.build_binding_coverage_report",
+                return_value=_report(
+                    unmapped_live_modifiers=[{"id": "LIVE-OAT", "name": "Sub w/ Oat Milk"}],
+                    warning_count=1,
+                ),
+            ),
+            patch(
+                "app.lambda_binding_coverage_check.get_alarm_notification_topic_arn",
+                return_value="arn:aws:sns:us-west-2:123456789012:mosa-tea-ops",
+            ),
+            patch("app.lambda_binding_coverage_check._create_sns_client") as sns_factory,
+        ):
+            result = lambda_handler({}, None)
+
+        self.assertTrue(result["published_alert"])
+        self.assertEqual(result["issues"][0]["unmapped_live_modifier_count"], 1)
+        message = sns_factory.return_value.publish.call_args.kwargs["Message"]
+        self.assertIn("unmapped_live_modifier_count=1", message)
+        self.assertIn("unmapped: Sub w/ Oat Milk", message)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,10 +1,11 @@
 from app.client import create_square_client_for_merchant
+from app.manual_count_sync import SUPPORTED_INVENTORY_KEYS
 from app.merchant_store import (
     get_active_catalog_binding,
     get_merchant_context,
     list_catalog_bindings,
 )
-from app.order_inventory_projection import load_recipe_map
+from app.order_inventory_projection import is_log_only_inventory_key, load_recipe_map
 
 
 def get_canonical_binding_targets():
@@ -16,7 +17,11 @@ def get_canonical_binding_targets():
     tea_bases = recipe_map.get("tea_bases", {})
 
     inventory_keys = set()
-    modifier_ids = set(modifier_additions) | set(sugar_modifier_multipliers)
+    modifier_ids = (
+        set(modifier_additions)
+        | set(sugar_modifier_multipliers)
+        | set(recipe_map.get("modifier_substitutions", {}))
+    )
 
     def collect_ingredients(ingredients):
         for ingredient in ingredients or []:
@@ -55,10 +60,15 @@ def get_canonical_binding_targets():
     ):
         modifier_ids.update(packaging_config.get(key, []))
 
+    # Log-only ingredients have no Square item, so the binding never needs one.
+    inventory_keys = {key for key in inventory_keys if not is_log_only_inventory_key(key)}
+
     return {
         "sold_variation_ids": set(sold_variation_recipes),
         "modifier_ids": modifier_ids,
         "inventory_keys": inventory_keys,
+        # Bound and counted from the sheet, but used by no recipe.
+        "count_only_inventory_keys": SUPPORTED_INVENTORY_KEYS - inventory_keys,
     }
 
 
@@ -244,6 +254,8 @@ def classify_binding_coverage(
     modifier_aliases = mapping.get("modifier_aliases", {})
     inventory_variation_ids = mapping.get("inventory_variation_ids", {})
     ignored_live_variation_ids = set(mapping.get("ignored_live_variation_ids", []))
+    ignored_live_modifier_ids = set(mapping.get("ignored_live_modifier_ids", []))
+    count_only_inventory_keys = canonical_targets.get("count_only_inventory_keys", set())
     inventory_live_ids = set(inventory_variation_ids.values())
 
     sold_unknown_targets = [
@@ -294,11 +306,19 @@ def classify_binding_coverage(
         for modifier_id, modifier in sorted(live_catalog["modifiers"].items())
         if modifier_id in canonical_targets["modifier_ids"]
     ]
+    ignored_live_modifiers = [
+        modifier
+        for modifier_id, modifier in sorted(live_catalog["modifiers"].items())
+        if modifier_id not in modifier_aliases
+        and modifier_id not in canonical_targets["modifier_ids"]
+        and modifier_id in ignored_live_modifier_ids
+    ]
     unmapped_live_modifiers = [
         modifier
         for modifier_id, modifier in sorted(live_catalog["modifiers"].items())
         if modifier_id not in modifier_aliases
         and modifier_id not in canonical_targets["modifier_ids"]
+        and modifier_id not in ignored_live_modifier_ids
     ]
 
     missing_inventory_keys = sorted(
@@ -309,10 +329,17 @@ def classify_binding_coverage(
         for inventory_key, live_variation_id in sorted(inventory_variation_ids.items())
         if live_variation_id not in live_catalog["variations"]
     ]
+    count_only_inventory_bindings = [
+        {"inventory_key": inventory_key, "live_variation_id": live_variation_id}
+        for inventory_key, live_variation_id in sorted(inventory_variation_ids.items())
+        if inventory_key not in canonical_targets["inventory_keys"]
+        and inventory_key in count_only_inventory_keys
+    ]
     unknown_inventory_keys = [
         {"inventory_key": inventory_key, "live_variation_id": live_variation_id}
         for inventory_key, live_variation_id in sorted(inventory_variation_ids.items())
         if inventory_key not in canonical_targets["inventory_keys"]
+        and inventory_key not in count_only_inventory_keys
     ]
 
     blocking_issue_count = sum(
@@ -356,6 +383,7 @@ def classify_binding_coverage(
             "unknown_canonical_targets": modifier_unknown_targets,
             "stale_binding_sources": modifier_stale_sources,
             "identity_covered_live_modifiers": identity_covered_live_modifiers,
+            "ignored_live_modifiers": ignored_live_modifiers,
             "unmapped_live_modifiers": unmapped_live_modifiers,
         },
         "inventory": {
@@ -363,6 +391,7 @@ def classify_binding_coverage(
             "required_canonical_key_count": len(canonical_targets["inventory_keys"]),
             "missing_required_keys": missing_inventory_keys,
             "stale_live_variation_ids": stale_inventory_variation_ids,
+            "count_only_inventory_keys": count_only_inventory_bindings,
             "unknown_inventory_keys": unknown_inventory_keys,
         },
     }

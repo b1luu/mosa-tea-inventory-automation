@@ -53,6 +53,7 @@ output "dynamodb_table_names" {
   description = "Managed DynamoDB table names."
   value = {
     order_processing     = aws_dynamodb_table.order_processing.name
+    usage_log            = aws_dynamodb_table.usage_log.name
     webhook_events       = aws_dynamodb_table.webhook_events.name
     merchant_connections = aws_dynamodb_table.merchant_connections.name
     merchant_bindings    = aws_dynamodb_table.merchant_bindings.name

@@ -178,6 +178,7 @@
       "stock_unit_size": 2267.96185,
       "stock_unit_size_unit": "g",
       "category": "INV - Fruit",
+      "tracking": "demand",
       "notes": "Internal inventory ledger item for frozen mango."
     },
     "frozen_strawberry": {
@@ -188,6 +189,7 @@
       "stock_unit_size": 2721.55422,
       "stock_unit_size_unit": "g",
       "category": "INV - Fruit",
+      "tracking": "demand",
       "notes": "Internal inventory ledger item for frozen strawberry."
     },
     "osmanthus_honey": {
@@ -219,16 +221,6 @@
       "stock_unit_size_unit": "g",
       "category": "INV - Toppings",
       "notes": "Internal inventory ledger item for Tie Guan Yin Oolong Jelly powder."
-    },
-    "matcha_jelly_matcha": {
-      "square_variation_id": "7QZVOBCT7X3NFO5AP2OTQWRC",
-      "name": "Matcha (Jelly)",
-      "unit": "g",
-      "stock_unit": "bag",
-      "stock_unit_size": 340,
-      "stock_unit_size_unit": "g",
-      "category": "INV - Toppings",
-      "notes": "Internal inventory ledger item for the matcha powder used only in matcha jelly."
     },
     "powdered_sugar": {
       "square_variation_id": "XGB4E2IJMBFSXB5OQPEJW32J",
@@ -268,7 +260,18 @@
       "stock_unit_size": 3780,
       "stock_unit_size_unit": "ml",
       "category": "INV - Dairy",
+      "tracking": "demand",
       "notes": "Internal inventory ledger item for Au Lait milk consumption."
+    },
+    "oat_milk": {
+      "name": "Oat Milk",
+      "unit": "ml",
+      "stock_unit": "carton",
+      "stock_unit_size": 1890,
+      "stock_unit_size_unit": "ml",
+      "category": "INV - Dairy",
+      "tracking": "log_only",
+      "notes": "Oatly 64 fl oz carton, bought in cases of 3. Log-only: no Square item; usage is recorded in the usage log for demand and reorder planning."
     },
     "non_dairy_creamer": {
       "square_variation_id": "AYC7DO3IZ6CGZ4OENAIAIBIJ",

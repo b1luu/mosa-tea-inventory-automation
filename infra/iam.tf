@@ -179,6 +179,17 @@ data "aws_iam_policy_document" "webhook_worker_runtime" {
   }
 
   statement {
+    sid    = "UsageLogWrite"
+    effect = "Allow"
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:Query",
+    ]
+    resources = [aws_dynamodb_table.usage_log.arn]
+  }
+
+  statement {
     sid    = "WebhookStateTables"
     effect = "Allow"
     actions = [

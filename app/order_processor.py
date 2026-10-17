@@ -7,6 +7,7 @@ from app.inventory_plan import (
     _build_request_idempotency_key,
     build_inventory_plan_from_order_summaries,
 )
+from app.order_inventory_projection import is_log_only_inventory_key
 from app.order_loader import load_order_summaries_for_processing
 
 
@@ -24,6 +25,10 @@ def _resolve_combined_usage_for_binding(combined_usage, binding):
 
     resolved = []
     for usage in combined_usage:
+        if is_log_only_inventory_key(usage["inventory_key"]):
+            # No Square item to resolve; the usage log records it instead.
+            resolved.append(usage)
+            continue
         resolved.append(
             {
                 **usage,
