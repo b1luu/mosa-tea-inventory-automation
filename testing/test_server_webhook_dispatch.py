@@ -193,22 +193,78 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch(
-                        "server.create_webhook_event", return_value=True
-                    ) as mock_create:
-                        with patch("server.dispatch_webhook_job") as mock_dispatch:
-                            with patch("server.set_webhook_event_status") as mock_status:
-                                response = client.post(
-                                    "/webhook/square",
-                                    data=json.dumps(payload),
-                                    headers={"x-square-hmacsha256-signature": "ok"},
-                                )
+                        "server.fetch_is_paid_kiosk_order", return_value=False
+                    ) as mock_kiosk:
+                        with patch(
+                            "server.create_webhook_event", return_value=True
+                        ) as mock_create:
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status") as mock_status:
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
 
         self.assertEqual(response.status_code, 200)
+        mock_kiosk.assert_called_once_with("sandbox", "merchant-1", "order-1")
         self.assertEqual(
             mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
+
+    def test_paid_kiosk_open_order_is_reserved_and_dispatched(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+        payload["data"]["object"]["order_updated"]["state"] = "OPEN"
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_webhook_event", return_value=None):
+                with patch("server.get_order_processing_state", return_value=None):
+                    with patch("server.fetch_is_paid_kiosk_order", return_value=True):
+                        with patch(
+                            "server.reserve_order_processing", return_value=True
+                        ) as mock_reserve:
+                            with patch(
+                                "server.create_webhook_event", return_value=True
+                            ) as mock_create:
+                                with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                    with patch("server.set_webhook_event_status"):
+                                        response = client.post(
+                                            "/webhook/square",
+                                            data=json.dumps(payload),
+                                            headers={"x-square-hmacsha256-signature": "ok"},
+                                        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+        )
+        mock_reserve.assert_called_once()
+        mock_dispatch.assert_called_once()
+
+    def test_open_order_already_reserved_is_not_fetched_again(self):
+        client = TestClient(server.app)
+        payload = _build_order_updated_payload()
+        payload["data"]["object"]["order_updated"]["state"] = "OPEN"
+
+        with patch("server.verify_signature", return_value=True):
+            with patch("server.get_webhook_event", return_value=None):
+                with patch("server.get_order_processing_state", return_value="applied"):
+                    with patch("server.fetch_is_paid_kiosk_order") as mock_kiosk:
+                        with patch("server.create_webhook_event", return_value=True):
+                            with patch("server.dispatch_webhook_job") as mock_dispatch:
+                                with patch("server.set_webhook_event_status"):
+                                    response = client.post(
+                                        "/webhook/square",
+                                        data=json.dumps(payload),
+                                        headers={"x-square-hmacsha256-signature": "ok"},
+                                    )
+
+        self.assertEqual(response.status_code, 200)
+        mock_kiosk.assert_not_called()
+        mock_dispatch.assert_not_called()
 
     def test_ignores_completed_order_with_existing_processing_state(self):
         client = TestClient(server.app)

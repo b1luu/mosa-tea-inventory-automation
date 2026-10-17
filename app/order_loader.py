@@ -2,6 +2,7 @@ from square.core.api_error import ApiError
 
 from app.catalog_binding_resolver import canonicalize_order_summary
 from app.client import create_square_client
+from app.order_commit_rules import is_committable_order
 from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
     get_order_processing_state,
@@ -62,12 +63,12 @@ def load_order_summaries_for_processing(order_ids, client=None, binding=None):
             )
             continue
 
-        if order.state != "COMPLETED":
+        if not is_committable_order(order):
             skipped_orders.append(
                 {
                     "order_id": order.id,
                     "state": order.state,
-                    "reason": "Order is not COMPLETED",
+                    "reason": "Order is not COMPLETED or a paid Kiosk order",
                 }
             )
             continue
