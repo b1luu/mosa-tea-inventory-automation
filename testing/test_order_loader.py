@@ -157,7 +157,9 @@ class OrderLoaderTests(unittest.TestCase):
             )
 
         self.assertEqual(order_summaries, [])
-        self.assertEqual(skipped_orders[0]["reason"], "Order is not COMPLETED")
+        self.assertEqual(
+            skipped_orders[0]["reason"], "Order is not COMPLETED or a paid Kiosk order"
+        )
 
     def test_load_order_summaries_for_processing_canonicalizes_ids_with_binding(self):
         client = type(

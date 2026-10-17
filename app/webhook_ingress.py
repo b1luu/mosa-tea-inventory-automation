@@ -22,6 +22,7 @@ from app.merchant_store import (
     get_merchant_context,
     revoke_merchant,
 )
+from app.order_commit_rules import fetch_is_paid_kiosk_order
 from app.order_processing_store import (
     clear_order_processing_reservation,
     get_order_processing_state,
@@ -68,6 +69,7 @@ class WebhookIngressDependencies:
     get_merchant_context: Callable[[str, str], Any]
     disable_merchant_writes: Callable[[str, str], Any]
     revoke_merchant: Callable[[str, str], Any]
+    is_paid_kiosk_order: Callable[[str, str, str], bool]
 
 
 def default_webhook_ingress_dependencies():
@@ -92,6 +94,7 @@ def default_webhook_ingress_dependencies():
         get_merchant_context=get_merchant_context,
         disable_merchant_writes=disable_merchant_writes,
         revoke_merchant=revoke_merchant,
+        is_paid_kiosk_order=fetch_is_paid_kiosk_order,
     )
 
 
@@ -386,11 +389,20 @@ def handle_square_webhook_request(
             deps.get_order_processing_state(order_id) if order_id else None
         )
         merchant_allows_processing = _is_active_merchant_context(merchant_context)
-        should_attempt_processing = (
-            order_state == "COMPLETED"
-            and order_id is not None
+        is_candidate = (
+            order_id is not None
             and current_processing_state is None
             and merchant_allows_processing
+        )
+        # COMPLETED commits from the payload alone. An OPEN order commits only
+        # if it is a paid Kiosk order, which needs a fetch: the payload has no
+        # source or tenders (see app/order_commit_rules.py).
+        should_attempt_processing = is_candidate and (
+            order_state == "COMPLETED"
+            or (
+                order_state == "OPEN"
+                and deps.is_paid_kiosk_order(runtime_environment, merchant_id, order_id)
+            )
         )
         initial_event_status = (
             EVENT_STATUS_RECEIVED
