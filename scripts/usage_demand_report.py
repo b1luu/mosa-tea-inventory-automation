@@ -9,16 +9,24 @@ marked ``"tracking": "log_only"`` or ``"tracking": "demand"`` in
         --merchant MLXZ38BC27GAD \\
         --environment production \\
         --location-id LZ4JV6WQHPQVE \\
-        [--days 14] [--keys oat_milk,milk]
+        [--days 14] [--keys oat_milk,milk] [--timezone America/Los_Angeles]
+
+Days run midnight to midnight in the shop's time zone (California by default,
+which switches between PST and PDT automatically). The usage log stores UTC
+sale times, so the window is converted to UTC for the query and each sale is
+converted back to local time before it is assigned to a day.
 """
 
 import argparse
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from app.order_inventory_projection import load_inventory_item_map
 from app.usage_log_store import list_usage
+
+SHOP_TIMEZONE = "America/Los_Angeles"
 
 
 def _default_keys(inventory_items):
@@ -29,6 +37,33 @@ def _default_keys(inventory_items):
     )
 
 
+def _utc_bound(local_day, tz):
+    """Local midnight starting ``local_day`` as a UTC string comparable with sold_at.
+
+    Milliseconds are included because Square sale times carry them, and the log
+    is queried by string comparison.
+    """
+    midnight = datetime.combine(local_day, time.min, tzinfo=tz)
+    return midnight.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def local_day_window(days, tz, today=None):
+    """The last ``days`` local days ending today: (UTC start, UTC end, [day strings])."""
+    today = today or datetime.now(tz).date()
+    first = today - timedelta(days=days - 1)
+    local_days = [first + timedelta(days=offset) for offset in range(days)]
+    return (
+        _utc_bound(first, tz),
+        _utc_bound(today + timedelta(days=1), tz),
+        [day.isoformat() for day in local_days],
+    )
+
+
+def local_day_of(sold_at, tz):
+    """The local calendar day of a UTC sale time such as ``2026-10-18T05:30:00.123Z``."""
+    return datetime.fromisoformat(sold_at.replace("Z", "+00:00")).astimezone(tz).date().isoformat()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--merchant", required=True)
@@ -36,22 +71,22 @@ def main():
     parser.add_argument("--location-id", required=True)
     parser.add_argument("--days", type=int, default=14)
     parser.add_argument("--keys", help="Comma-separated inventory keys; defaults to demand-tracked items")
+    parser.add_argument("--timezone", default=SHOP_TIMEZONE, help="IANA time zone for day boundaries")
     args = parser.parse_args()
+    tz = ZoneInfo(args.timezone)
 
     inventory_items = load_inventory_item_map()
     keys = args.keys.split(",") if args.keys else _default_keys(inventory_items)
-    end = datetime.now(UTC).date() + timedelta(days=1)
-    start = end - timedelta(days=args.days)
-    days = [(start + timedelta(days=offset)).isoformat() for offset in range(args.days)]
+    start, end, days = local_day_window(args.days, tz)
 
     for key in keys:
         item = inventory_items[key]
         rows = list_usage(
-            args.environment, args.merchant, args.location_id, key, start.isoformat(), end.isoformat()
+            args.environment, args.merchant, args.location_id, key, start, end
         )
         per_day = defaultdict(Decimal)
         for row in rows:
-            per_day[row["sold_at"][:10]] += Decimal(str(row["amount"]))
+            per_day[local_day_of(row["sold_at"], tz)] += Decimal(str(row["amount"]))
 
         total = sum(per_day.values(), Decimal("0"))
         stock_size = Decimal(str(item.get("stock_unit_size") or 0))
@@ -60,7 +95,7 @@ def main():
         def in_stock_units(amount):
             return f" ({amount / stock_size:.2f} {stock_unit})" if stock_size else ""
 
-        print(f"\n{key} [{item.get('tracking', 'counted')}] - {len(rows)} orders, last {args.days} days (UTC)")
+        print(f"\n{key} [{item.get('tracking', 'counted')}] - {len(rows)} orders, last {args.days} days ({args.timezone})")
         for day in days:
             amount = per_day.get(day, Decimal("0"))
             print(f"  {day}  {amount:>10.1f} {item['unit']}{in_stock_units(amount)}")
