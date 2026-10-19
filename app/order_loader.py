@@ -68,7 +68,7 @@ def load_order_summaries_for_processing(order_ids, client=None, binding=None):
                 {
                     "order_id": order.id,
                     "state": order.state,
-                    "reason": "Order is not COMPLETED or a paid Kiosk order",
+                    "reason": "Order is not COMPLETED or paid in full",
                 }
             )
             continue

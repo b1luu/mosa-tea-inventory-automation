@@ -1,31 +1,28 @@
 """Which Square orders commit inventory.
 
-An order commits when Square marks it ``COMPLETED``, or when it is a paid
-Kiosk order. Kiosk orders are paid at the kiosk and then left ``OPEN`` with
-their fulfillment at ``PROPOSED``; in the 30 days to 2026-10-17 not one of 884
-reached ``COMPLETED``, so waiting for completion meant they were never deducted
-(37% of items sold). See docs/order-state-handling-decision.md.
+An order commits when it is **paid in full**: ``COMPLETED``, or ``OPEN`` with a
+tender and nothing owed, from any channel. Waiting for ``COMPLETED`` depended on
+staff marking orders complete, which they often do a day or more late (40% of
+Square Online orders) or never (Kiosk), so inventory lagged and orders completed
+after a recount were counted twice. See docs/order-state-handling-decision.md
+and docs/daily-order-reconciliation-design.md.
 
-The paid-Kiosk rule is limited to the Kiosk source on purpose: other channels
-(POS, Square Online, delivery apps) complete their orders normally, and Square
-Online orders can be cancelled after payment.
+Paid-but-``OPEN`` orders are held for ``PAID_ORDER_HOLD_SECONDS`` before they
+are applied, so a cancellation shortly after payment lands first. The worker
+re-fetches the order when the hold ends.
 """
 
 from app.client import create_square_client
 from app.merchant_store import resolve_merchant_access_token
 
-KIOSK_SOURCE_NAME = "Kiosk"
+# SQS DelaySeconds caps at 900. Half of post-payment cancellations happen
+# within a minute; this covers the typical case.
+PAID_ORDER_HOLD_SECONDS = 900
 
 
-def _source_name(order):
-    return getattr(getattr(order, "source", None), "name", None)
-
-
-def is_paid_kiosk_order(order):
-    """OPEN, from the Kiosk, with a tender and nothing left to pay."""
+def is_paid_in_full(order):
+    """OPEN, with a tender and nothing left to pay. Any channel."""
     if getattr(order, "state", None) != "OPEN":
-        return False
-    if _source_name(order) != KIOSK_SOURCE_NAME:
         return False
     if not getattr(order, "tenders", None):
         return False
@@ -34,17 +31,21 @@ def is_paid_kiosk_order(order):
 
 
 def is_committable_order(order):
-    return getattr(order, "state", None) == "COMPLETED" or is_paid_kiosk_order(order)
+    return getattr(order, "state", None) == "COMPLETED" or is_paid_in_full(order)
 
 
-def fetch_is_paid_kiosk_order(environment, merchant_id, order_id):
-    """Fetch one order and apply :func:`is_paid_kiosk_order`.
+def is_cancelled_order(order):
+    return getattr(order, "state", None) == "CANCELED"
+
+
+def fetch_is_paid_in_full(environment, merchant_id, order_id):
+    """Fetch one order and apply :func:`is_paid_in_full`.
 
     Used by webhook ingress, whose ``order.updated`` payload carries the state
-    but not the source or tenders. Reads the stored token without refreshing:
-    ingress has no OAuth client credentials, and the worker and the scheduled
-    refresh keep the token current. Errors propagate so the webhook returns an
-    error and Square redelivers it.
+    but not the tenders. Reads the stored token without refreshing: ingress has
+    no OAuth client credentials, and the worker and the scheduled refresh keep
+    the token current. Errors propagate so the webhook returns an error and
+    Square redelivers it.
     """
     access_token = resolve_merchant_access_token(
         environment, merchant_id, refresh_if_needed=False
@@ -55,4 +56,4 @@ def fetch_is_paid_kiosk_order(environment, merchant_id, order_id):
         )
     client = create_square_client(access_token=access_token, environment_name=environment)
     order = client.orders.get(order_id=order_id).order
-    return bool(order) and is_paid_kiosk_order(order)
+    return bool(order) and is_paid_in_full(order)

@@ -210,3 +210,16 @@ class OrderProcessingDbTests(unittest.TestCase):
                 self.assertFalse(
                     order_processing_db.requeue_order_processing("pending-order")
                 )
+
+    def test_cancelled_before_apply_is_a_terminal_transition_from_processing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing("order-1")
+                self.assertFalse(order_processing_db.mark_order_cancelled_before_apply("order-1"))
+                self.assertTrue(order_processing_db.claim_order_processing("order-1"))
+                self.assertTrue(order_processing_db.mark_order_cancelled_before_apply("order-1"))
+                self.assertEqual(
+                    order_processing_db.get_order_processing_state("order-1"),
+                    order_processing_db.PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
+                )

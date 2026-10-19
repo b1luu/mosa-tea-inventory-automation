@@ -16,7 +16,7 @@ from app.config import (
 )
 from app.job_dispatcher import dispatch_webhook_job
 from app.merchant_store import disable_merchant_writes, get_merchant_context, revoke_merchant
-from app.order_commit_rules import fetch_is_paid_kiosk_order
+from app.order_commit_rules import fetch_is_paid_in_full
 from app.oauth_routes import oauth_router
 from app.order_processing_store import (
     clear_order_processing_reservation,
@@ -66,7 +66,7 @@ def _build_webhook_ingress_dependencies():
         get_merchant_context=get_merchant_context,
         disable_merchant_writes=disable_merchant_writes,
         revoke_merchant=revoke_merchant,
-        is_paid_kiosk_order=fetch_is_paid_kiosk_order,
+        is_paid_in_full=fetch_is_paid_in_full,
     )
 
 

@@ -1,8 +1,10 @@
 # Order State Handling Decision
 
-> **Amended 2026-10-17: paid Kiosk orders commit while `OPEN`.** See
-> [Amendment: paid Kiosk orders](#amendment-2026-10-17-paid-kiosk-orders). The
-> rest of this document is unchanged and still governs every other channel.
+> **Amended 2026-10-19: orders commit when paid in full, from any channel,
+> after a 15-minute hold.** See
+> [Amendment: paid in full](#amendment-2026-10-19-paid-in-full-from-any-channel),
+> which supersedes the 2026-10-17 Kiosk-only amendment. The reasoning below
+> about reversals and recounts still applies.
 
 ## Decision
 
@@ -52,8 +54,8 @@ This is the governing gate for future implementation decisions in this area.
 
 To satisfy that gate, the deployed system must provide all of the following:
 
-1. `COMPLETED`-only write behavior, plus paid Kiosk orders
-- automated inventory writes happen when `order.state == "COMPLETED"`, or when the order is a paid Kiosk order (see the amendment below)
+1. Paid-in-full write behavior
+- automated inventory writes happen when `order.state == "COMPLETED"`, or when the order is `OPEN` and paid in full, after a 15-minute hold (see the 2026-10-19 amendment)
 - no other order state reaches the inventory write path
 
 2. Explicit ignore behavior for non-terminal states
@@ -96,7 +98,7 @@ That complexity is not justified for a single-merchant deployment with low rever
 
 Because this decision is locked in:
 
-- `app/webhook_ingress.py` and `app/order_loader.py` gate on `app/order_commit_rules.py`: `COMPLETED`, or a paid Kiosk order
+- `app/webhook_ingress.py` and `app/order_loader.py` gate on `app/order_commit_rules.py`: `COMPLETED`, or `OPEN` and paid in full
 - the webhook event ledger records non-`COMPLETED` order events as ignored for observability
 - the manual count sync path is load-bearing for reconciliation correctness
 - the manual reconciliation path must not be deprecated without revisiting this decision
@@ -139,7 +141,7 @@ This decision does not mean:
 
 It only documents the current scope boundary for automated inventory writes.
 
-## Amendment 2026-10-17: paid Kiosk orders
+## Amendment 2026-10-17: paid Kiosk orders (superseded 2026-10-19)
 
 ### What we found
 
@@ -194,3 +196,50 @@ to another channel needs the same evidence: paid orders that never complete.
 - Square changes how Kiosk orders are created or fulfilled, or the source name
   `Kiosk` changes (the rule would silently stop matching; the coverage of Kiosk
   orders can be checked by comparing Square's order count with applied orders)
+
+## Amendment 2026-10-19: paid in full, from any channel
+
+### What we found
+
+The Kiosk was not a special case. Every channel where staff must mark orders
+complete does it late. Over 90 days, **120 of 300 Square Online orders** were
+marked complete **a day or more** after the order; DoorDash and Grubhub often
+took 4 to 24 hours. Only Point of Sale completes immediately. Late completion
+causes two errors:
+
+- inventory runs hours or days behind the shelf;
+- an order completed **after** a physical recount is deducted on top of a count
+  that already reflects it, a double count with no replay involved.
+
+### Decision
+
+An order commits when it is **paid in full**: `COMPLETED`, or `OPEN` with at
+least one tender and `net_amount_due_money` of zero, **from any channel**
+(`is_paid_in_full` in `app/order_commit_rules.py`). Decided by the operator on
+2026-10-18; see `docs/daily-order-reconciliation-design.md`.
+
+### The 15-minute hold
+
+Paid orders are sometimes cancelled: 20 Square Online orders in 90 days (half
+within a minute, the slowest after 10.5 hours), and Kiosk orders occasionally.
+So a paid-but-`OPEN` order is queued with a **900-second SQS delay**
+(`PAID_ORDER_HOLD_SECONDS`), and the worker **re-fetches** it when it runs:
+
+- still paid → deducted, `applied`;
+- `CANCELED` by then → new terminal state **`cancelled_before_apply`**, nothing
+  deducted;
+- `COMPLETED` events are not held. A `COMPLETED` event for an order already
+  reserved by its paid event is ignored, so each order is deducted once.
+
+A cancellation after the hold is a reversal, and stays out of scope as above:
+the recount corrects it, and the planned daily reconciliation reports it.
+
+The queue-age alarm threshold moved from 300 s to **1,200 s**, because a held
+job is already 900 s old when it becomes visible.
+
+### Revisit if
+
+- cancellations after the hold become more than incidental (the daily
+  reconciliation counts them as *reversed after deduction*);
+- a channel starts taking payment before the order is final (deposits, tabs),
+  which this rule would deduct early.

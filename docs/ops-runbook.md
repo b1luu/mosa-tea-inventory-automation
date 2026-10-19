@@ -47,7 +47,7 @@ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 30m
 
 ### Main queue is aging
 
-**When this fires:** the `mosa-tea-webhook-jobs-oldest-message-age` alarm fired because the oldest visible webhook job has been waiting too long in the main queue.
+**When this fires:** the `mosa-tea-webhook-jobs-oldest-message-age` alarm fired because the oldest visible webhook job has been waiting too long in the main queue. The threshold is 1,200 s: paid-but-open orders are deliberately queued with a 15-minute hold, so a job is normally up to 900 s old when it runs. Jobs waiting in their hold (`ApproximateNumberOfMessagesDelayed`) are expected and are not a problem.
 
 **Diagnose:**
 

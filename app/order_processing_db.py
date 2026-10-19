@@ -10,6 +10,8 @@ PROCESSING_STATE_PROCESSING = "processing"
 PROCESSING_STATE_BLOCKED = "blocked"
 PROCESSING_STATE_FAILED = "failed"
 PROCESSING_STATE_APPLIED = "applied"
+# Paid, then cancelled during the hold before apply: terminal, nothing deducted.
+PROCESSING_STATE_CANCELLED_BEFORE_APPLY = "cancelled_before_apply"
 
 
 @contextmanager
@@ -263,4 +265,12 @@ def mark_order_blocked(order_id):
         order_id,
         PROCESSING_STATE_PROCESSING,
         PROCESSING_STATE_BLOCKED,
+    )
+
+
+def mark_order_cancelled_before_apply(order_id):
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PROCESSING,
+        PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     )

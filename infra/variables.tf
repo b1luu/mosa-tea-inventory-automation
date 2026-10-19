@@ -95,9 +95,9 @@ variable "webhook_dlq_visible_messages_alarm_threshold" {
 }
 
 variable "webhook_jobs_oldest_message_age_alarm_threshold_seconds" {
-  description = "Alarm when the oldest visible webhook job has been waiting at least this many seconds."
+  description = "Alarm when the oldest visible webhook job has been waiting at least this many seconds. Paid-but-open orders are queued with a 900-second hold (PAID_ORDER_HOLD_SECONDS), so this must exceed 900; 1200 keeps the original 5-minute margin."
   type        = number
-  default     = 300
+  default     = 1200
 }
 
 variable "webhook_worker_errors_alarm_threshold" {
