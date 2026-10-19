@@ -3,6 +3,7 @@ from app import order_processing_dynamodb
 from app.order_processing_db import (
     PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
+    PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     PROCESSING_STATE_FAILED,
     PROCESSING_STATE_PENDING,
     PROCESSING_STATE_PROCESSING,
@@ -116,6 +117,10 @@ def mark_order_applied(order_id):
 
 def mark_order_failed(order_id):
     return _get_store_backend().mark_order_failed(order_id)
+
+
+def mark_order_cancelled_before_apply(order_id):
+    return _get_store_backend().mark_order_cancelled_before_apply(order_id)
 
 
 def mark_order_blocked(order_id):

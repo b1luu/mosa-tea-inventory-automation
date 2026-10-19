@@ -193,7 +193,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch(
-                        "server.fetch_is_paid_kiosk_order", return_value=False
+                        "server.fetch_is_paid_in_full", return_value=False
                     ) as mock_kiosk:
                         with patch(
                             "server.create_webhook_event", return_value=True
@@ -214,7 +214,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
 
-    def test_paid_kiosk_open_order_is_reserved_and_dispatched(self):
+    def test_paid_open_order_is_reserved_and_dispatched_with_hold(self):
         client = TestClient(server.app)
         payload = _build_order_updated_payload()
         payload["data"]["object"]["order_updated"]["state"] = "OPEN"
@@ -222,7 +222,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value=None):
-                    with patch("server.fetch_is_paid_kiosk_order", return_value=True):
+                    with patch("server.fetch_is_paid_in_full", return_value=True):
                         with patch(
                             "server.reserve_order_processing", return_value=True
                         ) as mock_reserve:
@@ -243,6 +243,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         )
         mock_reserve.assert_called_once()
         mock_dispatch.assert_called_once()
+        self.assertEqual(mock_dispatch.call_args.args[0]["hold_seconds"], 900)
 
     def test_open_order_already_reserved_is_not_fetched_again(self):
         client = TestClient(server.app)
@@ -252,7 +253,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch("server.get_webhook_event", return_value=None):
                 with patch("server.get_order_processing_state", return_value="applied"):
-                    with patch("server.fetch_is_paid_kiosk_order") as mock_kiosk:
+                    with patch("server.fetch_is_paid_in_full") as mock_kiosk:
                         with patch("server.create_webhook_event", return_value=True):
                             with patch("server.dispatch_webhook_job") as mock_dispatch:
                                 with patch("server.set_webhook_event_status"):

@@ -9,6 +9,7 @@ from app.merchant_store import (
 from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
+    PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     PROCESSING_STATE_FAILED,
     PROCESSING_STATE_PENDING,
     PROCESSING_STATE_PROCESSING,
@@ -17,6 +18,7 @@ from app.order_processing_store import (
     get_order_processing_state,
     mark_order_applied,
     mark_order_blocked,
+    mark_order_cancelled_before_apply,
     mark_order_failed,
     release_order_processing_claim,
     requeue_order_processing,
@@ -32,6 +34,17 @@ from app.webhook_event_store import (
 
 class RetryableWebhookJobError(RuntimeError):
     pass
+
+
+# A duplicate delivery for an order in one of these states is a no-op.
+TERMINAL_PROCESSING_STATES = frozenset(
+    {
+        PROCESSING_STATE_APPLIED,
+        PROCESSING_STATE_BLOCKED,
+        PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
+        PROCESSING_STATE_FAILED,
+    }
+)
 
 
 def _build_empty_result():
@@ -82,6 +95,12 @@ def _resolve_processing_outcome(result):
 
     if result["projected_orders"]:
         return PROCESSING_STATE_APPLIED
+
+    # Paid orders are held before apply; one cancelled during the hold is a
+    # normal outcome, not a failure.
+    skipped_orders = result.get("skipped_orders") or []
+    if skipped_orders and all(skipped.get("state") == "CANCELED" for skipped in skipped_orders):
+        return PROCESSING_STATE_CANCELLED_BEFORE_APPLY
 
     return PROCESSING_STATE_FAILED
 
@@ -150,6 +169,8 @@ def _transition_claimed_order_to_terminal_state(order_id, result):
         transitioned = mark_order_applied(order_id)
     elif processing_outcome == PROCESSING_STATE_BLOCKED:
         transitioned = mark_order_blocked(order_id)
+    elif processing_outcome == PROCESSING_STATE_CANCELLED_BEFORE_APPLY:
+        transitioned = mark_order_cancelled_before_apply(order_id)
     else:
         transitioned = mark_order_failed(order_id)
 
@@ -252,11 +273,7 @@ def _process_order_job(order_id, *, job=None):
         return _process_claimed_order(order_id, job=job)
 
     current_state = get_order_processing_state(order_id)
-    if current_state in {
-        PROCESSING_STATE_APPLIED,
-        PROCESSING_STATE_BLOCKED,
-        PROCESSING_STATE_FAILED,
-    }:
+    if current_state in TERMINAL_PROCESSING_STATES:
         return current_state, None
 
     raise RetryableWebhookJobError(
@@ -326,11 +343,7 @@ def process_webhook_job(job):
             processing_state, _ = _process_claimed_order(order_id, job=job)
         else:
             current_state = get_order_processing_state(order_id)
-            if current_state in {
-                PROCESSING_STATE_APPLIED,
-                PROCESSING_STATE_BLOCKED,
-                PROCESSING_STATE_FAILED,
-            }:
+            if current_state in TERMINAL_PROCESSING_STATES:
                 processing_state = current_state
             else:
                 raise RetryableWebhookJobError(

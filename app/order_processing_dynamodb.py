@@ -6,6 +6,7 @@ from app.config import get_aws_region, get_dynamodb_order_processing_table_name
 from app.order_processing_db import (
     PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
+    PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     PROCESSING_STATE_FAILED,
     PROCESSING_STATE_PENDING,
     PROCESSING_STATE_PROCESSING,
@@ -250,4 +251,12 @@ def mark_order_blocked(order_id):
         order_id,
         PROCESSING_STATE_PROCESSING,
         PROCESSING_STATE_BLOCKED,
+    )
+
+
+def mark_order_cancelled_before_apply(order_id):
+    return transition_order_processing_state(
+        order_id,
+        PROCESSING_STATE_PROCESSING,
+        PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     )

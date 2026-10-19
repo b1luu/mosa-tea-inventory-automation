@@ -526,3 +526,80 @@ class WebhookWorkerTests(unittest.TestCase):
             "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
         )
         self.assertEqual(result, "blocked")
+
+    def test_order_cancelled_during_hold_is_cancelled_before_apply(self):
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+        with _merchant_path(
+            merchant_context=_active_merchant_context(),
+            binding=binding,
+        ):
+            with (
+                patch("app.webhook_worker.claim_order_processing", return_value=True),
+                patch(
+                    "app.webhook_worker.process_orders",
+                    return_value={
+                        "projected_orders": [],
+                        "skipped_orders": [
+                            {
+                                "order_id": REAL_SUCCESS_JOB["order_id"],
+                                "state": "CANCELED",
+                                "reason": "Order is not COMPLETED or paid in full",
+                            }
+                        ],
+                        "skipped_line_items": [],
+                        "projected_line_items": [],
+                        "inventory_response": None,
+                    },
+                ),
+                patch(
+                    "app.webhook_worker.mark_order_cancelled_before_apply", return_value=True
+                ) as mock_cancelled,
+                patch("app.webhook_worker.mark_order_failed") as mock_failed,
+                patch("app.webhook_worker.set_webhook_event_status") as mock_status,
+            ):
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        self.assertEqual(result, "cancelled_before_apply")
+        mock_cancelled.assert_called_once()
+        mock_failed.assert_not_called()
+        mock_status.assert_called_once_with(
+            "7636f400-d68c-3c80-8f5b-77b8427cab0d", "processed"
+        )
+
+    def test_order_no_longer_paid_for_another_reason_still_fails(self):
+        binding = {"mapping": {"inventory_variation_ids": {"tgy": "LIVE-TGY"}}}
+        with _merchant_path(
+            merchant_context=_active_merchant_context(),
+            binding=binding,
+        ):
+            with (
+                patch("app.webhook_worker.claim_order_processing", return_value=True),
+                patch(
+                    "app.webhook_worker.process_orders",
+                    return_value={
+                        "projected_orders": [],
+                        "skipped_orders": [{"order_id": "x", "state": "OPEN", "reason": "..."}],
+                        "skipped_line_items": [],
+                        "projected_line_items": [],
+                        "inventory_response": None,
+                    },
+                ),
+                patch("app.webhook_worker.mark_order_failed", return_value=True),
+                patch("app.webhook_worker.set_webhook_event_status"),
+            ):
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        self.assertEqual(result, "failed")
+
+    def test_duplicate_delivery_after_cancellation_is_a_noop(self):
+        with patch("app.webhook_worker.claim_order_processing", return_value=False):
+            with patch(
+                "app.webhook_worker.get_order_processing_state",
+                return_value="cancelled_before_apply",
+            ):
+                with patch("app.webhook_worker.process_orders") as mock_process:
+                    with patch("app.webhook_worker.set_webhook_event_status"):
+                        result = process_webhook_job(REAL_SUCCESS_JOB)
+
+        mock_process.assert_not_called()
+        self.assertEqual(result, "cancelled_before_apply")

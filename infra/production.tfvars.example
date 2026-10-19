@@ -68,7 +68,7 @@ webhook_dlq_receive_wait_time_seconds                    = 20
 # (262144 bytes) is the AWS SQS hard limit. Setting a value above 262144
 # fails plan validation.
 webhook_dlq_visible_messages_alarm_threshold             = 1
-webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 300
+webhook_jobs_oldest_message_age_alarm_threshold_seconds  = 1200
 webhook_worker_errors_alarm_threshold                    = 1
 binding_coverage_check_errors_alarm_threshold            = 1
 binding_coverage_check_schedule_expression               = "rate(1 day)"

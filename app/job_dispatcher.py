@@ -6,6 +6,8 @@ from app.webhook_worker import process_webhook_job
 
 
 def _dispatch_webhook_job_local(job, background_tasks: BackgroundTasks | None = None):
+    # Local development runs jobs immediately: a paid order's hold_seconds is
+    # only honoured by the SQS dispatcher.
     if background_tasks is None:
         process_webhook_job(job)
         return

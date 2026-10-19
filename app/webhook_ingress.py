@@ -22,7 +22,7 @@ from app.merchant_store import (
     get_merchant_context,
     revoke_merchant,
 )
-from app.order_commit_rules import fetch_is_paid_kiosk_order
+from app.order_commit_rules import PAID_ORDER_HOLD_SECONDS, fetch_is_paid_in_full
 from app.order_processing_store import (
     clear_order_processing_reservation,
     get_order_processing_state,
@@ -69,7 +69,7 @@ class WebhookIngressDependencies:
     get_merchant_context: Callable[[str, str], Any]
     disable_merchant_writes: Callable[[str, str], Any]
     revoke_merchant: Callable[[str, str], Any]
-    is_paid_kiosk_order: Callable[[str, str, str], bool]
+    is_paid_in_full: Callable[[str, str, str], bool]
 
 
 def default_webhook_ingress_dependencies():
@@ -94,7 +94,7 @@ def default_webhook_ingress_dependencies():
         get_merchant_context=get_merchant_context,
         disable_merchant_writes=disable_merchant_writes,
         revoke_merchant=revoke_merchant,
-        is_paid_kiosk_order=fetch_is_paid_kiosk_order,
+        is_paid_in_full=fetch_is_paid_in_full,
     )
 
 
@@ -394,16 +394,17 @@ def handle_square_webhook_request(
             and current_processing_state is None
             and merchant_allows_processing
         )
-        # COMPLETED commits from the payload alone. An OPEN order commits only
-        # if it is a paid Kiosk order, which needs a fetch: the payload has no
-        # source or tenders (see app/order_commit_rules.py).
-        should_attempt_processing = is_candidate and (
-            order_state == "COMPLETED"
-            or (
-                order_state == "OPEN"
-                and deps.is_paid_kiosk_order(runtime_environment, merchant_id, order_id)
-            )
+        # COMPLETED commits from the payload alone. An OPEN order commits once
+        # it is paid in full, which needs a fetch (the payload has no tenders),
+        # and is held so an early cancellation lands before the worker applies
+        # it (see app/order_commit_rules.py).
+        is_completed = order_state == "COMPLETED"
+        is_paid_open = (
+            is_candidate
+            and order_state == "OPEN"
+            and deps.is_paid_in_full(runtime_environment, merchant_id, order_id)
         )
+        should_attempt_processing = is_candidate and (is_completed or is_paid_open)
         initial_event_status = (
             EVENT_STATUS_RECEIVED
             if should_attempt_processing
@@ -449,15 +450,18 @@ def handle_square_webhook_request(
                     deps.set_webhook_event_status(event_id, EVENT_STATUS_IGNORED)
 
         if should_start_processing:
+            order_job = {
+                "event_id": event_id,
+                "merchant_id": merchant_id,
+                "environment": runtime_environment,
+                "event_type": event_type,
+                "order_id": order_id,
+                "location_id": location_id,
+            }
+            if not is_completed:
+                order_job["hold_seconds"] = PAID_ORDER_HOLD_SECONDS
             _dispatch_order_webhook_job(
-                {
-                    "event_id": event_id,
-                    "merchant_id": merchant_id,
-                    "environment": runtime_environment,
-                    "event_type": event_type,
-                    "order_id": order_id,
-                    "location_id": location_id,
-                },
+                order_job,
                 event_id,
                 background_tasks,
                 deps,

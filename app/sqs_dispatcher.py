@@ -9,12 +9,20 @@ def _create_sqs_client():
     return boto3.client("sqs", region_name=get_aws_region())
 
 
+# SQS rejects DelaySeconds above 15 minutes.
+MAX_SQS_DELAY_SECONDS = 900
+
+
 def dispatch_webhook_job_to_sqs(job):
     client = _create_sqs_client()
-    return client.send_message(
-        QueueUrl=get_webhook_job_queue_url(),
-        MessageBody=json.dumps(job),
-    )
+    message = {
+        "QueueUrl": get_webhook_job_queue_url(),
+        "MessageBody": json.dumps(job),
+    }
+    hold_seconds = int(job.get("hold_seconds") or 0)
+    if hold_seconds > 0:
+        message["DelaySeconds"] = min(hold_seconds, MAX_SQS_DELAY_SECONDS)
+    return client.send_message(**message)
 
 
 def receive_webhook_jobs(max_number_of_messages=1, wait_time_seconds=20):
