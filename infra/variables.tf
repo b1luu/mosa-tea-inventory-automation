@@ -239,9 +239,15 @@ variable "oauth_lambda_role_name" {
 }
 
 variable "binding_coverage_check_schedule_expression" {
-  description = "EventBridge schedule expression for the binding coverage check."
+  description = "EventBridge schedule for the daily check (coverage + order reconciliation). EventBridge cron is UTC: 10:00 UTC is 3 am PDT / 2 am PST, after closing and before opening."
   type        = string
-  default     = "rate(1 day)"
+  default     = "cron(0 10 * * ? *)"
+}
+
+variable "binding_coverage_check_timeout_seconds" {
+  description = "Timeout for the daily check Lambda. Monday also re-reconciles the past week (about 1,000 orders), so it needs more than the shared default."
+  type        = number
+  default     = 300
 }
 
 variable "webhook_jobs_queue_name" {

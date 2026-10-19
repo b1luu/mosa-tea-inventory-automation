@@ -1,8 +1,10 @@
 # Daily Order Reconciliation Design
 
-> **Status: approved 2026-10-19, not yet built.** All decisions are recorded
-> at the end. Build order: the paid-in-full rule first (its own PR), then the
-> daily check.
+> **Status: built 2026-10-19.** The paid-in-full rule shipped in PR #61; the
+> daily check is `app/order_reconciliation.py`, run by the daily Lambda. All
+> decisions are recorded at the end. One gap found while building: a MISSED
+> order has no processing record, so `scripts/replay_order` cannot replay it;
+> those are left to the recount.
 
 ## Problem
 

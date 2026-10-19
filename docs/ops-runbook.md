@@ -105,6 +105,38 @@ aws --no-cli-pager lambda get-function-configuration \
 
 **Escalate to engineering when:** the error pattern affects many orders at once, or the fix requires a code change or deploy.
 
+### Daily check
+
+**When this fires:** a `Mosa Tea daily check (<date>): …` email. It runs at 3 am Pacific and compares the previous day's Square orders with what was deducted (design: [daily-order-reconciliation-design.md](daily-order-reconciliation-design.md)). A clean day sends nothing. Every Monday a `Mosa Tea weekly check` summary arrives, clean or not; **if the Monday email stops arriving, the check has stopped running**.
+
+**What each section means and what to do:**
+
+| Section | Meaning | Action |
+|---|---|---|
+| BLOCKED | the worker refused the order (the `reason` line says why: usually an unmapped drink) | fix the mapping or recipe; replay only if no recount has happened since the sale |
+| FAILED | the Square write failed | check worker logs for that order; replay under the same recount rule |
+| STUCK | the order never finished processing (crash mid-job) | check the DLQ and worker logs |
+| MISSED | no processing record: the webhook never arrived or was ignored | check the webhook event store for the order; replay under the recount rule |
+| REVERSED AFTER DEDUCTION | cancelled after we deducted | nothing; the recount corrects it. Watch the volume (a revisit trigger in [order-state-handling-decision.md](order-state-handling-decision.md)) |
+| PAID BUT NOT DEDUCTIBLE | 3+ paid orders from one channel that the deduction rule skips | a channel behaves in a way the rule doesn't expect (as the Kiosk once did): investigate before it costs a recount |
+| Binding coverage issues | live items the binding can't deduct | see *Binding coverage alarm* below |
+
+`would apply now: yes` means a dry run against today's recipes and binding succeeds, so a replay would work.
+
+**Replaying:** nothing is replayed automatically. Replaying an order sold before a physical recount deducts it twice, because the recount already reflects it. For a BLOCKED, FAILED or STUCK order sold after the last recount, with production store settings in the environment:
+
+```bash
+./.venv/bin/python -m scripts.replay_order ORDER_ID
+```
+
+A MISSED order has no processing record, so `replay_order` refuses it (replay needs the stored merchant context). Those are left to the recount for now.
+
+**Run it by hand** (for example after fixing a mapping):
+
+```bash
+aws lambda invoke --function-name mosa-tea-binding-coverage-check-prod /tmp/daily-check.json && cat /tmp/daily-check.json
+```
+
 ### Binding coverage alarm
 
 **When this fires:** the daily binding coverage check published an SNS alert because a merchant has blocking binding issues, unmapped live variations, or the coverage Lambda failed to evaluate a merchant.
