@@ -217,7 +217,7 @@ resource "aws_lambda_function" "binding_coverage_check" {
   runtime       = var.lambda_runtime
   architectures = var.lambda_architectures
   memory_size   = var.lambda_memory_size_mb
-  timeout       = var.lambda_timeout_seconds
+  timeout       = var.binding_coverage_check_timeout_seconds
 
   filename         = var.runtime313_lambda_package_path
   source_code_hash = filebase64sha256(var.runtime313_lambda_package_path)
@@ -244,9 +244,11 @@ resource "aws_lambda_function" "binding_coverage_check" {
     variables = merge(
       local.merchant_store_env,
       {
-        ALARM_NOTIFICATION_TOPIC_ARN = var.alarm_notification_topic_arn != null ? var.alarm_notification_topic_arn : ""
-        SQUARE_OAUTH_CLIENT_ID       = var.square_oauth_client_id
-        SQUARE_OAUTH_CLIENT_SECRET   = var.square_oauth_client_secret
+        ALARM_NOTIFICATION_TOPIC_ARN    = var.alarm_notification_topic_arn != null ? var.alarm_notification_topic_arn : ""
+        SQUARE_OAUTH_CLIENT_ID          = var.square_oauth_client_id
+        SQUARE_OAUTH_CLIENT_SECRET      = var.square_oauth_client_secret
+        ORDER_PROCESSING_STORE_MODE     = "dynamodb"
+        DYNAMODB_ORDER_PROCESSING_TABLE = aws_dynamodb_table.order_processing.name
       }
     )
   }

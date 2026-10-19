@@ -19,14 +19,12 @@ converted back to local time before it is assigned to a day.
 
 import argparse
 from collections import defaultdict
-from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from app.order_inventory_projection import load_inventory_item_map
+from app.shop_time import SHOP_TIMEZONE, local_day_of, local_day_window
 from app.usage_log_store import list_usage
-
-SHOP_TIMEZONE = "America/Los_Angeles"
 
 
 def _default_keys(inventory_items):
@@ -35,33 +33,6 @@ def _default_keys(inventory_items):
         for key, item in inventory_items.items()
         if item.get("tracking") in {"log_only", "demand"}
     )
-
-
-def _utc_bound(local_day, tz):
-    """Local midnight starting ``local_day`` as a UTC string comparable with sold_at.
-
-    Milliseconds are included because Square sale times carry them, and the log
-    is queried by string comparison.
-    """
-    midnight = datetime.combine(local_day, time.min, tzinfo=tz)
-    return midnight.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
-
-def local_day_window(days, tz, today=None):
-    """The last ``days`` local days ending today: (UTC start, UTC end, [day strings])."""
-    today = today or datetime.now(tz).date()
-    first = today - timedelta(days=days - 1)
-    local_days = [first + timedelta(days=offset) for offset in range(days)]
-    return (
-        _utc_bound(first, tz),
-        _utc_bound(today + timedelta(days=1), tz),
-        [day.isoformat() for day in local_days],
-    )
-
-
-def local_day_of(sold_at, tz):
-    """The local calendar day of a UTC sale time such as ``2026-10-18T05:30:00.123Z``."""
-    return datetime.fromisoformat(sold_at.replace("Z", "+00:00")).astimezone(tz).date().isoformat()
 
 
 def main():

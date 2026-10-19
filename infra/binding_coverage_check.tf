@@ -1,6 +1,6 @@
 resource "aws_cloudwatch_event_rule" "binding_coverage_check" {
   name                = "${var.project_name}-binding-coverage-check"
-  description         = "Run the binding coverage check once per day."
+  description         = "Daily check at 3 am Pacific: binding coverage and order reconciliation."
   schedule_expression = var.binding_coverage_check_schedule_expression
 }
 

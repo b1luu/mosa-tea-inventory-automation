@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 from zoneinfo import ZoneInfo
 
-from scripts.usage_demand_report import local_day_of, local_day_window
+from app.shop_time import local_day_of, local_day_window
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 

@@ -339,6 +339,13 @@ resource "aws_iam_role_policy" "oauth_runtime" {
 
 data "aws_iam_policy_document" "binding_coverage_check_runtime" {
   statement {
+    sid       = "OrderProcessingRead"
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem"]
+    resources = [aws_dynamodb_table.order_processing.arn]
+  }
+
+  statement {
     sid    = "MerchantTableRead"
     effect = "Allow"
     actions = [
