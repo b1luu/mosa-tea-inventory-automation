@@ -153,6 +153,30 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         self.assertEqual(combined_by_key["u600_cup"], 3.0)
         self.assertEqual(combined_by_key["small_straw"], 2.0)
         self.assertEqual(combined_by_key["big_straw"], 1.0)
+        # Grapefruit Bloom uses grapefruit syrup and canned pulp (operator, 2026-10-19).
+        self.assertEqual(combined_by_key["grapefruit_syrup"], 37)
+        self.assertEqual(combined_by_key["grapefruit_can"], 30)
+
+    def test_fresh_grapefruit_tea_deducts_syrup_tea_and_pulp(self):
+        projected = project_line_item_usage(
+            "GWLUEE5JMJLJITJRR42G6GHV", "1", ["IDFKCCIPYGFA67OPJMJ3SQVO", "Z3ZW4GLVWIAMBC4XI447XH2V"]
+        )
+        combined_by_key = {usage["inventory_key"]: usage["total_amount"] for usage in projected["usage"]}
+
+        self.assertEqual(combined_by_key["grapefruit_syrup"], 37)
+        self.assertEqual(combined_by_key["grapefruit_can"], 30)
+        self.assertIn("green_tea", combined_by_key)
+
+    def test_creamer_and_grapefruit_stock_units_match_real_packaging(self):
+        from app.inventory_stock_units import convert_inventory_amount_to_stock_unit
+
+        creamer = convert_inventory_amount_to_stock_unit("non_dairy_creamer", Decimal("20000"))
+        cans = convert_inventory_amount_to_stock_unit("grapefruit_can", Decimal("850"))
+
+        self.assertEqual(creamer["stock_unit_amount"], 1)
+        self.assertEqual(creamer["stock_unit"], "bag")
+        self.assertEqual(cans["stock_unit_amount"], 1)
+        self.assertEqual(cans["stock_unit"], "can")
 
     def test_tgy_special_fixture_includes_hun_kue(self):
         order_fixture = load_fixture("completed_tgy_special.json")
