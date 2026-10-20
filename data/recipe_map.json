@@ -828,6 +828,18 @@
           "amount": 3.488372093023256,
           "unit": "g",
           "notes": "Grapefruit Bloom includes Tie Guan Yin Oolong Jelly by default."
+        },
+        {
+          "inventory_key": "grapefruit_syrup",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Grapefruit Bloom uses the same grapefruit syrup as Fresh Grapefruit Tea (operator, 2026-10-19)."
+        },
+        {
+          "inventory_key": "grapefruit_can",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Canned grapefruit pulp per grapefruit drink (operator, 2026-10-19)."
         }
       ]
     },
@@ -930,6 +942,12 @@
           "amount": 37,
           "unit": "g",
           "notes": "Standard grapefruit syrup usage per fresh grapefruit tea."
+        },
+        {
+          "inventory_key": "grapefruit_can",
+          "amount": 30,
+          "unit": "g",
+          "notes": "Canned grapefruit pulp per grapefruit drink (operator, 2026-10-19)."
         }
       ],
       "modifier_overrides": {
