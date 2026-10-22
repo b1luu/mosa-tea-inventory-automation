@@ -195,6 +195,21 @@ cat /tmp/binding_coverage_check.json
 
 **Escalate to engineering when:** the issue requires a new recipe or code/data deploy, or the coverage Lambda itself is failing instead of reporting merchant findings.
 
+### Recording a delivery
+
+**When:** a supplier shipment arrives (Taiwan or US-supplier items; Costco items are watched on the board, not received here).
+
+Quantities are in the count sheet's units (bags, bottles, boxes, cans). Dry run first; it prints Square's current number, the amount received and the result:
+
+```bash
+./.venv/bin/python -m scripts.receive_delivery \
+  --merchant MERCHANT_ID --environment production --location-id LOCATION_ID \
+  --delivery-id delivery-YYYY-MM-DD \
+  black_tea=10 tgy=70 u600_cup=30
+```
+
+Then the same command with `--apply`. Use one delivery id per shipment: re-running the same id can't add it twice. Log-only items (oat milk) and items not in the binding are refused. Also add the delivery to the sheet's "in" column; recipe calibration reads deliveries from there.
+
 ### Inventory counts look wrong
 
 **When this fires:** an operator reports that Square inventory counts do not match store reality. This does not have a dedicated alarm.
