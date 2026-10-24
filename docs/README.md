@@ -20,6 +20,7 @@
 - [Catalog modifier model](catalog-modifier-model.md)
 - [CloudWatch alarm smoke test](cloudwatch-alarm-smoke-test.md)
 - [Dependency management](dependency-management.md)
+- [Inventory resync design](inventory-resync-design.md) — proposal (updated 2026-10-24): recount cutoff for replays, row-tolerant sheet sync, partial apply, next-recount runbook
 - [Multi-machine setup plan](multi-machine-setup-plan.md) — 2026-10-21 to-do: S3 state backend, secrets clean-up, version pins, desktop bootstrap
 - [Menu coverage & demand tracking decision](menu-coverage-and-demand-tracking-decision.md) — 2026-10-17: ignore lists, alerting, matcha jelly retirement, oat milk usage log
 - [Ops runbook](ops-runbook.md)
