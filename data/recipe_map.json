@@ -317,7 +317,10 @@
       "JNMEIPGCJLSLJVD7BNPZWE7R",
       "UCXQBKF6EKHTD5CT2MLACMO5",
       "MOSAEXT_BS_HOT_MILK_TEA_B480679A",
-      "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5"
+      "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5",
+      "MOSAEXT_CRO_HOT_TEA_F66598D7",
+      "MOSAEXT_CRO_HOT_AU_LAIT_D81F3240",
+      "MOSAEXT_CRO_HOT_MILK_TEA_620B63C0"
     ]
   },
   "sold_variation_recipes": {
@@ -1439,6 +1442,50 @@
     },
     "MOSAEXT_BS_HOT_AU_LAIT_5107B2A5": {
       "same_as_sold_variation_id": "MOSAEXT_BS_AU_LAIT_61B22DEE"
+    },
+    "MOSAEXT_CRO_TEA_AA86A5F6": {
+      "drink_key": "camellia_red_oolong_tea",
+      "drink_name": "Camellia Red Oolong Tea",
+      "notes": "The oolong leaves are not tracked (seasonal); only shared ingredients, sugar and packaging deduct.",
+      "ingredients": []
+    },
+    "MOSAEXT_CRO_AU_LAIT_A6F431E9": {
+      "drink_key": "camellia_red_oolong_au_lait",
+      "drink_name": "Camellia Red Oolong Au Lait",
+      "notes": "The oolong leaves are not tracked (seasonal); only shared ingredients, sugar and packaging deduct.",
+      "ingredients": [
+        {
+          "inventory_key": "milk",
+          "amount": 150,
+          "unit": "ml",
+          "notes": "Standard milk usage per Au Lait."
+        }
+      ]
+    },
+    "MOSAEXT_CRO_MILK_TEA_A5DEB65F": {
+      "drink_key": "camellia_red_oolong_milk_tea",
+      "drink_name": "Camellia Red Oolong Milk Tea",
+      "notes": "The oolong leaves are not tracked (seasonal); only shared ingredients, sugar and packaging deduct.",
+      "ingredients": [
+        {
+          "inventory_key": "non_dairy_creamer",
+          "amount": 37,
+          "unit": "g",
+          "notes": "Standard non-dairy creamer usage per milk tea."
+        }
+      ]
+    },
+    "MOSAEXT_CRO_HOT_TEA_F66598D7": {
+      "same_as_sold_variation_id": "MOSAEXT_CRO_TEA_AA86A5F6"
+    },
+    "MOSAEXT_CRO_HOT_AU_LAIT_D81F3240": {
+      "same_as_sold_variation_id": "MOSAEXT_CRO_AU_LAIT_A6F431E9"
+    },
+    "MOSAEXT_CRO_HOT_MILK_TEA_620B63C0": {
+      "same_as_sold_variation_id": "MOSAEXT_CRO_MILK_TEA_A5DEB65F"
+    },
+    "MOSAEXT_SSR_MILK_TEA_D1C6D2C1": {
+      "same_as_sold_variation_id": "MOSAEXT_CRO_MILK_TEA_A5DEB65F"
     }
   }
 }

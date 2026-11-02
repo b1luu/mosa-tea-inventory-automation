@@ -929,6 +929,55 @@
       "variation_name": "Regular",
       "sellable": true,
       "stockable": true
+    },
+    "MOSAEXT_CRO_TEA_AA86A5F6": {
+      "id": "MOSAEXT_CRO_TEA_AA86A5F6",
+      "item_name": "Camellia Red Oolong Tea 茶花紅烏龍茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_CRO_HOT_TEA_F66598D7": {
+      "id": "MOSAEXT_CRO_HOT_TEA_F66598D7",
+      "item_name": "Hot Camellia Red Oolong Tea 熱茶花紅烏龍茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_CRO_AU_LAIT_A6F431E9": {
+      "id": "MOSAEXT_CRO_AU_LAIT_A6F431E9",
+      "item_name": "Camellia Red Oolong Au Lait 茶花紅烏龍歐蕾",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_CRO_HOT_AU_LAIT_D81F3240": {
+      "id": "MOSAEXT_CRO_HOT_AU_LAIT_D81F3240",
+      "item_name": "Hot Camellia Red Oolong Au Lait 熱茶花紅烏龍歐蕾",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_CRO_MILK_TEA_A5DEB65F": {
+      "id": "MOSAEXT_CRO_MILK_TEA_A5DEB65F",
+      "item_name": "Camellia Red Oolong Milk Tea 茶花紅烏龍奶茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_CRO_HOT_MILK_TEA_620B63C0": {
+      "id": "MOSAEXT_CRO_HOT_MILK_TEA_620B63C0",
+      "item_name": "Hot Camellia Red Oolong Milk Tea 熱茶花紅烏龍奶茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
+    },
+    "MOSAEXT_SSR_MILK_TEA_D1C6D2C1": {
+      "id": "MOSAEXT_SSR_MILK_TEA_D1C6D2C1",
+      "item_name": "SSR Milk Tea 糯香烏龍奶茶",
+      "variation_name": "Regular",
+      "sellable": true,
+      "stockable": true
     }
   }
 }
