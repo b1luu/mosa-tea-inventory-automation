@@ -637,6 +637,55 @@ class OrderInventoryProjectionTests(unittest.TestCase):
         for tea_key in ("tgy", "black_tea", "4s", "genmai", "green_tea", "buckwheat", "barley"):
             self.assertNotIn(tea_key, combined)
 
+    def _project_seasonal_oolong_drink(self, sold_variation_id, modifier_ids):
+        # Camellia Red Oolong and SSR Milk Tea are seasonal: their oolong leaves
+        # are not tracked, so only shared ingredients, sugar and packaging deduct.
+        projected = project_line_item_usage(sold_variation_id, "1", modifier_ids)
+        combined = {u["inventory_key"]: float(u["total_amount"]) for u in projected["usage"]}
+        return projected, combined
+
+    def test_camellia_red_oolong_tea_deducts_sugar_and_packaging_only(self):
+        fifty_percent_sugar = "M3GNVPQ44FH575OGMUPSPLDD"
+        _, combined = self._project_seasonal_oolong_drink(
+            "MOSAEXT_CRO_TEA_AA86A5F6", [fifty_percent_sugar]
+        )
+        self.assertEqual(combined["sugar_syrup"], 27.0)
+        self.assertEqual(combined["u600_cup"], 1.0)
+        self.assertEqual(combined["small_straw"], 1.0)
+        self.assertNotIn("milk", combined)
+        self.assertNotIn("non_dairy_creamer", combined)
+
+    def test_camellia_red_oolong_au_lait_deducts_milk(self):
+        no_sugar = "IDFKCCIPYGFA67OPJMJ3SQVO"
+        _, combined = self._project_seasonal_oolong_drink(
+            "MOSAEXT_CRO_AU_LAIT_A6F431E9", [no_sugar]
+        )
+        self.assertAlmostEqual(combined["milk"], 150.0)
+        self.assertNotIn("non_dairy_creamer", combined)
+
+    def test_hot_camellia_red_oolong_milk_tea_uses_hot_packaging(self):
+        full_sugar = "VEDNAO6LH5WQET6TQTJGSPOB"
+        projected, combined = self._project_seasonal_oolong_drink(
+            "MOSAEXT_CRO_HOT_MILK_TEA_620B63C0", [full_sugar]
+        )
+        self.assertEqual(projected["drink_key"], "camellia_red_oolong_milk_tea")
+        self.assertAlmostEqual(combined["non_dairy_creamer"], 37.0)
+        self.assertEqual(combined["sugar_syrup"], 54.0)
+        self.assertEqual(combined["hot_cup"], 1.0)
+        self.assertEqual(combined["hot_lid"], 1.0)
+        self.assertNotIn("u600_cup", combined)
+
+    def test_ssr_milk_tea_matches_camellia_red_oolong_milk_tea(self):
+        full_sugar = "VEDNAO6LH5WQET6TQTJGSPOB"
+        _, ssr = self._project_seasonal_oolong_drink(
+            "MOSAEXT_SSR_MILK_TEA_D1C6D2C1", [full_sugar]
+        )
+        _, camellia = self._project_seasonal_oolong_drink(
+            "MOSAEXT_CRO_MILK_TEA_A5DEB65F", [full_sugar]
+        )
+        self.assertEqual(ssr, camellia)
+        self.assertEqual(ssr["u600_cup"], 1.0)
+
     def test_brown_sugar_mist_built_in_cream_foam_no_modifier(self):
         # Brown Sugar Mist has Brown Sugar Cream Foam built-in — no cream
         # foam modifier is selected on the order, but the projection must
