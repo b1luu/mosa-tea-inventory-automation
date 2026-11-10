@@ -49,10 +49,26 @@ Note that `failed` is terminal but not a happy outcome. The worker records it in
 
 A job is reported to SQS as failed (via `batchItemFailures` in `app/lambda_sqs_worker.py`) when the worker raises instead:
 
-- `RetryableWebhookJobError` — the order could not be claimed and is not yet terminal (for example, another worker is still `processing` it)
+- `RetryableWebhookJobError` — the order could not be claimed and is not yet terminal (for example, another worker claimed it as `processing` less than `CLAIM_LEASE_SECONDS` ago)
 - any other exception — malformed body, missing `order_id`, unresolved merchant context, a failed state transition, and so on; the processing claim is released first so a retry can claim it again
 
 Those messages are retried and, after `maxReceiveCount` receives (`webhook_queue_max_receive_count`, default `3`), moved to the DLQ.
+
+## A Run Killed Mid-Job
+
+If the worker Lambda is killed (timeout, out of memory, runtime crash), Python never reaches the `except` that releases the claim, so the order stays `processing`. The claim is a lease: `claim_order_processing` also takes over a `processing` claim whose `updated_at` is older than `CLAIM_LEASE_SECONDS` (90 s, `app/order_processing_db.py`).
+
+With the default settings:
+
+| Time | What happens |
+|---|---|
+| ~0 s | run claims the order, then is killed at the 30 s timeout |
+| ~120 s | SQS redelivers (visibility timeout); the claim is older than 90 s, so the retry takes it over and finishes the order |
+| ~240 s | last retry, only reached if the ~120 s one also failed |
+
+Re-running is safe: the Square write reuses the same idempotency key, and usage-log rows have fixed keys.
+
+If the order still ends up in the DLQ, `scripts/replay_order.py` recovers it the same way; it refuses a claim younger than the lease, because that run may still be alive.
 
 ## Main Queue vs DLQ
 
@@ -82,6 +98,8 @@ Main queue:
 - type: `Standard`
 - dead-letter queue: enabled
 - max receives: `3`
+
+The claim lease depends on three settings: the worker Lambda timeout (30 s), the visibility timeout (120 s) and max receives (3). The lease must be longer than the timeout, so a live run is never taken over, and shorter than the last retry, `(max receives − 1) × visibility` = 240 s, so a retry can recover a killed run. Change any of the three and recheck it: `testing/test_claim_lease.py` fails if either bound breaks.
 
 DLQ:
 - type: `Standard`
