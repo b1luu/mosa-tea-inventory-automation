@@ -6,6 +6,7 @@ from app.merchant_store import (
     get_merchant_write_readiness,
     get_write_blocker_message,
 )
+from app.order_processing_db import CLAIM_LEASE_SECONDS
 from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
@@ -288,9 +289,6 @@ def replay_order_job(order_id):
     if current_processing_state == PROCESSING_STATE_APPLIED:
         raise RuntimeError(f"Order '{order_id}' is already applied.")
 
-    if current_processing_state == PROCESSING_STATE_PROCESSING:
-        raise RuntimeError(f"Order '{order_id}' is already being processed.")
-
     # Validate replayability BEFORE mutating state. If the order has no recorded
     # merchant context it cannot be routed through the merchant-scoped path, so
     # refuse here and leave it in its current (FAILED/BLOCKED) state rather than
@@ -302,7 +300,13 @@ def replay_order_job(order_id):
         PROCESSING_STATE_BLOCKED,
     }:
         prepared = requeue_order_processing(order_id)
-    elif current_processing_state == PROCESSING_STATE_PENDING:
+    elif current_processing_state in {
+        PROCESSING_STATE_PENDING,
+        # Left by a run that was killed (Lambda timeout) before it could release
+        # its claim. The claim below takes it over only once the lease has passed,
+        # the same check a live SQS retry uses, so a live run is never taken over.
+        PROCESSING_STATE_PROCESSING,
+    }:
         prepared = True
     else:
         raise RuntimeError(
@@ -316,7 +320,16 @@ def replay_order_job(order_id):
             f"{current_processing_state!r}."
         )
 
-    processing_state_after, result = _process_order_job(order_id, job=job)
+    try:
+        processing_state_after, result = _process_order_job(order_id, job=job)
+    except RetryableWebhookJobError:
+        if current_processing_state != PROCESSING_STATE_PROCESSING:
+            raise
+        raise RuntimeError(
+            f"Order '{order_id}' is claimed by a run less than "
+            f"{CLAIM_LEASE_SECONDS} s old, which may still be alive. If it was "
+            f"killed, replay again once the claim is {CLAIM_LEASE_SECONDS} s old."
+        ) from None
     return {
         "order_id": order_id,
         "current_processing_state": current_processing_state,

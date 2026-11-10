@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 
@@ -12,6 +12,22 @@ PROCESSING_STATE_FAILED = "failed"
 PROCESSING_STATE_APPLIED = "applied"
 # Paid, then cancelled during the hold before apply: terminal, nothing deducted.
 PROCESSING_STATE_CANCELLED_BEFORE_APPLY = "cancelled_before_apply"
+
+# A `processing` claim untouched for this long belongs to a run that is dead: the
+# worker Lambda is killed at its timeout (30 s), and a killed run never reaches the
+# `except` that releases its claim. The next retry or replay may take it over.
+# Two bounds, both enforced by testing/test_claim_lease.py:
+# - longer than the worker Lambda timeout, or a live run could be taken over
+#   (the worker's startup check enforces this one at runtime too);
+# - shorter than the last SQS retry ((maxReceiveCount - 1) x visibility timeout,
+#   240 s by default), or every retry finds the claim still fresh and the message
+#   reaches the DLQ before any takeover. At 90 s, the retry at ~120 s takes over.
+CLAIM_LEASE_SECONDS = 90
+
+
+def stale_claim_cutoff(now):
+    """Claims last touched before this ISO timestamp are past their lease."""
+    return (now - timedelta(seconds=CLAIM_LEASE_SECONDS)).isoformat()
 
 
 @contextmanager
@@ -28,6 +44,7 @@ def _db_connection():
 
 
 _CONTEXT_COLUMNS = ("merchant_id", "environment", "location_id")
+_BACKFILLED_COLUMNS = (*_CONTEXT_COLUMNS, "updated_at")
 
 
 def ensure_db():
@@ -41,18 +58,20 @@ def ensure_db():
                 applied_at TEXT,
                 merchant_id TEXT,
                 environment TEXT,
-                location_id TEXT
+                location_id TEXT,
+                updated_at TEXT
             )
             """
         )
-        # Backfill the merchant-context columns on dev databases created before
-        # they existed. Rows reserved before this migration carry NULL context
-        # and are intentionally not safe to replay (see replay_order_job).
+        # Backfill columns on dev databases created before they existed. Rows
+        # reserved before this migration carry NULL context and are intentionally
+        # not safe to replay (see replay_order_job); a NULL updated_at is never
+        # treated as a stale claim.
         existing = {
             row[1]
             for row in connection.execute("PRAGMA table_info(order_processing)")
         }
-        for column in _CONTEXT_COLUMNS:
+        for column in _BACKFILLED_COLUMNS:
             if column not in existing:
                 connection.execute(
                     f"ALTER TABLE order_processing ADD COLUMN {column} TEXT"
@@ -133,35 +152,36 @@ def set_order_processing_state(order_id, processing_state):
     # DROP that context — prefer transition_order_processing_state (a partial
     # update) for state changes that must retain merchant context.
     ensure_db()
-    applied_at = (
-        datetime.now(UTC).isoformat()
-        if processing_state == PROCESSING_STATE_APPLIED
-        else None
-    )
+    now = datetime.now(UTC).isoformat()
+    applied_at = now if processing_state == PROCESSING_STATE_APPLIED else None
     with _db_connection() as connection:
         connection.execute(
             """
-            INSERT INTO order_processing (square_order_id, processing_state, applied_at)
-            VALUES (?, ?, ?)
+            INSERT INTO order_processing (
+                square_order_id, processing_state, applied_at, updated_at
+            )
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(square_order_id) DO UPDATE SET
                 processing_state = excluded.processing_state,
-                applied_at = excluded.applied_at
+                applied_at = excluded.applied_at,
+                updated_at = excluded.updated_at
             """,
-            (order_id, processing_state, applied_at),
+            (order_id, processing_state, applied_at, now),
         )
 
 
 def transition_order_processing_state(order_id, from_state, to_state):
     ensure_db()
-    applied_at = datetime.now(UTC).isoformat() if to_state == PROCESSING_STATE_APPLIED else None
+    now = datetime.now(UTC).isoformat()
+    applied_at = now if to_state == PROCESSING_STATE_APPLIED else None
     with _db_connection() as connection:
         cursor = connection.execute(
             """
             UPDATE order_processing
-            SET processing_state = ?, applied_at = ?
+            SET processing_state = ?, applied_at = ?, updated_at = ?
             WHERE square_order_id = ? AND processing_state = ?
             """,
-            (to_state, applied_at, order_id, from_state),
+            (to_state, applied_at, now, order_id, from_state),
         )
 
     return cursor.rowcount == 1
@@ -180,9 +200,9 @@ def reserve_order_processing(
             """
             INSERT INTO order_processing (
                 square_order_id, processing_state, applied_at,
-                merchant_id, environment, location_id
+                merchant_id, environment, location_id, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(square_order_id) DO NOTHING
             """,
             (
@@ -192,6 +212,7 @@ def reserve_order_processing(
                 merchant_id,
                 environment,
                 location_id,
+                datetime.now(UTC).isoformat(),
             ),
         )
         reserved = cursor.rowcount == 1
@@ -200,11 +221,35 @@ def reserve_order_processing(
 
 
 def claim_order_processing(order_id):
-    return transition_order_processing_state(
-        order_id,
-        PROCESSING_STATE_PENDING,
-        PROCESSING_STATE_PROCESSING,
-    )
+    """Claim a pending order, or take over a claim older than the lease.
+
+    One conditional UPDATE, so of two runs racing for the same order only one
+    wins. A fresh `processing` claim (a live run) is never taken over.
+    """
+    ensure_db()
+    now = datetime.now(UTC)
+    with _db_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE order_processing
+            SET processing_state = ?, updated_at = ?
+            WHERE square_order_id = ?
+              AND (
+                processing_state = ?
+                OR (processing_state = ? AND updated_at < ?)
+              )
+            """,
+            (
+                PROCESSING_STATE_PROCESSING,
+                now.isoformat(),
+                order_id,
+                PROCESSING_STATE_PENDING,
+                PROCESSING_STATE_PROCESSING,
+                stale_claim_cutoff(now),
+            ),
+        )
+
+    return cursor.rowcount == 1
 
 
 def release_order_processing_claim(order_id):
