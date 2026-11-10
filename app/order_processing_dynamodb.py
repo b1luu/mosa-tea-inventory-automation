@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from botocore.exceptions import ClientError
 
+from app import order_processing_db
 from app.config import get_aws_region, get_dynamodb_order_processing_table_name
 from app.order_processing_db import (
     PROCESSING_STATE_APPLIED,
@@ -185,11 +186,36 @@ def reserve_order_processing(
 
 
 def claim_order_processing(order_id):
-    return transition_order_processing_state(
-        order_id,
-        PROCESSING_STATE_PENDING,
-        PROCESSING_STATE_PROCESSING,
-    )
+    """Claim a pending order, or take over a claim older than the lease.
+
+    A run killed at the Lambda timeout never releases its claim; the lease
+    (order_processing_db.CLAIM_LEASE_SECONDS) lets the next retry or replay take
+    it over. One conditional write, so of two runs racing only one wins, and a
+    fresh claim (a live run) is never taken over. ISO-8601 UTC strings from
+    datetime.isoformat() compare correctly as strings.
+    """
+    now = datetime.now(UTC)
+    try:
+        _get_table().update_item(
+            Key={"square_order_id": order_id},
+            UpdateExpression="SET processing_state = :processing, updated_at = :now",
+            ConditionExpression=(
+                "processing_state = :pending OR "
+                "(processing_state = :processing AND updated_at < :stale_before)"
+            ),
+            ExpressionAttributeValues={
+                ":pending": PROCESSING_STATE_PENDING,
+                ":processing": PROCESSING_STATE_PROCESSING,
+                ":now": now.isoformat(),
+                ":stale_before": order_processing_db.stale_claim_cutoff(now),
+            },
+        )
+    except ClientError as error:
+        if _is_conditional_check_failed(error):
+            return False
+        raise
+
+    return True
 
 
 def release_order_processing_claim(order_id):

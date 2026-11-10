@@ -223,3 +223,75 @@ class OrderProcessingDbTests(unittest.TestCase):
                     order_processing_db.get_order_processing_state("order-1"),
                     order_processing_db.PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
                 )
+
+
+def _set_updated_at(db_path, order_id, updated_at):
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute(
+            "UPDATE order_processing SET updated_at = ? WHERE square_order_id = ?",
+            (updated_at, order_id),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
+class StaleClaimTakeoverTests(unittest.TestCase):
+    def test_a_claim_older_than_the_lease_is_taken_over_exactly_once(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing("order-1")
+                self.assertTrue(order_processing_db.claim_order_processing("order-1"))
+                # The run that claimed it was killed six minutes ago.
+                _set_updated_at(db_path, "order-1", "2000-01-01T00:00:00+00:00")
+
+                self.assertTrue(order_processing_db.claim_order_processing("order-1"))
+                # The takeover refreshed the claim, so a second retry racing it loses.
+                self.assertFalse(order_processing_db.claim_order_processing("order-1"))
+                self.assertEqual(
+                    order_processing_db.get_order_processing_state("order-1"),
+                    order_processing_db.PROCESSING_STATE_PROCESSING,
+                )
+
+    def test_a_live_claim_is_not_taken_over(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing("order-1")
+                self.assertTrue(order_processing_db.claim_order_processing("order-1"))
+                self.assertFalse(order_processing_db.claim_order_processing("order-1"))
+
+    def test_terminal_and_unknown_orders_are_never_claimed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                order_processing_db.reserve_order_processing("order-1")
+                order_processing_db.claim_order_processing("order-1")
+                order_processing_db.mark_order_applied("order-1")
+                _set_updated_at(db_path, "order-1", "2000-01-01T00:00:00+00:00")
+
+                self.assertFalse(order_processing_db.claim_order_processing("order-1"))
+                self.assertFalse(order_processing_db.claim_order_processing("missing"))
+
+    def test_old_database_gains_updated_at_and_its_null_claims_stay_put(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "order_processing.db"
+            connection = sqlite3.connect(db_path)
+            connection.execute(
+                "CREATE TABLE order_processing ("
+                "square_order_id TEXT PRIMARY KEY, processing_state TEXT NOT NULL, "
+                "applied_at TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO order_processing VALUES ('order-1', 'processing', NULL)"
+            )
+            connection.commit()
+            connection.close()
+
+            with patch.object(order_processing_db, "DB_FILE", db_path):
+                # No timestamp means no proof the run is dead: leave it alone.
+                self.assertFalse(order_processing_db.claim_order_processing("order-1"))
+                order_processing_db.reserve_order_processing("order-2")
+                self.assertTrue(order_processing_db.claim_order_processing("order-2"))

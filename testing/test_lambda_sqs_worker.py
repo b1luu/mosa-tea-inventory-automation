@@ -108,3 +108,29 @@ class LambdaSqsWorkerTests(unittest.TestCase):
             result,
             {"batchItemFailures": [{"itemIdentifier": "msg-1"}]},
         )
+
+
+class _FakeLambdaContext:
+    def __init__(self, remaining_seconds):
+        self._remaining_ms = remaining_seconds * 1000
+
+    def get_remaining_time_in_millis(self):
+        return self._remaining_ms
+
+
+class ClaimLeaseStartupCheckTests(unittest.TestCase):
+    EVENT = {"Records": [{"messageId": "msg-1", "body": REAL_SUCCESS_JOB_BODY}]}
+
+    def test_runs_when_the_timeout_is_shorter_than_the_lease(self):
+        with patch("app.lambda_sqs_worker.process_webhook_job") as mock_worker:
+            result = lambda_handler(self.EVENT, _FakeLambdaContext(30))
+
+        mock_worker.assert_called_once()
+        self.assertEqual(result, {"batchItemFailures": []})
+
+    def test_refuses_to_claim_anything_when_the_timeout_reaches_the_lease(self):
+        with patch("app.lambda_sqs_worker.process_webhook_job") as mock_worker:
+            with self.assertRaisesRegex(RuntimeError, "claim lease"):
+                lambda_handler(self.EVENT, _FakeLambdaContext(900))
+
+        mock_worker.assert_not_called()

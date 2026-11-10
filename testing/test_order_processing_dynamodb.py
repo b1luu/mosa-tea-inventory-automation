@@ -1,9 +1,10 @@
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from botocore.exceptions import ClientError
 
-from app import order_processing_dynamodb
+from app import order_processing_db, order_processing_dynamodb
 
 
 def _conditional_check_failed():
@@ -153,22 +154,42 @@ class OrderProcessingDynamoDbTests(unittest.TestCase):
             order_processing_dynamodb.PROCESSING_STATE_APPLIED,
         )
 
-    def test_claim_order_processing_uses_pending_to_processing_transition(self):
+    def test_claim_takes_pending_or_a_processing_claim_older_than_the_lease(self):
         table = MagicMock()
 
         with patch("app.order_processing_dynamodb._get_table", return_value=table):
-            transitioned = order_processing_dynamodb.claim_order_processing("order-1")
+            claimed = order_processing_dynamodb.claim_order_processing("order-1")
 
-        self.assertTrue(transitioned)
+        self.assertTrue(claimed)
         kwargs = table.update_item.call_args.kwargs
+        self.assertEqual(kwargs["Key"], {"square_order_id": "order-1"})
         self.assertEqual(
-            kwargs["ExpressionAttributeValues"][":from_state"],
-            order_processing_dynamodb.PROCESSING_STATE_PENDING,
+            kwargs["ConditionExpression"],
+            "processing_state = :pending OR "
+            "(processing_state = :processing AND updated_at < :stale_before)",
         )
+        values = kwargs["ExpressionAttributeValues"]
+        self.assertEqual(values[":pending"], order_processing_dynamodb.PROCESSING_STATE_PENDING)
         self.assertEqual(
-            kwargs["ExpressionAttributeValues"][":to_state"],
-            order_processing_dynamodb.PROCESSING_STATE_PROCESSING,
+            values[":processing"], order_processing_dynamodb.PROCESSING_STATE_PROCESSING
         )
+        now = datetime.fromisoformat(values[":now"])
+        stale_before = datetime.fromisoformat(values[":stale_before"])
+        self.assertEqual(
+            now - stale_before,
+            timedelta(seconds=order_processing_db.CLAIM_LEASE_SECONDS),
+        )
+        # The takeover refreshes updated_at, so the new claim gets a full lease.
+        self.assertIn("updated_at = :now", kwargs["UpdateExpression"])
+
+    def test_claim_returns_false_when_the_condition_fails(self):
+        table = MagicMock()
+        table.update_item.side_effect = _conditional_check_failed()
+
+        with patch("app.order_processing_dynamodb._get_table", return_value=table):
+            claimed = order_processing_dynamodb.claim_order_processing("order-1")
+
+        self.assertFalse(claimed)
 
     def test_release_order_processing_claim_uses_processing_to_pending_transition(self):
         table = MagicMock()

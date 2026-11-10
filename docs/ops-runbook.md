@@ -115,7 +115,7 @@ aws --no-cli-pager lambda get-function-configuration \
 |---|---|---|
 | BLOCKED | the worker refused the order (the `reason` line says why: usually an unmapped drink) | fix the mapping or recipe; replay only if no recount has happened since the sale |
 | FAILED | the Square write failed | check worker logs for that order; replay under the same recount rule |
-| STUCK | the order never finished processing (crash mid-job) | check the DLQ and worker logs |
+| STUCK | the order never finished processing (crash mid-job, or the worker Lambda was killed at its timeout) | check the DLQ and worker logs, then replay (an SQS retry normally takes over a `processing` claim once it is 90 s old, so this shows up only if that also failed) |
 | MISSED | no processing record: the webhook never arrived or was ignored | check the webhook event store for the order; replay under the recount rule |
 | REVERSED AFTER DEDUCTION | cancelled after we deducted | nothing; the recount corrects it. Watch the volume (a revisit trigger in [order-state-handling-decision.md](order-state-handling-decision.md)) |
 | PAID BUT NOT DEDUCTIBLE | 3+ paid orders from one channel that the deduction rule skips | a channel behaves in a way the rule doesn't expect (as the Kiosk once did): investigate before it costs a recount |
@@ -128,6 +128,8 @@ aws --no-cli-pager lambda get-function-configuration \
 ```bash
 ./.venv/bin/python -m scripts.replay_order ORDER_ID
 ```
+
+A STUCK order in `processing` replays only once its claim is older than the 90-second lease (`CLAIM_LEASE_SECONDS`); before that, `replay_order` refuses it because the run holding it may still be alive. A normal SQS retry takes it over the same way.
 
 A MISSED order has no processing record, so `replay_order` refuses it (replay needs the stored merchant context). Those are left to the recount for now.
 

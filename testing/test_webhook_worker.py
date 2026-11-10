@@ -603,3 +603,107 @@ class WebhookWorkerTests(unittest.TestCase):
 
         mock_process.assert_not_called()
         self.assertEqual(result, "cancelled_before_apply")
+
+
+_APPLIED_RESULT = {
+    "mode": {"apply": True},
+    "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
+    "skipped_orders": [],
+    "skipped_line_items": [],
+    "projected_line_items": [],
+    "combined_usage": [],
+    "display_usage": [],
+    "inventory_request": {},
+    "inventory_response": {"ok": True},
+}
+
+
+class KilledWorkerRecoveryTests(unittest.TestCase):
+    # The claim is released only by `except Exception` in _process_claimed_order.
+    # A Lambda killed by its timeout (or OOM) never reaches it, so the row stays
+    # `processing`. Once the claim is older than CLAIM_LEASE_SECONDS, the next SQS
+    # retry or a replay takes it over; a fresh claim (a live run) is left alone.
+    # Patching CLAIM_LEASE_SECONDS to 0 stands in for "the lease has expired".
+
+    ORDER_ID = REAL_SUCCESS_JOB["order_id"]
+
+    def _leave_order_claimed_by_a_killed_run(self):
+        order_processing_db.reserve_order_processing(
+            self.ORDER_ID,
+            merchant_id="ML9M9XX0HM717",
+            environment="sandbox",
+            location_id="location-1",
+        )
+        # The killed run claimed the order and never released it.
+        self.assertTrue(order_processing_db.claim_order_processing(self.ORDER_ID))
+
+    def test_sqs_retry_takes_over_a_claim_older_than_the_lease(self):
+        binding = {"mapping": {"inventory_variation_ids": {}}}
+        with tempfile.TemporaryDirectory() as tmpdir, _real_sqlite_order_store(tmpdir):
+            self._leave_order_claimed_by_a_killed_run()
+
+            with (
+                patch.object(order_processing_db, "CLAIM_LEASE_SECONDS", 0),
+                _merchant_path(merchant_context=_active_merchant_context(), binding=binding),
+                patch("app.webhook_worker.process_orders", return_value=_APPLIED_RESULT),
+                patch("app.webhook_worker._record_applied_usage"),
+                patch("app.webhook_worker.set_webhook_event_status"),
+            ):
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+            self.assertEqual(result, "applied")
+            self.assertEqual(
+                order_processing_db.get_order_processing_state(self.ORDER_ID),
+                order_processing_db.PROCESSING_STATE_APPLIED,
+            )
+
+    def test_replay_recovers_a_claim_older_than_the_lease(self):
+        binding = {"mapping": {"inventory_variation_ids": {}}}
+        with tempfile.TemporaryDirectory() as tmpdir, _real_sqlite_order_store(tmpdir):
+            self._leave_order_claimed_by_a_killed_run()
+
+            with (
+                patch.object(order_processing_db, "CLAIM_LEASE_SECONDS", 0),
+                _merchant_path(merchant_context=_active_merchant_context(), binding=binding),
+                patch("app.webhook_worker.process_orders", return_value=_APPLIED_RESULT),
+                patch("app.webhook_worker._record_applied_usage"),
+            ):
+                result = replay_order_job(self.ORDER_ID)
+
+            self.assertEqual(result["current_processing_state"], "processing")
+            self.assertEqual(result["processing_state_after"], "applied")
+
+    def test_sqs_retry_leaves_a_live_claim_alone(self):
+        with tempfile.TemporaryDirectory() as tmpdir, _real_sqlite_order_store(tmpdir):
+            self._leave_order_claimed_by_a_killed_run()
+
+            with (
+                patch("app.webhook_worker.process_orders") as mock_process,
+                patch("app.webhook_worker.set_webhook_event_status"),
+            ):
+                with self.assertRaises(RetryableWebhookJobError):
+                    process_webhook_job(MERCHANT_BOUND_JOB)
+
+            mock_process.assert_not_called()
+            self.assertEqual(
+                order_processing_db.get_order_processing_state(self.ORDER_ID),
+                order_processing_db.PROCESSING_STATE_PROCESSING,
+            )
+
+    def test_replay_refuses_a_live_claim_without_writing(self):
+        binding = {"mapping": {"inventory_variation_ids": {}}}
+        with tempfile.TemporaryDirectory() as tmpdir, _real_sqlite_order_store(tmpdir):
+            self._leave_order_claimed_by_a_killed_run()
+
+            with (
+                _merchant_path(merchant_context=_active_merchant_context(), binding=binding),
+                patch("app.webhook_worker.process_orders") as mock_process,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "may still be alive"):
+                    replay_order_job(self.ORDER_ID)
+
+            mock_process.assert_not_called()
+            self.assertEqual(
+                order_processing_db.get_order_processing_state(self.ORDER_ID),
+                order_processing_db.PROCESSING_STATE_PROCESSING,
+            )
