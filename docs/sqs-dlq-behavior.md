@@ -29,21 +29,30 @@ Examples:
 - malformed JSON in the queue body
 - a job missing required fields like `order_id`
 - a fake or nonexistent order ID
-- a job that never reaches a terminal acceptable state
+- a job whose order never reaches a terminal state
 - persistent downstream failures
 
 Without a DLQ, those messages would keep cycling in the main queue and add operational noise.
 
 ## What Counts As Success
 
-The worker now treats a job as successful only if the order reaches a terminal acceptable state:
+From SQS's point of view, a job succeeds when `process_webhook_job` returns without raising. That happens when the order ends in any state in `TERMINAL_PROCESSING_STATES` (`app/webhook_worker.py`):
 
-- `applied`
-- `blocked`
+- `applied` — inventory changes were written to Square
+- `blocked` — a write-readiness gate or unmapped line item stopped the write
+- `failed` — the Square inventory call returned an error
+- `cancelled_before_apply` — the order was cancelled during the hold, before apply
 
-If a job does not reach one of those states, the worker raises and the message is not acknowledged as successful.
+All four are terminal: the message is acknowledged and removed from the queue, and a later duplicate delivery for the same order is a no-op.
 
-That behavior matters because it allows AWS to retry the message and eventually dead-letter it if the problem does not resolve.
+Note that `failed` is terminal but not a happy outcome. The worker records it in the order state and marks the webhook event `FAILED`, but the message does **not** go to the DLQ. Recover these with `scripts/replay_failed_orders.py` or `scripts/replay_order.py`.
+
+A job is reported to SQS as failed (via `batchItemFailures` in `app/lambda_sqs_worker.py`) when the worker raises instead:
+
+- `RetryableWebhookJobError` — the order could not be claimed and is not yet terminal (for example, another worker is still `processing` it)
+- any other exception — malformed body, missing `order_id`, unresolved merchant context, a failed state transition, and so on; the processing claim is released first so a retry can claim it again
+
+Those messages are retried and, after `maxReceiveCount` receives (`webhook_queue_max_receive_count`, default `3`), moved to the DLQ.
 
 ## Main Queue vs DLQ
 
