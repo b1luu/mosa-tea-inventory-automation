@@ -1,8 +1,13 @@
 [tool.ruff]
 line-length = 88
-fix = true
+# Never rewrite files as a side effect of linting. Apply fixes on purpose with
+# `ruff check --fix`.
+fix = false
+
+[tool.ruff.lint]
+# Pyflakes only: unused imports and variables, undefined names, bad f-strings.
+select = ["F"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-

@@ -1,0 +1,4 @@
+# Development-only tools. Not installed into the Lambda package, which is built
+# from requirements.txt alone. Pinned for the same reason as the runtime
+# dependencies: see docs/dependency-management.md.
+ruff==0.17.5
