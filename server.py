@@ -24,12 +24,7 @@ from app.order_processing_store import (
     reserve_order_processing,
 )
 from app.webhook_event_store import (
-    EVENT_STATUS_ENQUEUED,
     create_webhook_event,
-    EVENT_STATUS_FAILED,
-    EVENT_STATUS_IGNORED,
-    EVENT_STATUS_PROCESSED,
-    EVENT_STATUS_RECEIVED,
     get_webhook_event,
     record_webhook_event,
     set_webhook_event_status,

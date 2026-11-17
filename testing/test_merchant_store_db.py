@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app import merchant_store_db
+from app import merchant_store_constants, merchant_store_db
 
 
 class MerchantStoreDbTests(unittest.TestCase):
@@ -19,8 +19,8 @@ class MerchantStoreDbTests(unittest.TestCase):
         merchant_store_db.upsert_merchant_connection(
             "production",
             "merchant-1",
-            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
-            auth_mode=merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN,
+            status=merchant_store_constants.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_constants.AUTH_SOURCE_MANUAL_TOKEN,
             display_name="M Tea",
             selected_location_id="LOC-1",
             writes_enabled=True,
@@ -31,8 +31,8 @@ class MerchantStoreDbTests(unittest.TestCase):
 
         self.assertEqual(record["environment"], "production")
         self.assertEqual(record["merchant_id"], "merchant-1")
-        self.assertEqual(record["status"], merchant_store_db.MERCHANT_STATUS_ACTIVE)
-        self.assertEqual(record["auth_mode"], merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN)
+        self.assertEqual(record["status"], merchant_store_constants.MERCHANT_STATUS_ACTIVE)
+        self.assertEqual(record["auth_mode"], merchant_store_constants.AUTH_SOURCE_MANUAL_TOKEN)
         self.assertEqual(record["display_name"], "M Tea")
         self.assertEqual(record["selected_location_id"], "LOC-1")
         self.assertTrue(record["writes_enabled"])
@@ -43,7 +43,7 @@ class MerchantStoreDbTests(unittest.TestCase):
             "sandbox",
             "merchant-1",
             "sandbox-access",
-            source=merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN,
+            source=merchant_store_constants.AUTH_SOURCE_MANUAL_TOKEN,
         )
         merchant_store_db.upsert_merchant_auth(
             "production",
@@ -51,7 +51,7 @@ class MerchantStoreDbTests(unittest.TestCase):
             "production-access",
             refresh_token="refresh-1",
             scopes=["ORDERS_READ"],
-            source=merchant_store_db.AUTH_SOURCE_OAUTH,
+            source=merchant_store_constants.AUTH_SOURCE_OAUTH,
         )
 
         sandbox_auth = merchant_store_db.get_merchant_auth("sandbox", "merchant-1")
@@ -69,7 +69,7 @@ class MerchantStoreDbTests(unittest.TestCase):
             "LOC-1",
             1,
             {"inventory_variation_ids": {"tgy": "INV-1"}},
-            status=merchant_store_db.BINDING_STATUS_APPROVED,
+            status=merchant_store_constants.BINDING_STATUS_APPROVED,
             approved_at="2026-04-03T20:00:00Z",
         )
         merchant_store_db.upsert_merchant_catalog_binding(
@@ -78,7 +78,7 @@ class MerchantStoreDbTests(unittest.TestCase):
             "LOC-1",
             2,
             {"inventory_variation_ids": {"tgy": "INV-2"}},
-            status=merchant_store_db.BINDING_STATUS_DRAFT,
+            status=merchant_store_constants.BINDING_STATUS_DRAFT,
         )
         merchant_store_db.upsert_merchant_catalog_binding(
             "production",
@@ -86,7 +86,7 @@ class MerchantStoreDbTests(unittest.TestCase):
             "LOC-1",
             3,
             {"inventory_variation_ids": {"tgy": "INV-3"}},
-            status=merchant_store_db.BINDING_STATUS_APPROVED,
+            status=merchant_store_constants.BINDING_STATUS_APPROVED,
             approved_at="2026-04-03T21:00:00Z",
         )
 
@@ -106,8 +106,8 @@ class MerchantStoreDbTests(unittest.TestCase):
         merchant_store_db.upsert_merchant_connection(
             "production",
             "merchant-1",
-            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
-            auth_mode=merchant_store_db.AUTH_SOURCE_MANUAL_TOKEN,
+            status=merchant_store_constants.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_constants.AUTH_SOURCE_MANUAL_TOKEN,
         )
 
         updated = merchant_store_db.set_writes_enabled("production", "merchant-1", True)

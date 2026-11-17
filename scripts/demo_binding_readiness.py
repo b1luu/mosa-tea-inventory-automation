@@ -84,7 +84,7 @@ def main():
     print(f"  ready_for_approval   : {summary['ready_for_approval']}")
     print(f"  blocking issues      : {summary['blocking_issue_count']}")
     print(f"  warnings             : {summary['warning_count']}")
-    print(f"  (warnings = unmapped live items an operator confirms are ignorable)")
+    print("  (warnings = unmapped live items an operator confirms are ignorable)")
 
     _rule("RESULT")
     if summary["ready_for_approval"]:

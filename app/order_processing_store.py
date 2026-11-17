@@ -1,9 +1,11 @@
 from app.config import get_order_processing_store_mode
 from app import order_processing_dynamodb
+# APPLIED and CANCELLED_BEFORE_APPLY are re-exported: callers import the state
+# constants from this facade.
 from app.order_processing_db import (
-    PROCESSING_STATE_APPLIED,
+    PROCESSING_STATE_APPLIED as PROCESSING_STATE_APPLIED,
     PROCESSING_STATE_BLOCKED,
-    PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
+    PROCESSING_STATE_CANCELLED_BEFORE_APPLY as PROCESSING_STATE_CANCELLED_BEFORE_APPLY,
     PROCESSING_STATE_FAILED,
     PROCESSING_STATE_PENDING,
     PROCESSING_STATE_PROCESSING,

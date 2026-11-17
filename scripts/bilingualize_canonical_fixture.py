@@ -108,7 +108,7 @@ def main():
         print(f"  {old!r:60s} -> {new!r:60s}  ({len(var_ids)} variation{'s' if len(var_ids) > 1 else ''})")
 
     if ambiguous:
-        print(f"\n=== AMBIGUOUS (skipped: multiple live bilingual matches) ===")
+        print("\n=== AMBIGUOUS (skipped: multiple live bilingual matches) ===")
         for var_id, name, opts in ambiguous:
             print(f"  {name!r}  could be any of: {opts}")
 

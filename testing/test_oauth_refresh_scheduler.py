@@ -244,7 +244,7 @@ class OAuthRefreshSchedulerTests(unittest.TestCase):
 
     def test_square_api_error_captured_as_failure(self):
         near_expiry = (self.NOW + timedelta(days=5)).isoformat().replace("+00:00", "Z")
-        refresh = self._patch_store(
+        self._patch_store(
             contexts=[_ctx("M1")],
             auth_by_merchant={"M1": _auth(near_expiry)},
             refresh_side_effect=ApiError(status_code=502, body="Bad Gateway"),

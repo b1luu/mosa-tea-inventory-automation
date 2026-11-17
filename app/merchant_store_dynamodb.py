@@ -11,15 +11,9 @@ from app.config import (
     get_merchant_secret_prefix,
 )
 from app.merchant_store_constants import (
-    AUTH_SOURCE_MANUAL_TOKEN,
     AUTH_SOURCE_OAUTH,
     BINDING_STATUS_APPROVED,
-    BINDING_STATUS_ARCHIVED,
     BINDING_STATUS_DRAFT,
-    MERCHANT_STATUS_ACTIVE,
-    MERCHANT_STATUS_DISABLED,
-    MERCHANT_STATUS_PENDING,
-    MERCHANT_STATUS_REVOKED,
 )
 
 

@@ -30,7 +30,6 @@ Pipeline (typical):
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 from app.binding_builder import build_binding_from_catalogs
