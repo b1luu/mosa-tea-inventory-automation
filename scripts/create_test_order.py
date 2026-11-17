@@ -22,7 +22,6 @@ existing ``create_square_client_for_merchant`` path.
 """
 
 import argparse
-import sys
 import uuid
 
 from app.client import create_square_client_for_merchant
@@ -66,7 +65,7 @@ def main():
     print(f"    total: {order.total_money.amount} {order.total_money.currency}")
 
     # 2. Pay the order with sandbox test card (no real money moves)
-    print(f"Paying order with sandbox test card nonce...")
+    print("Paying order with sandbox test card nonce...")
     payment_resp = client.payments.create(
         idempotency_key=str(uuid.uuid4()),
         source_id=SANDBOX_TEST_CARD_NONCE,
@@ -79,11 +78,11 @@ def main():
     )
     payment = payment_resp.payment
     print(f"  ✓ Payment created: id={payment.id}, status={payment.status}")
-    print(f"  ✓ Order should now be complete; Square will fire payment.updated webhook")
-    print(f"")
-    print(f"Watch for the webhook in the worker logs:")
-    print(f"  aws logs tail /aws/lambda/mosa-tea-webhook-worker --region us-west-2 --follow")
-    print(f"")
+    print("  ✓ Order should now be complete; Square will fire payment.updated webhook")
+    print("")
+    print("Watch for the webhook in the worker logs:")
+    print("  aws logs tail /aws/lambda/mosa-tea-webhook-worker --region us-west-2 --follow")
+    print("")
     print(f"order_id={order.id}")
     return 0
 

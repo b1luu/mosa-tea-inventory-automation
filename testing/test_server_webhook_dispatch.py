@@ -5,6 +5,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import server
+from app import webhook_event_store
 from app.merchant_store import MerchantContext
 
 
@@ -132,7 +133,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_create.assert_called_once()
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_dispatch.assert_called_once_with(
             {
@@ -145,7 +146,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
             },
             background_tasks=unittest.mock.ANY,
         )
-        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_ENQUEUED)
+        mock_status.assert_called_once_with("evt-1", webhook_event_store.EVENT_STATUS_ENQUEUED)
 
     def test_marks_event_failed_and_clears_reservation_when_dispatch_raises(self):
         client = TestClient(server.app, raise_server_exceptions=False)
@@ -179,10 +180,10 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         mock_create.assert_called_once()
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_clear.assert_called_once_with("order-1")
-        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_FAILED)
+        mock_status.assert_called_once_with("evt-1", webhook_event_store.EVENT_STATUS_FAILED)
 
     def test_ignores_non_completed_order_event_without_dispatch(self):
         client = TestClient(server.app)
@@ -209,7 +210,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_kiosk.assert_called_once_with("sandbox", "merchant-1", "order-1")
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
@@ -239,7 +240,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_reserve.assert_called_once()
         mock_dispatch.assert_called_once()
@@ -287,7 +288,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
@@ -313,7 +314,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_IGNORED
         )
         mock_dispatch.assert_not_called()
         mock_status.assert_not_called()
@@ -325,7 +326,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch(
                 "server.get_webhook_event",
-                return_value={"event_id": "evt-1", "status": server.EVENT_STATUS_ENQUEUED},
+                return_value={"event_id": "evt-1", "status": webhook_event_store.EVENT_STATUS_ENQUEUED},
             ):
                 with patch("server.create_webhook_event") as mock_create:
                     with patch("server.dispatch_webhook_job") as mock_dispatch:
@@ -346,7 +347,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         with patch("server.verify_signature", return_value=True):
             with patch(
                 "server.get_webhook_event",
-                return_value={"event_id": "evt-1", "status": server.EVENT_STATUS_FAILED},
+                return_value={"event_id": "evt-1", "status": webhook_event_store.EVENT_STATUS_FAILED},
             ):
                 with patch("server.get_order_processing_state", return_value=None):
                     with patch("server.reserve_order_processing", return_value=True):
@@ -365,8 +366,8 @@ class ServerWebhookDispatchTests(unittest.TestCase):
         self.assertEqual(
             mock_status.call_args_list,
             [
-                unittest.mock.call("evt-1", server.EVENT_STATUS_RECEIVED),
-                unittest.mock.call("evt-1", server.EVENT_STATUS_ENQUEUED),
+                unittest.mock.call("evt-1", webhook_event_store.EVENT_STATUS_RECEIVED),
+                unittest.mock.call("evt-1", webhook_event_store.EVENT_STATUS_ENQUEUED),
             ],
         )
 
@@ -394,10 +395,10 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_dispatch.assert_not_called()
-        mock_status.assert_called_once_with("evt-1", server.EVENT_STATUS_IGNORED)
+        mock_status.assert_called_once_with("evt-1", webhook_event_store.EVENT_STATUS_IGNORED)
 
     def test_atomic_event_create_loss_short_circuits_before_reserving_or_dispatching(self):
         client = TestClient(server.app)
@@ -410,7 +411,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                     None,
                     {
                         "event_id": "evt-1",
-                        "status": server.EVENT_STATUS_ENQUEUED,
+                        "status": webhook_event_store.EVENT_STATUS_ENQUEUED,
                     },
                 ],
             ):
@@ -476,7 +477,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_IGNORED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_IGNORED
         )
         mock_status.assert_not_called()
         mock_get_checkpoint.assert_not_called()
@@ -503,11 +504,11 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_disable_writes.assert_called_once_with("sandbox", "merchant-1")
         mock_revoke.assert_called_once_with("sandbox", "merchant-1")
-        mock_status.assert_called_once_with("oauth-evt-1", server.EVENT_STATUS_PROCESSED)
+        mock_status.assert_called_once_with("oauth-evt-1", webhook_event_store.EVENT_STATUS_PROCESSED)
 
     def test_oauth_revoked_event_noops_cleanly_for_unknown_merchant(self):
         client = TestClient(server.app)
@@ -534,11 +535,11 @@ class ServerWebhookDispatchTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            mock_create.call_args.kwargs["status"], server.EVENT_STATUS_RECEIVED
+            mock_create.call_args.kwargs["status"], webhook_event_store.EVENT_STATUS_RECEIVED
         )
         mock_disable_writes.assert_not_called()
         mock_revoke.assert_not_called()
-        mock_status.assert_called_once_with("oauth-evt-1", server.EVENT_STATUS_PROCESSED)
+        mock_status.assert_called_once_with("oauth-evt-1", webhook_event_store.EVENT_STATUS_PROCESSED)
 
     def test_duplicate_catalog_event_is_not_re_recorded_when_catalog_sync_is_disabled(self):
         client = TestClient(server.app)
@@ -549,7 +550,7 @@ class ServerWebhookDispatchTests(unittest.TestCase):
                 "server.get_webhook_event",
                 return_value={
                     "event_id": "catalog-evt-1",
-                    "status": server.EVENT_STATUS_IGNORED,
+                    "status": webhook_event_store.EVENT_STATUS_IGNORED,
                 },
             ):
                 with patch("server.create_webhook_event") as mock_create:

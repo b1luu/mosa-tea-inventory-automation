@@ -80,7 +80,7 @@ def main():
         print(f"  skipped (unsupported): {skipped_unsupported}")
     if skipped_unknown:
         print(f"  skipped (unknown key): {skipped_unknown}")
-    print(f"\n  payload preview (first 5):")
+    print("\n  payload preview (first 5):")
     for r in rows[:5]:
         print(f"    {r}")
     print()

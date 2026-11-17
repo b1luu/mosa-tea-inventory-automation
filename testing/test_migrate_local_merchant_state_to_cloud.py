@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app import merchant_store_db
+from app import merchant_store_constants, merchant_store_db
 from scripts.migrate_local_merchant_state_to_cloud import (
     _parse_args,
     migrate_merchant_state,
@@ -42,8 +42,8 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
         merchant_store_db.upsert_merchant_connection(
             "sandbox",
             "merchant-1",
-            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
-            auth_mode=merchant_store_db.AUTH_SOURCE_OAUTH,
+            status=merchant_store_constants.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_constants.AUTH_SOURCE_OAUTH,
             display_name="Default Test Account",
             selected_location_id="LOC-1",
             writes_enabled=True,
@@ -58,7 +58,7 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
             expires_at="2026-05-01T00:00:00Z",
             short_lived=False,
             scopes=["ORDERS_READ", "INVENTORY_WRITE"],
-            source=merchant_store_db.AUTH_SOURCE_OAUTH,
+            source=merchant_store_constants.AUTH_SOURCE_OAUTH,
         )
         merchant_store_db.upsert_merchant_catalog_binding(
             "sandbox",
@@ -66,7 +66,7 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
             "LOC-1",
             2,
             {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
-            status=merchant_store_db.BINDING_STATUS_APPROVED,
+            status=merchant_store_constants.BINDING_STATUS_APPROVED,
             approved_at="2026-04-04T00:00:00Z",
         )
 
@@ -145,8 +145,8 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
         merchant_store_db.upsert_merchant_connection(
             "sandbox",
             "merchant-1",
-            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
-            auth_mode=merchant_store_db.AUTH_SOURCE_OAUTH,
+            status=merchant_store_constants.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_constants.AUTH_SOURCE_OAUTH,
             selected_location_id="LOC-1",
         )
 
@@ -192,8 +192,8 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
         merchant_store_db.upsert_merchant_connection(
             "sandbox",
             "merchant-1",
-            status=merchant_store_db.MERCHANT_STATUS_ACTIVE,
-            auth_mode=merchant_store_db.AUTH_SOURCE_OAUTH,
+            status=merchant_store_constants.MERCHANT_STATUS_ACTIVE,
+            auth_mode=merchant_store_constants.AUTH_SOURCE_OAUTH,
             selected_location_id="LOC-1",
             active_binding_version=99,
         )
@@ -203,7 +203,7 @@ class MigrateLocalMerchantStateToCloudTests(unittest.TestCase):
             "LOC-1",
             2,
             {"inventory_variation_ids": {"tgy": "LIVE-TGY"}},
-            status=merchant_store_db.BINDING_STATUS_APPROVED,
+            status=merchant_store_constants.BINDING_STATUS_APPROVED,
             approved_at="2026-04-04T00:00:00Z",
         )
 

@@ -1,10 +1,11 @@
 from app.config import get_webhook_event_store_mode
+# Re-exported: callers import the status constants from this facade.
 from app.webhook_event_db import (
-    EVENT_STATUS_ENQUEUED,
-    EVENT_STATUS_FAILED,
-    EVENT_STATUS_IGNORED,
-    EVENT_STATUS_PROCESSED,
-    EVENT_STATUS_RECEIVED,
+    EVENT_STATUS_ENQUEUED as EVENT_STATUS_ENQUEUED,
+    EVENT_STATUS_FAILED as EVENT_STATUS_FAILED,
+    EVENT_STATUS_IGNORED as EVENT_STATUS_IGNORED,
+    EVENT_STATUS_PROCESSED as EVENT_STATUS_PROCESSED,
+    EVENT_STATUS_RECEIVED as EVENT_STATUS_RECEIVED,
 )
 from app import webhook_event_db, webhook_event_dynamodb
 
