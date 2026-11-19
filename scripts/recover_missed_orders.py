@@ -172,7 +172,14 @@ def recover(
     out=None,
 ):
     out = out or print
-    summary = {"committable": 0, "missed": 0, "queued": 0, "pending": 0, "dispatch_failed": 0}
+    summary = {
+        "committable": 0,
+        "missed": 0,
+        "queued": 0,
+        "pending": 0,
+        "already_processed": 0,
+        "dispatch_failed": 0,
+    }
 
     for order in orders:
         if not is_committable_order(order):
@@ -185,6 +192,8 @@ def recover(
             out(f"already pending, check by hand  {order.created_at}  {order.id}")
             continue
         if current_state is not None:
+            summary["already_processed"] += 1
+            out(f"already has a row ({current_state})  {order.created_at}  {order.id}")
             continue
 
         summary["missed"] += 1
@@ -261,6 +270,7 @@ def main():
         f"paid: {summary['committable']} | "
         f"without a processing row: {summary['missed']} | "
         f"already pending: {summary['pending']} | "
+        f"already processed: {summary['already_processed']} | "
         f"queued: {summary['queued']} | "
         f"dispatch failed: {summary['dispatch_failed']} | "
         f"mode: {'apply' if apply_changes else 'dry run'}"

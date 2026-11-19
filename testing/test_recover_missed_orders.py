@@ -225,6 +225,12 @@ class RecoverMissedOrdersTests(unittest.TestCase):
         self.assertEqual(dispatched, [])
         self.assertEqual(summary["pending"], 1)
         self.assertTrue(any("already pending" in line and "held" in line for line in lines))
+        self.assertEqual(summary["already_processed"], 3)
+        for state in ("applied", "blocked", "failed"):
+            self.assertTrue(
+                any(f"already has a row ({state})" in line and line.endswith(state) for line in lines),
+                state,
+            )
 
     def test_dispatch_failure_clears_the_reservation(self):
         store = FakeStore()
