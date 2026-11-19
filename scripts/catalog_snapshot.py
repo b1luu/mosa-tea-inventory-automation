@@ -61,6 +61,7 @@ Scope:
 
 import argparse
 import json
+from decimal import Decimal
 import os
 import re
 import subprocess
@@ -1007,7 +1008,16 @@ def export_counts(client, account_slug):
     return 0
 
 
-def copy_counts(client, account_slug, environment, location_id, apply):
+def _inventory_key_names(account_slug):
+    path = _snapshot_path(account_slug)
+    if not path.exists():
+        return {}
+    source = json.loads(path.read_text()).get("source") or {}
+    mapping = (source.get("mapping") or {}).get("inventory_variation_ids") or {}
+    return {prod_id: key for key, prod_id in mapping.items()}
+
+
+def copy_counts(client, account_slug, environment, location_id, apply, *, skip_negative=False):
     if apply:
         refuse_production_writes(environment)
     counts = _load_json(_counts_path(account_slug))["counts"]
@@ -1015,6 +1025,18 @@ def copy_counts(client, account_slug, environment, location_id, apply):
     missing = sorted(p for p in counts if not prod_to_sandbox.get(p))
     if missing:
         raise ValueError(f"{len(missing)} counted prod IDs are not in the ID map: {missing}")
+
+    if skip_negative:
+        # A physical count is an absolute on-hand number; deduct-only items run
+        # below zero in prod. Skipped items stay uncounted (0) in the target.
+        names = _inventory_key_names(account_slug)
+        negative = sorted(p for p, q in counts.items() if Decimal(str(q)) < 0)
+        if negative:
+            print(
+                f"skipping {len(negative)} negative counts: "
+                + ", ".join(sorted(names.get(p, p) for p in negative))
+            )
+        counts = {p: q for p, q in counts.items() if p not in negative}
 
     occurred_at = _iso_now()
     changes = [
@@ -1240,6 +1262,11 @@ def _parse_args(argv):
     parser.add_argument("--apply", action="store_true", help="replay / copy-counts: actually write")
     parser.add_argument("--force", action="store_true", help="replay: allow a non-empty target")
     parser.add_argument(
+        "--skip-negative",
+        action="store_true",
+        help="copy-counts: leave out counts below zero (printed by inventory key)",
+    )
+    parser.add_argument(
         "--accept-strip",
         action="append",
         default=[],
@@ -1309,7 +1336,14 @@ def main(argv=None):
         if args.subcommand == "verify":
             return verify(client, args.account)
         location_id = args.location_id or _merchant_location(environment, args.merchant)
-        return copy_counts(client, args.account, environment, location_id, args.apply)
+        return copy_counts(
+            client,
+            args.account,
+            environment,
+            location_id,
+            args.apply,
+            skip_negative=args.skip_negative,
+        )
     except (ValueError, FileNotFoundError) as exc:
         print(f"ERROR: {exc}")
         return 1

@@ -820,6 +820,61 @@ class LeftoverIdGuardTests(unittest.TestCase):
         )
 
 
+class SkipNegativeCountsTests(unittest.TestCase):
+    TGY = "VARTGYLEAF00000000000000"  # inventory key "tgy"
+    MILK_TEA = "VARMILKTEA00000000000000"
+    COUNTS = {TGY: "-3.25", MILK_TEA: "0"}
+
+    def _copy(self, tmp, *, skip_negative, apply=True):
+        _export_and_replay(tmp)
+        (tmp / "mosa_prod_test.counts.json").write_text(json.dumps({"counts": self.COUNTS}))
+        idmap = json.loads((tmp / "mosa_prod_test.idmap.json").read_text())
+        p2s = {e["prod_id"]: e["sandbox_id"] for e in idmap["objects"]}
+        target = FakeSquare()
+        printed = []
+        with (
+            _sandbox_settings(),
+            patch("builtins.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))),
+        ):
+            exit_code = cs.copy_counts(
+                target, "mosa_prod_test", "sandbox", SANDBOX_LOCATION, apply, skip_negative=skip_negative
+            )
+        written = [c["physical_count"] for batch in target.change_calls for c in batch]
+        return exit_code, written, p2s, "\n".join(printed)
+
+    def test_skip_negative_writes_only_counts_at_or_above_zero(self):
+        with _snapshot_dir() as tmp:
+            exit_code, written, p2s, printed = self._copy(tmp, skip_negative=True)
+        self.assertEqual(exit_code, 0)
+        self.assertEqual([(c["catalog_object_id"], c["quantity"]) for c in written], [(p2s[self.MILK_TEA], "0")])
+        self.assertIn("skipping 1 negative counts: tgy", printed)
+
+    def test_skipped_quantities_are_never_printed(self):
+        with _snapshot_dir() as tmp:
+            _, _, _, printed = self._copy(tmp, skip_negative=True, apply=False)
+        skip_line = next(line for line in printed.splitlines() if line.startswith("skipping"))
+        self.assertNotIn("3.25", skip_line)
+
+    def test_without_the_flag_negative_counts_are_still_copied(self):
+        with _snapshot_dir() as tmp:
+            _, written, p2s, _ = self._copy(tmp, skip_negative=False)
+        self.assertIn((p2s[self.TGY], "-3.25"), [(c["catalog_object_id"], c["quantity"]) for c in written])
+
+    def test_skip_negative_reaches_copy_counts_from_the_cli(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            with (
+                _sandbox_settings(),
+                patch.object(cs, "create_client", return_value="client"),
+                patch.object(cs, "copy_counts", return_value=0) as mock_copy,
+            ):
+                cs.main(
+                    ["copy-counts", "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                     "--environment", "sandbox", "--location-id", SANDBOX_LOCATION, "--skip-negative"]
+                )
+        self.assertTrue(mock_copy.call_args.kwargs["skip_negative"])
+
+
 class CountsTests(unittest.TestCase):
     def _counts_ready(self, tmp):
         _export_and_replay(tmp)
