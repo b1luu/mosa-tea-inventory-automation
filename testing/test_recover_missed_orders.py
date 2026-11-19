@@ -83,6 +83,37 @@ def _patched(store, dispatch=None):
         yield dispatched
 
 
+@contextmanager
+def _store_modes(*, order_processing, merchant):
+    with (
+        patch.object(recovery, "get_order_processing_store_mode", return_value=order_processing),
+        patch.object(recovery, "get_merchant_store_mode", return_value=merchant),
+    ):
+        yield
+
+
+def _run_main(argv_tail, *, client, store):
+    argv = [
+        "recover_missed_orders",
+        "--environment", "production",
+        "--merchant-id", MERCHANT_ID,
+        "--location-id", LOCATION_ID,
+        "--since", "2026-11-18T00:00:00Z",
+        *argv_tail,
+    ]
+    printed = []
+    with (
+        patch.object(recovery.sys, "argv", argv),
+        _store_modes(order_processing="dynamodb", merchant="dynamodb"),
+        patch.object(recovery, "get_webhook_job_queue_url", return_value="https://sqs/queue-prod"),
+        patch.object(recovery, "create_square_client_for_merchant", return_value=client),
+        _patched(store) as dispatched,
+        patch("builtins.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))),
+    ):
+        exit_code = recovery.main()
+    return exit_code, dispatched, printed
+
+
 def _recover(orders, *, apply_changes=True, environment="production"):
     lines = []
     summary = recovery.recover(
@@ -132,15 +163,21 @@ class RecoverMissedOrdersTests(unittest.TestCase):
         )
 
     # 2. Store mode.
-    def test_production_refuses_the_sqlite_store(self):
-        with patch.object(recovery, "get_order_processing_store_mode", return_value="sqlite"):
-            with self.assertRaises(ValueError):
+    def test_production_refuses_a_sqlite_order_processing_store(self):
+        with _store_modes(order_processing="sqlite", merchant="dynamodb"):
+            with self.assertRaisesRegex(ValueError, "ORDER_PROCESSING_STORE_MODE"):
                 recovery._check_store_mode("production")
 
-    def test_production_allows_the_dynamodb_store_and_sandbox_allows_sqlite(self):
-        with patch.object(recovery, "get_order_processing_store_mode", return_value="dynamodb"):
+    def test_production_refuses_a_sqlite_merchant_store(self):
+        # Otherwise the Square token comes from the local database, not prod.
+        with _store_modes(order_processing="dynamodb", merchant="sqlite"):
+            with self.assertRaisesRegex(ValueError, "MERCHANT_STORE_MODE"):
+                recovery._check_store_mode("production")
+
+    def test_production_allows_dynamodb_stores_and_sandbox_allows_sqlite(self):
+        with _store_modes(order_processing="dynamodb", merchant="dynamodb"):
             recovery._check_store_mode("production")
-        with patch.object(recovery, "get_order_processing_store_mode", return_value="sqlite"):
+        with _store_modes(order_processing="sqlite", merchant="sqlite"):
             recovery._check_store_mode("sandbox")
 
     def test_main_exits_before_calling_square_when_store_mode_is_wrong(self):
@@ -153,7 +190,7 @@ class RecoverMissedOrdersTests(unittest.TestCase):
         ]
         with (
             patch.object(recovery.sys, "argv", argv),
-            patch.object(recovery, "get_order_processing_store_mode", return_value="sqlite"),
+            _store_modes(order_processing="sqlite", merchant="dynamodb"),
             patch.object(
                 recovery,
                 "create_square_client_for_merchant",
@@ -227,6 +264,56 @@ class RecoverMissedOrdersTests(unittest.TestCase):
                 (row["merchant_id"], row["environment"], row["location_id"]),
                 (MERCHANT_ID, "production", LOCATION_ID),
             )
+
+
+    # --order-id and the setup printout.
+    def test_order_id_queues_only_that_order(self):
+        client = FakeSquareClient(
+            [[_order("other-1", "COMPLETED"), _order("target", "OPEN"), _order("other-2", "OPEN")]]
+        )
+        store = FakeStore()
+        exit_code, dispatched, _ = _run_main(
+            ["--order-id", "target", "--apply"], client=client, store=store
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual([job["order_id"] for job in dispatched], ["target"])
+        self.assertEqual(list(store.rows), ["target"])
+        # Still a paid OPEN order, so it still gets the hold.
+        self.assertEqual(dispatched[0]["hold_seconds"], PAID_ORDER_HOLD_SECONDS)
+
+    def test_order_id_still_goes_through_every_check(self):
+        client = FakeSquareClient(
+            [[_order("unpaid", "OPEN", tenders=False), _order("done", "COMPLETED")]]
+        )
+        store = FakeStore({"done": "applied"})
+        for order_id in ("unpaid", "done"):
+            with self.subTest(order_id=order_id):
+                _, dispatched, _ = _run_main(
+                    ["--order-id", order_id, "--apply"], client=client, store=store
+                )
+                self.assertEqual(dispatched, [])
+
+    def test_order_id_not_in_window_exits_nonzero(self):
+        client = FakeSquareClient([[_order("other", "COMPLETED")]])
+        exit_code, dispatched, printed = _run_main(
+            ["--order-id", "missing", "--apply"], client=client, store=FakeStore()
+        )
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(dispatched, [])
+        self.assertTrue(any("not found" in line for line in printed))
+
+    def test_every_run_prints_the_queue_url_store_modes_and_environment(self):
+        client = FakeSquareClient([[]])
+        _, _, printed = _run_main([], client=client, store=FakeStore())
+        setup = "\n".join(printed)
+
+        self.assertIn("https://sqs/queue-prod", setup)
+        self.assertIn("order processing store: dynamodb", setup)
+        self.assertIn("merchant store:         dynamodb", setup)
+        self.assertIn("environment:            production", setup)
+        self.assertIn("dry run", setup)
 
 
 if __name__ == "__main__":

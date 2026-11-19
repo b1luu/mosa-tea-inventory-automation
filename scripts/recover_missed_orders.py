@@ -14,15 +14,22 @@ printed for a manual look instead.
 The order search uses created_at, the same window as the daily reconciliation,
 so the "would queue" list can be checked against the reconciliation email.
 
-Dry run by default; pass --apply to reserve and queue. Production requires
-ORDER_PROCESSING_STORE_MODE=dynamodb, so the script reads the prod store and
-not a local SQLite file.
+Dry run by default; pass --apply to reserve and queue. Pass --order-id to
+limit a run to one order (still within --since, and through every check
+above), for the first run in production. Production requires
+ORDER_PROCESSING_STORE_MODE=dynamodb and MERCHANT_STORE_MODE=dynamodb, so the
+script reads the prod stores and token, not local SQLite files. Every run
+starts by printing its setup, including the SQS queue URL.
 """
 
 import sys
 
 from app.client import create_square_client_for_merchant
-from app.config import get_order_processing_store_mode
+from app.config import (
+    get_merchant_store_mode,
+    get_order_processing_store_mode,
+    get_webhook_job_queue_url,
+)
 from app.order_commit_rules import PAID_ORDER_HOLD_SECONDS, is_committable_order
 from app.order_processing_db import PROCESSING_STATE_PENDING
 from app.order_processing_store import (
@@ -37,7 +44,8 @@ def _usage():
     return (
         "Usage: ./.venv/bin/python -m scripts.recover_missed_orders "
         "--environment sandbox|production --merchant-id MERCHANT_ID "
-        "--location-id LOCATION_ID --since RFC3339_TIMESTAMP [--apply]"
+        "--location-id LOCATION_ID --since RFC3339_TIMESTAMP "
+        "[--order-id ORDER_ID] [--apply]"
     )
 
 
@@ -50,7 +58,7 @@ def _parse_args(argv):
         arg = argv[i]
         if arg == "--apply":
             apply_changes = True
-        elif arg in {"--environment", "--merchant-id", "--location-id", "--since"}:
+        elif arg in {"--environment", "--merchant-id", "--location-id", "--since", "--order-id"}:
             i += 1
             values[arg] = argv[i].strip()
         else:
@@ -66,21 +74,55 @@ def _parse_args(argv):
     ):
         raise ValueError("Missing required arguments.")
 
-    return environment, merchant_id, location_id, since, apply_changes
+    return environment, merchant_id, location_id, since, values.get("--order-id"), apply_changes
 
 
 def _check_store_mode(environment):
-    """Refuse to run against production with the local SQLite store.
+    """Refuse to run against production with a local SQLite store.
 
-    With the default sqlite mode every prod order looks unprocessed, and
-    --apply would queue all of them to the prod worker.
+    With sqlite order processing, every prod order looks unprocessed and
+    --apply would queue all of them. With a sqlite merchant store, the Square
+    token comes from the local database instead of prod.
     """
-    if environment == "production" and get_order_processing_store_mode() != "dynamodb":
+    if environment != "production":
+        return
+    wrong = [
+        name
+        for name, mode in (
+            ("ORDER_PROCESSING_STORE_MODE", get_order_processing_store_mode()),
+            ("MERCHANT_STORE_MODE", get_merchant_store_mode()),
+        )
+        if mode != "dynamodb"
+    ]
+    if wrong:
         raise ValueError(
             "Refusing to run against production: set "
-            "ORDER_PROCESSING_STORE_MODE=dynamodb so the script reads the prod "
-            "order_processing table."
+            + " and ".join(f"{name}=dynamodb" for name in wrong)
+            + " so the script reads the prod tables."
         )
+
+
+def _describe_setup(environment, merchant_id, location_id, since, order_id, apply_changes):
+    try:
+        queue_url = get_webhook_job_queue_url()
+    except ValueError:
+        queue_url = "(WEBHOOK_JOB_QUEUE_URL not set)"
+    return [
+        f"environment:            {environment}",
+        f"merchant / location:    {merchant_id} / {location_id}",
+        f"since:                  {since}",
+        f"order id:               {order_id or '(all)'}",
+        f"order processing store: {get_order_processing_store_mode()}",
+        f"merchant store:         {get_merchant_store_mode()}",
+        f"queue url:              {queue_url}",
+        f"mode:                   {'APPLY' if apply_changes else 'dry run'}",
+    ]
+
+
+def _only_order(orders, order_id):
+    if not order_id:
+        return orders
+    return [order for order in orders if order.id == order_id]
 
 
 def _search_orders_created_since(client, location_id, since):
@@ -124,8 +166,9 @@ def recover(
     environment,
     default_location_id,
     apply_changes,
-    out=print,
+    out=None,
 ):
+    out = out or print
     summary = {"committable": 0, "missed": 0, "queued": 0, "pending": 0, "dispatch_failed": 0}
 
     for order in orders:
@@ -180,7 +223,7 @@ def recover(
 
 def main():
     try:
-        environment, merchant_id, location_id, since, apply_changes = _parse_args(
+        environment, merchant_id, location_id, since, order_id, apply_changes = _parse_args(
             sys.argv[1:]
         )
     except (ValueError, IndexError):
@@ -188,13 +231,20 @@ def main():
         return 1
 
     try:
+        for line in _describe_setup(
+            environment, merchant_id, location_id, since, order_id, apply_changes
+        ):
+            print(line)
         _check_store_mode(environment)
     except ValueError as exc:
         print(exc)
         return 1
 
     client = create_square_client_for_merchant(environment, merchant_id)
-    orders = _search_orders_created_since(client, location_id, since)
+    orders = _only_order(_search_orders_created_since(client, location_id, since), order_id)
+    if order_id and not orders:
+        print(f"order {order_id} not found at {location_id} created since {since}")
+        return 1
     summary = recover(
         orders,
         merchant_id=merchant_id,
