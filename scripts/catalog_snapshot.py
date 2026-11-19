@@ -126,6 +126,15 @@ SERVER_ASSIGNED_FIELDS = frozenset({
 # Also ignored by verify: legacy per-account IDs Square assigns on its own.
 VERIFY_IGNORED_FIELDS = SERVER_ASSIGNED_FIELDS | {"catalog_v1_ids"}
 
+# Per-merchant references the SDK models do define, so the SDK strip keeps
+# them: sales-channel IDs (CH_...) that exist only in the source account.
+# Exact paths, not key names: the variation-level channels field is unknown to
+# the SDK and goes through the strip report and --accept-strip instead.
+PER_MERCHANT_PATHS = (
+    "CATEGORY.category_data.channels",
+    "ITEM.item_data.channels",
+)
+
 # BatchUpsertCatalogObjects accepts at most 1,000 objects per batch.
 MAX_UPSERT_BATCH = 1000
 # BatchRetrieveCatalogObjects accepts at most 1,000 IDs per call.
@@ -518,6 +527,16 @@ def print_stripped_report(report):
     return blockers
 
 
+def _has_path(obj, path):
+    parts = path.split(".")
+    node = obj if parts[0] == obj.get("type") else None
+    for part in parts[1:]:
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
+
+
 def remove_paths(obj, paths):
     """Remove each path (as written by strip_unknown_fields) from one object."""
     for path in paths:
@@ -600,7 +619,9 @@ def build_id_map(snapshot, cleaned, id_mappings):
     }, missing
 
 
-def replay_snapshot(client, account_slug, apply, *, force=False, environment=None):
+def replay_snapshot(
+    client, account_slug, apply, *, force=False, environment=None, accept_strip=()
+):
     """Read a snapshot file and recreate the catalog via batch_upsert."""
     path = _snapshot_path(account_slug)
     if not path.exists():
@@ -635,13 +656,29 @@ def replay_snapshot(client, account_slug, apply, *, force=False, environment=Non
 
     cleaned = [_strip_server_fields(obj) for obj in objects]
     cleaned = [_strip_nested_duplicates(obj) for obj in cleaned]
+    per_merchant = {
+        path: sum(1 for obj in cleaned if _has_path(obj, path)) for path in PER_MERCHANT_PATHS
+    }
+    cleaned = [remove_paths(obj, PER_MERCHANT_PATHS) for obj in cleaned]
+    print("per-merchant fields stripped: " + ", ".join(f"{p} ({n})" for p, n in per_merchant.items()))
     cleaned, stripped = strip_unknown_fields(cleaned)
     blockers = print_stripped_report(stripped)
-    if blockers:
+    accepted = set(accept_strip)
+    not_needed = sorted(accepted - set(blockers))
+    if not_needed:
         print(
-            f"Refusing to replay: {len(blockers)} stripped fields have values other "
+            "Refusing to replay: --accept-strip paths that are not non-false stripped "
+            "fields in this report: " + ", ".join(not_needed)
+        )
+        return 1
+    if accepted:
+        print("accepted by --accept-strip: " + ", ".join(sorted(accepted)))
+    unaccepted = [path for path in blockers if path not in accepted]
+    if unaccepted:
+        print(
+            f"Refusing to replay: {len(unaccepted)} stripped fields have values other "
             "than false/null, so dropping them would change the copy. Decide these by "
-            "hand: " + ", ".join(blockers)
+            "hand (--accept-strip): " + ", ".join(unaccepted)
         )
         return 1
     if len(cleaned) > MAX_UPSERT_BATCH:
@@ -663,6 +700,7 @@ def replay_snapshot(client, account_slug, apply, *, force=False, environment=Non
 
     idmap, missing = build_id_map(snapshot, cleaned, id_mappings)
     idmap["stripped_fields"] = sorted(stripped)
+    idmap["accepted_strip_fields"] = sorted(accepted)
     _write_json(_idmap_path(account_slug), idmap)
     print(f"wrote {_idmap_path(account_slug)} ({len(idmap['objects'])} objects)")
     if missing:
@@ -848,7 +886,7 @@ def _diff_paths(left, right, path=""):
 def compare_catalogs(snapshot_objects, target_payloads, idmap):
     """Compare snapshot objects with the target's through the ID map."""
     real_to_client = {e["sandbox_id"]: e["client_id"] for e in idmap["objects"] if e.get("sandbox_id")}
-    stripped = idmap.get("stripped_fields") or []
+    stripped = list(idmap.get("stripped_fields") or []) + list(PER_MERCHANT_PATHS)
     expected = {
         o["id"]: remove_paths(_normalize(o, {}), stripped) for o in snapshot_objects
     }
@@ -1156,6 +1194,13 @@ def _parse_args(argv):
     parser.add_argument("--apply", action="store_true", help="replay / copy-counts: actually write")
     parser.add_argument("--force", action="store_true", help="replay: allow a non-empty target")
     parser.add_argument(
+        "--accept-strip",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="replay: accept stripping this non-false field path from the strip report (repeatable)",
+    )
+    parser.add_argument(
         "--drop-missing",
         action="append",
         default=[],
@@ -1208,7 +1253,12 @@ def main(argv=None):
         client = create_client(environment, args.merchant)
         if args.subcommand == "replay":
             return replay_snapshot(
-                client, args.account, args.apply, force=args.force, environment=environment
+                client,
+                args.account,
+                args.apply,
+                force=args.force,
+                environment=environment,
+                accept_strip=args.accept_strip,
             )
         if args.subcommand == "verify":
             return verify(client, args.account)

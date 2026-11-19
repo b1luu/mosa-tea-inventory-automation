@@ -643,6 +643,98 @@ class SdkFieldStripTests(unittest.TestCase):
         self.assertEqual(len(report["different"]), 1)
 
 
+def _with_channels():
+    """Item, category and variation channels, as prod returns them."""
+    category = copy.deepcopy(CATEGORY)
+    category["category_data"]["channels"] = ["CH_PRODONLINE"]
+    milk_tea = copy.deepcopy(MILK_TEA)
+    milk_tea["item_data"]["channels"] = ["CH_PRODPOS", "CH_PRODONLINE"]
+    milk_tea["item_data"]["variations"][0]["item_variation_data"]["channels"] = ["CH_PRODPOS"]
+    return FakeSquare(listed=[category, MOD_LIST, BOBA, milk_tea], hidden=[TGY_LEAF])
+
+
+class AcceptStripAndChannelTests(unittest.TestCase):
+    VARIATION_CHANNELS = "ITEM.item_data.variations[].item_variation_data.channels"
+    FLAG = "ITEM.item_data.variations[].item_variation_data.future_flag"
+
+    def _replay(self, prod, accept=(), apply=True):
+        cs.export_snapshot(prod, "mosa_prod_test", source=SOURCE)
+        target = FakeSquare(upsert_response=_assign_real_ids)
+        with _sandbox_settings():
+            exit_code = cs.replay_snapshot(
+                target, "mosa_prod_test", apply, environment="sandbox", accept_strip=accept
+            )
+        return exit_code, target
+
+    def test_accepted_paths_are_stripped_and_recorded(self):
+        with _snapshot_dir() as tmp:
+            exit_code, target = self._replay(
+                _with_unknown_fields(variation_value="ON"), accept=[self.FLAG]
+            )
+            idmap = json.loads((tmp / "mosa_prod_test.idmap.json").read_text())
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn("future_flag", json.dumps(target.upsert_calls))
+        self.assertEqual(idmap["accepted_strip_fields"], [self.FLAG])
+        self.assertIn(self.FLAG, idmap["stripped_fields"])
+
+    def test_unaccepted_non_false_paths_still_stop_the_run(self):
+        with _snapshot_dir() as tmp:
+            exit_code, target = self._replay(_with_channels(), accept=[])
+            written = (tmp / "mosa_prod_test.idmap.json").exists()
+        self.assertEqual((exit_code, target.upsert_calls, written), (1, [], False))
+
+    def test_accept_strip_refuses_a_path_that_does_not_need_accepting(self):
+        for bad in ("ITEM.item_data.use_location_fulfillment_methods", "ITEM.item_data.typo"):
+            with self.subTest(path=bad), _snapshot_dir() as tmp:
+                exit_code, target = self._replay(
+                    _with_unknown_fields(item_value=False, variation_value="ON"),
+                    accept=[self.FLAG, bad],
+                )
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(target.upsert_calls, [])
+                self.assertFalse((tmp / "mosa_prod_test.idmap.json").exists())
+
+    def test_item_and_category_channels_are_stripped_as_per_merchant_fields(self):
+        with _snapshot_dir():
+            exit_code, target = self._replay(_with_channels(), accept=[self.VARIATION_CHANNELS])
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn("CH_PROD", json.dumps(target.upsert_calls))
+
+    def test_variation_channels_are_not_hidden_from_the_strip_report(self):
+        # Only the exact item/category paths are per-merchant; a key-name strip
+        # would hide the variation field from the report and from --accept-strip.
+        with _snapshot_dir():
+            exit_code, _ = self._replay(_with_channels(), accept=[])
+        self.assertEqual(exit_code, 1)
+
+    def test_verify_ignores_item_and_category_channels(self):
+        snapshot_objects = [
+            {"id": "#cat", "type": "CATEGORY", "category_data": {"name": "Drinks", "channels": ["CH_PRODONLINE"]}},
+            {"id": "#item", "type": "ITEM", "item_data": {"name": "Milk Tea", "channels": ["CH_PRODPOS"]}},
+        ]
+        target = [
+            {"id": "SB_CAT", "type": "CATEGORY", "category_data": {"name": "Drinks", "channels": ["CH_SANDBOX"]}},
+            {"id": "SB_ITEM", "type": "ITEM", "item_data": {"name": "Milk Tea"}},
+        ]
+        idmap = {"objects": [{"client_id": "#cat", "sandbox_id": "SB_CAT"}, {"client_id": "#item", "sandbox_id": "SB_ITEM"}]}
+        report = cs.compare_catalogs(snapshot_objects, target, idmap)
+        self.assertEqual(report, {"missing": [], "extra": [], "different": []})
+
+    def test_accept_strip_reaches_replay_from_the_cli(self):
+        with _snapshot_dir():
+            self._replay(_with_channels(), accept=[self.VARIATION_CHANNELS], apply=False)
+            with (
+                _sandbox_settings(),
+                patch.object(cs, "create_client", return_value="client"),
+                patch.object(cs, "replay_snapshot", return_value=0) as mock_replay,
+            ):
+                cs.main(
+                    ["replay", "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                     "--environment", "sandbox", "--accept-strip", "A", "--accept-strip", "B"]
+                )
+        self.assertEqual(mock_replay.call_args.kwargs["accept_strip"], ["A", "B"])
+
+
 class CountsTests(unittest.TestCase):
     def _counts_ready(self, tmp):
         _export_and_replay(tmp)
