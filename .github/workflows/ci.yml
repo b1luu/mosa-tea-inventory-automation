@@ -41,3 +41,22 @@ jobs:
       - name: Sanity check
         run: |
           bash scripts/sanity_check.sh
+
+  workflow-lint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install actionlint (pinned)
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+
+      - name: Lint workflows (syntax and expressions)
+        # Shell and Python linting of run: blocks are left off on purpose; this
+        # job checks workflow syntax, contexts and ${{ }} expressions.
+        run: |
+          ./actionlint -color -shellcheck= -pyflakes=
