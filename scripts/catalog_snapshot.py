@@ -65,9 +65,14 @@ import os
 import re
 import subprocess
 import sys
+import types
+import typing
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+import pydantic
+from square.types.catalog_object import CatalogObject
 
 from app.client import create_square_client
 from app.config import get_square_environment_name
@@ -414,6 +419,135 @@ def export_snapshot(client, account_slug, *, source=None):
     return 0
 
 
+# ---------------------------------------------------------------- SDK fields
+#
+# The SDK pins one Square-Version and its models define the fields that
+# version accepts. Its models allow extra keys, so fields Square returns but the
+# SDK doesn't define survive model_dump into the snapshot, and Square rejects
+# them on write (e.g. use_location_fulfillment_methods). Replay strips every key
+# the matching SDK model doesn't define.
+
+
+def _annotation_members(annotation):
+    origin = typing.get_origin(annotation)
+    if origin is typing.Annotated:
+        return _annotation_members(typing.get_args(annotation)[0])
+    if origin in (typing.Union, types.UnionType):
+        members = []
+        for arg in typing.get_args(annotation):
+            members.extend(_annotation_members(arg))
+        return members
+    return [annotation]
+
+
+SDK_OBJECT_MODELS = {
+    cls.model_fields["type"].default: cls for cls in _annotation_members(CatalogObject)
+}
+
+
+def _strip_value(value, annotation, path, report):
+    members = _annotation_members(annotation)
+    for member in members:
+        origin = typing.get_origin(member)
+        if origin is list and isinstance(value, list):
+            (inner,) = typing.get_args(member)
+            return [_strip_value(v, inner, f"{path}[]", report) for v in value]
+        if origin is dict and isinstance(value, dict):
+            _, inner = typing.get_args(member)
+            return {k: _strip_value(v, inner, f"{path}.*", report) for k, v in value.items()}
+    models = [m for m in members if isinstance(m, type) and issubclass(m, pydantic.BaseModel)]
+    if isinstance(value, dict) and models:
+        model = models[0] if len(models) == 1 else SDK_OBJECT_MODELS.get(value.get("type"))
+        if model is not None:
+            return _strip_model(value, model, path, report)
+    return value
+
+
+def _strip_model(node, model, path, report):
+    kept = {}
+    for key, value in node.items():
+        field = model.model_fields.get(key)
+        if field is None:
+            report.setdefault(f"{path}.{key}", []).append(value)
+            continue
+        kept[key] = _strip_value(value, field.annotation, f"{path}.{key}", report)
+    return kept
+
+
+def strip_unknown_fields(objects):
+    """Strip every key the SDK model for its type doesn't define.
+
+    Returns (stripped objects, {path: [values]}). Paths start with the object
+    type and use [] for list items, e.g. ITEM.item_data.variations[].x.
+    """
+    report = {}
+    stripped = []
+    for obj in objects:
+        model = SDK_OBJECT_MODELS.get(obj.get("type"))
+        if model is None:
+            raise ValueError(f"No SDK model for catalog type {obj.get('type')!r}.")
+        stripped.append(_strip_model(obj, model, obj["type"], report))
+    return stripped, report
+
+
+def _is_benign(value):
+    return value is None or value is False
+
+
+def _is_sensitive_path(path):
+    lowered = path.lower()
+    return "money" in lowered or "price" in lowered
+
+
+def print_stripped_report(report):
+    """Print the strip report; return the paths with a non-false, non-null value."""
+    blockers = []
+    print(f"stripped fields (not in the SDK models): {len(report)}")
+    for path, values in sorted(report.items()):
+        if not all(_is_benign(v) for v in values):
+            blockers.append(path)
+        if _is_sensitive_path(path):
+            shown = "(values hidden)"
+        else:
+            distinct = sorted({json.dumps(v, sort_keys=True) for v in values})
+            shown = ", ".join(d if len(d) <= 60 else d[:57] + "..." for d in distinct[:5])
+            if len(distinct) > 5:
+                shown += f", ... ({len(distinct)} distinct)"
+        flag = "  <- not false/null" if path in blockers else ""
+        print(f"  {len(values):4d}  {path}  [{shown}]{flag}")
+    return blockers
+
+
+def remove_paths(obj, paths):
+    """Remove each path (as written by strip_unknown_fields) from one object."""
+    for path in paths:
+        parts = path.split(".")
+        if parts[0] == obj.get("type"):
+            _remove_path(obj, parts[1:])
+    return obj
+
+
+def _remove_path(node, parts):
+    if not parts or not isinstance(node, dict):
+        return
+    head, rest = parts[0], parts[1:]
+    if head == "*":
+        for value in node.values():
+            _remove_path(value, rest)
+        return
+    is_list = head.endswith("[]")
+    key = head[:-2] if is_list else head
+    if key not in node:
+        return
+    if not rest:
+        del node[key]
+    elif is_list:
+        for item in node[key] or []:
+            _remove_path(item, rest)
+    else:
+        _remove_path(node[key], rest)
+
+
 # ---------------------------------------------------------------- replay
 
 
@@ -501,6 +635,15 @@ def replay_snapshot(client, account_slug, apply, *, force=False, environment=Non
 
     cleaned = [_strip_server_fields(obj) for obj in objects]
     cleaned = [_strip_nested_duplicates(obj) for obj in cleaned]
+    cleaned, stripped = strip_unknown_fields(cleaned)
+    blockers = print_stripped_report(stripped)
+    if blockers:
+        print(
+            f"Refusing to replay: {len(blockers)} stripped fields have values other "
+            "than false/null, so dropping them would change the copy. Decide these by "
+            "hand: " + ", ".join(blockers)
+        )
+        return 1
     if len(cleaned) > MAX_UPSERT_BATCH:
         print(f"Refusing to replay: {len(cleaned)} objects exceed one batch ({MAX_UPSERT_BATCH}).")
         return 1
@@ -519,6 +662,7 @@ def replay_snapshot(client, account_slug, apply, *, force=False, environment=Non
     print(f"id mappings (client_id -> real_id): {len(id_mappings)}")
 
     idmap, missing = build_id_map(snapshot, cleaned, id_mappings)
+    idmap["stripped_fields"] = sorted(stripped)
     _write_json(_idmap_path(account_slug), idmap)
     print(f"wrote {_idmap_path(account_slug)} ({len(idmap['objects'])} objects)")
     if missing:
@@ -704,10 +848,13 @@ def _diff_paths(left, right, path=""):
 def compare_catalogs(snapshot_objects, target_payloads, idmap):
     """Compare snapshot objects with the target's through the ID map."""
     real_to_client = {e["sandbox_id"]: e["client_id"] for e in idmap["objects"] if e.get("sandbox_id")}
-    expected = {o["id"]: _normalize(o, {}) for o in snapshot_objects}
+    stripped = idmap.get("stripped_fields") or []
+    expected = {
+        o["id"]: remove_paths(_normalize(o, {}), stripped) for o in snapshot_objects
+    }
     actual = {}
     for payload in target_payloads:
-        normalized = _normalize(payload, real_to_client)
+        normalized = remove_paths(_normalize(payload, real_to_client), stripped)
         actual[normalized["id"]] = normalized
 
     def _label(obj):

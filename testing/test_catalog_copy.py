@@ -543,6 +543,106 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
 
 
+def _with_unknown_fields(*, item_value=False, variation_value=None, price_value=None):
+    """Prod fixtures plus fields the SDK models don't define."""
+    milk_tea = copy.deepcopy(MILK_TEA)
+    milk_tea["item_data"]["use_location_fulfillment_methods"] = item_value
+    variation = milk_tea["item_data"]["variations"][0]["item_variation_data"]
+    if variation_value is not None:
+        variation["future_flag"] = variation_value
+    if price_value is not None:
+        variation["price_description"] = price_value
+    return FakeSquare(listed=[CATEGORY, MOD_LIST, BOBA, milk_tea], hidden=[TGY_LEAF])
+
+
+class SdkFieldStripTests(unittest.TestCase):
+    ITEM_PATH = "ITEM.item_data.use_location_fulfillment_methods"
+    VARIATION_PATH = "ITEM.item_data.variations[].item_variation_data.future_flag"
+
+    def _replay(self, prod, apply=True):
+        cs.export_snapshot(prod, "mosa_prod_test", source=SOURCE)
+        target = FakeSquare(upsert_response=_assign_real_ids)
+        printed = []
+        with (
+            _sandbox_settings(),
+            patch("builtins.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))),
+        ):
+            exit_code = cs.replay_snapshot(target, "mosa_prod_test", apply, environment="sandbox")
+        return exit_code, target, "\n".join(printed)
+
+    def test_unknown_false_or_null_fields_are_stripped_reported_and_recorded(self):
+        with _snapshot_dir() as tmp:
+            exit_code, target, printed = self._replay(_with_unknown_fields(item_value=False))
+            idmap = json.loads((tmp / "mosa_prod_test.idmap.json").read_text())
+
+        self.assertEqual(exit_code, 0)
+        (batch,) = target.upsert_calls[0]
+        sent = json.dumps(batch["objects"])
+        self.assertNotIn("use_location_fulfillment_methods", sent)
+        self.assertIn(self.ITEM_PATH, printed)
+        self.assertEqual(idmap["stripped_fields"], [self.ITEM_PATH])
+
+    def test_known_fields_are_kept(self):
+        with _snapshot_dir():
+            _, target, _ = self._replay(_with_unknown_fields())
+        (batch,) = target.upsert_calls[0]
+        items = [o for o in batch["objects"] if o["type"] == "ITEM"]
+        self.assertTrue(all("variations" in o["item_data"] and "name" in o["item_data"] for o in items))
+        archived = [o for o in items if o["item_data"].get("is_archived")]
+        self.assertEqual(len(archived), 1)
+
+    def test_a_non_false_unknown_value_stops_the_run_and_writes_nothing(self):
+        for apply in (False, True):
+            with self.subTest(apply=apply), _snapshot_dir() as tmp:
+                prod = _with_unknown_fields(item_value=False, variation_value="ON")
+                exit_code, target, printed = self._replay(prod, apply=apply)
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(target.upsert_calls, [])
+                self.assertFalse((tmp / "mosa_prod_test.idmap.json").exists())
+                self.assertIn(self.VARIATION_PATH, printed)
+
+    def test_price_like_values_are_never_printed(self):
+        with _snapshot_dir():
+            _, _, printed = self._replay(_with_unknown_fields(price_value="$4.75 SECRET"))
+        self.assertIn("price_description", printed)
+        self.assertNotIn("SECRET", printed)
+
+    def test_verify_ignores_recorded_stripped_paths_but_catches_known_field_changes(self):
+        snapshot_objects = [
+            {"id": "#item_a", "type": "ITEM", "item_data": {
+                "name": "A", "use_location_fulfillment_methods": False,
+                "variations": [{"id": "#var_a", "type": "ITEM_VARIATION",
+                                "item_variation_data": {"name": "Regular", "future_flag": "ON"}}],
+            }},
+        ]
+        target = [
+            {"id": "SB_A", "type": "ITEM", "item_data": {
+                "name": "A",
+                "variations": [{"id": "SB_VAR_A", "type": "ITEM_VARIATION",
+                                "item_variation_data": {"name": "Regular"}}],
+            }},
+        ]
+        idmap = {
+            "objects": [
+                {"client_id": "#item_a", "sandbox_id": "SB_A"},
+                {"client_id": "#var_a", "sandbox_id": "SB_VAR_A"},
+            ],
+            "stripped_fields": [self.ITEM_PATH, self.VARIATION_PATH],
+        }
+        clean = cs.compare_catalogs(copy.deepcopy(snapshot_objects), copy.deepcopy(target), idmap)
+        self.assertEqual(clean, {"missing": [], "extra": [], "different": []})
+
+        changed = copy.deepcopy(target)
+        changed[0]["item_data"]["variations"][0]["item_variation_data"]["name"] = "Large"
+        report = cs.compare_catalogs(copy.deepcopy(snapshot_objects), changed, idmap)
+        (diff,) = report["different"]
+        self.assertEqual(diff["fields"], ["item_data.variations[0].item_variation_data.name"])
+
+        unrecorded = dict(idmap, stripped_fields=[])
+        report = cs.compare_catalogs(copy.deepcopy(snapshot_objects), copy.deepcopy(target), unrecorded)
+        self.assertEqual(len(report["different"]), 1)
+
+
 class CountsTests(unittest.TestCase):
     def _counts_ready(self, tmp):
         _export_and_replay(tmp)
