@@ -131,6 +131,7 @@ VERIFY_IGNORED_FIELDS = SERVER_ASSIGNED_FIELDS | {"catalog_v1_ids"}
 # Exact paths, not key names: the variation-level channels field is unknown to
 # the SDK and goes through the strip report and --accept-strip instead.
 PER_MERCHANT_PATHS = (
+    "CATEGORY.category_data.availability_period_ids",
     "CATEGORY.category_data.channels",
     "ITEM.item_data.channels",
 )
@@ -567,6 +568,41 @@ def _remove_path(node, parts):
         _remove_path(node[key], rest)
 
 
+def _is_reference_key(key):
+    return key == "id" or key.endswith("_id") or key.endswith("_ids")
+
+
+def find_leftover_ids(objects):
+    """Paths -> counts of real IDs left in the batch. Values are never returned.
+
+    A reference field (``id``, ``*_id``, ``*_ids``, including list items) whose
+    value is not a #client ID but looks like a Square ID points at an object
+    the snapshot didn't export. A ``CH_`` value anywhere is a source-account
+    sales channel. Free-text fields are not scanned, so long SKUs pass.
+    """
+    leftovers = {}
+
+    def _hit(path):
+        leftovers[path] = leftovers.get(path, 0) + 1
+
+    def _walk(node, path, in_reference):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                _walk(value, f"{path}.{key}", _is_reference_key(key))
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value, f"{path}[]", in_reference)
+        elif isinstance(node, str):
+            if node.startswith("CH_"):
+                _hit(path)
+            elif in_reference and SQUARE_ID_PATTERN.match(node):
+                _hit(path)
+
+    for obj in objects:
+        _walk(obj, obj.get("type", "?"), False)
+    return leftovers
+
+
 # ---------------------------------------------------------------- replay
 
 
@@ -679,6 +715,16 @@ def replay_snapshot(
             f"Refusing to replay: {len(unaccepted)} stripped fields have values other "
             "than false/null, so dropping them would change the copy. Decide these by "
             "hand (--accept-strip): " + ", ".join(unaccepted)
+        )
+        return 1
+    leftovers = find_leftover_ids(cleaned)
+    print(f"leftover real IDs in the batch: {sum(leftovers.values())}")
+    for path, count in sorted(leftovers.items()):
+        print(f"  {count:4d}  {path}")
+    if leftovers:
+        print(
+            "Refusing to replay: the batch still references objects the snapshot "
+            "didn't export, or source sales channels."
         )
         return 1
     if len(cleaned) > MAX_UPSERT_BATCH:

@@ -735,6 +735,91 @@ class AcceptStripAndChannelTests(unittest.TestCase):
         self.assertEqual(mock_replay.call_args.kwargs["accept_strip"], ["A", "B"])
 
 
+class LeftoverIdGuardTests(unittest.TestCase):
+    UNEXPORTED = "CATNOTEXPORTED0000000000"
+    LONG_SKU = "ABCDEFGHIJKLMNOPQRSTUVWX12"
+
+    def _replay(self, prod, apply=True):
+        cs.export_snapshot(prod, "mosa_prod_test", source=SOURCE)
+        target = FakeSquare(upsert_response=_assign_real_ids)
+        printed = []
+        with (
+            _sandbox_settings(),
+            patch("builtins.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))),
+        ):
+            exit_code = cs.replay_snapshot(target, "mosa_prod_test", apply, environment="sandbox")
+        return exit_code, target, "\n".join(printed)
+
+    @staticmethod
+    def _prod_with(mutate):
+        milk_tea = copy.deepcopy(MILK_TEA)
+        category = copy.deepcopy(CATEGORY)
+        mutate(milk_tea, category)
+        return FakeSquare(listed=[category, MOD_LIST, BOBA, milk_tea], hidden=[TGY_LEAF])
+
+    def test_a_leftover_reference_id_is_refused_and_its_value_never_printed(self):
+        def _unexported_category(item, _):
+            item["item_data"]["category_id"] = self.UNEXPORTED
+
+        for apply in (False, True):
+            with self.subTest(apply=apply), _snapshot_dir() as tmp:
+                exit_code, target, printed = self._replay(self._prod_with(_unexported_category), apply)
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(target.upsert_calls, [])
+                self.assertFalse((tmp / "mosa_prod_test.idmap.json").exists())
+                self.assertIn("ITEM.item_data.category_id", printed)
+                self.assertNotIn(self.UNEXPORTED, printed)
+
+    def test_reference_lists_are_scanned(self):
+        batch = [{"id": "#item_a", "type": "ITEM", "item_data": {"name": "A", "foo_ids": ["#ok", self.UNEXPORTED]}}]
+        self.assertEqual(cs.find_leftover_ids(batch), {"ITEM.item_data.foo_ids[]": 1})
+
+    def test_a_long_sku_in_a_text_field_is_not_flagged(self):
+        def _long_sku(item, _):
+            item["item_data"]["variations"][0]["item_variation_data"]["sku"] = self.LONG_SKU
+            item["item_data"]["description"] = self.LONG_SKU
+
+        with _snapshot_dir():
+            exit_code, target, _ = self._replay(self._prod_with(_long_sku))
+        self.assertEqual(exit_code, 0)
+        self.assertIn(self.LONG_SKU, json.dumps(target.upsert_calls))
+
+    def test_a_ch_value_anywhere_is_refused(self):
+        def _channel_in_text(item, _):
+            item["item_data"]["description"] = "CH_PRODONLINE"
+
+        with _snapshot_dir():
+            exit_code, target, printed = self._replay(self._prod_with(_channel_in_text))
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(target.upsert_calls, [])
+        self.assertIn("ITEM.item_data.description", printed)
+        self.assertNotIn("CH_PRODONLINE", printed)
+
+    def test_a_clean_batch_passes_and_reports_zero(self):
+        with _snapshot_dir():
+            exit_code, _, printed = self._replay(_prod_square())
+        self.assertEqual(exit_code, 0)
+        self.assertIn("leftover real IDs in the batch: 0", printed)
+
+    def test_category_availability_periods_are_per_merchant(self):
+        def _periods(_, category):
+            category["category_data"]["availability_period_ids"] = ["AVAILPERIOD0000000000001"]
+
+        with _snapshot_dir():
+            exit_code, target, _ = self._replay(self._prod_with(_periods))
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn("availability_period_ids", json.dumps(target.upsert_calls))
+
+        snapshot_objects = [{"id": "#cat", "type": "CATEGORY", "category_data": {
+            "name": "Online Menu", "availability_period_ids": ["AVAILPERIOD0000000000001"]}}]
+        target_objects = [{"id": "SB_CAT", "type": "CATEGORY", "category_data": {"name": "Online Menu"}}]
+        idmap = {"objects": [{"client_id": "#cat", "sandbox_id": "SB_CAT"}]}
+        self.assertEqual(
+            cs.compare_catalogs(snapshot_objects, target_objects, idmap),
+            {"missing": [], "extra": [], "different": []},
+        )
+
+
 class CountsTests(unittest.TestCase):
     def _counts_ready(self, tmp):
         _export_and_replay(tmp)
