@@ -166,6 +166,32 @@ class WebhookWorkerTests(unittest.TestCase):
         )
         self.assertEqual(result, "applied")
 
+    def test_process_webhook_job_noops_for_every_terminal_state(self):
+        # A redelivery for an order that already finished must not retry, or SQS
+        # keeps redelivering it until the DLQ. FAILED is the easiest to drop from
+        # TERMINAL_PROCESSING_STATES because it sounds retryable; it is not.
+        expected_event_status = {
+            order_processing_db.PROCESSING_STATE_APPLIED: "processed",
+            order_processing_db.PROCESSING_STATE_BLOCKED: "processed",
+            order_processing_db.PROCESSING_STATE_CANCELLED_BEFORE_APPLY: "processed",
+            order_processing_db.PROCESSING_STATE_FAILED: "failed",
+        }
+        for state, event_status in expected_event_status.items():
+            with self.subTest(state=state):
+                with (
+                    patch("app.webhook_worker.claim_order_processing", return_value=False),
+                    patch(
+                        "app.webhook_worker.get_order_processing_state", return_value=state
+                    ),
+                    patch("app.webhook_worker.process_orders") as mock_process,
+                    patch("app.webhook_worker.set_webhook_event_status") as mock_status,
+                ):
+                    result = process_webhook_job(REAL_SUCCESS_JOB)
+
+                mock_process.assert_not_called()
+                mock_status.assert_called_once_with(REAL_SUCCESS_JOB["event_id"], event_status)
+                self.assertEqual(result, state)
+
     def test_process_webhook_job_retries_when_order_is_already_processing(self):
         with patch("app.webhook_worker.claim_order_processing", return_value=False):
             with patch(
