@@ -1,50 +1,90 @@
-"""Catalog snapshot tool — export the current Square catalog to a JSON file
-and replay it onto a fresh sandbox account.
+"""Catalog snapshot tool: copy a Square catalog 1:1 onto a fresh sandbox account.
 
-This tool is for SANDBOX use only — populating fresh test accounts with the
-same menu structure for TEST PRODUCTION rehearsals. Not part of the production
-pipeline.
+Production is only ever READ: catalog.list, catalog.batch_get and inventory
+count reads. Every subcommand that writes refuses to run against production or
+against the production merchant tables.
+
+Each run talks to ONE environment. Prod and sandbox use different merchant
+tables and secret prefixes, chosen by environment variables, so data crosses
+between them through files in data/catalog_snapshots/ (gitignored when the
+slug contains "prod"):
+
+  <slug>.json         the snapshot, plus the prod binding and prod -> client IDs
+  <slug>.idmap.json   prod ID -> client ID -> sandbox ID, written by replay
+  <slug>.counts.json  prod on-hand counts, written by export-counts
 
 Subcommands:
 
   export --account <slug> [--merchant <id>] [--environment sandbox|production]
-      Read the current account's catalog (CATEGORYs, MODIFIER_LISTs, MODIFIERs,
-      ITEMs + their nested variations) and write
-      data/catalog_snapshots/<slug>.json.
+      Read CATEGORY, MEASUREMENT_UNIT, MODIFIER_LIST, MODIFIER and ITEM (with
+      nested variations). With --merchant, also read the active binding and
+      fetch by ID every object it references that catalog.list left out
+      (catalog.list omits archived items), plus their parents.
 
-  replay --account <slug> [--merchant <id>] [--environment ...] [--apply]
-      Read data/catalog_snapshots/<slug>.json and recreate the menu on the
-      target account via BatchUpsertCatalogObjects. Preview by default;
-      --apply to actually mutate.
+  replay --account <slug> --merchant <id> [--apply] [--force]
+      Recreate the snapshot on the target account with one batch_upsert and
+      write the ID map. Preview by default. Refuses a target whose catalog is
+      not empty unless --force: replay creates new objects every time.
 
-Examples:
+  translate-binding --account <slug> --merchant <id> [--location-id <id>]
+      Rewrite the prod binding through the ID map and upsert it as a DRAFT for
+      the target merchant, then run the coverage report. A prod ID missing from
+      the map is an error. Approve with scripts.approve_merchant_catalog_binding.
 
-    # Export from the populated sandbox account (env-token PAT path)
-    python -m scripts.catalog_snapshot export --account default_sandbox
+  verify --account <slug> --merchant <id>
+      Export the target catalog (with the archived backfill) and compare it
+      with the snapshot through the ID map, ignoring IDs, versions and
+      timestamps. Exit 1 on any difference.
 
-    # Replay onto a fresh sandbox account via OAuth merchant token
-    python -m scripts.catalog_snapshot replay \\
-        --account default_sandbox \\
-        --merchant <new-test-merchant-id> \\
-        --apply
+  export-counts --account <slug> --merchant <prod id> --environment production
+      Read prod's IN_STOCK counts for the binding's inventory items.
 
-;6klj;
-Scope (v1):
-- Captures ITEM (with nested variations), MODIFIER_LIST, MODIFIER, CATEGORY.
+  copy-counts --account <slug> --merchant <id> [--location-id <id>] [--apply]
+      Write those counts as PHYSICAL_COUNTs to the matching target items.
+      Dry run by default.
+
+Example (1:1 prod copy):
+
+    # prod settings in the environment
+    python -m scripts.catalog_snapshot export --account mosa_prod_2026-11-19 \\
+        --merchant <prod-merchant> --environment production
+    # sandbox settings in the environment
+    python -m scripts.catalog_snapshot replay --account mosa_prod_2026-11-19 \\
+        --merchant <sandbox-merchant> --environment sandbox [--apply]
+
+Scope:
+- Captures ITEM (with nested variations), MODIFIER_LIST, MODIFIER, CATEGORY,
+  MEASUREMENT_UNIT.
 - Skips IMAGE, TAX, DISCOUNT, custom attributes, quick-amount settings.
   References to these types are stripped on export so replay is self-contained.
-
-v2 additions tracked separately: image sidecar files + upload-on-replay.
 """
 
 import argparse
 import json
+from decimal import Decimal
+import os
+import re
+import subprocess
 import sys
+import types
+import typing
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.script_client import create_square_client_from_args
+import pydantic
+from square.types.catalog_object import CatalogObject
+
+from app.client import create_square_client
+from app.config import get_square_environment_name
+from app.json_utils import to_jsonable
+from app.merchant_store import (
+    get_active_catalog_binding,
+    get_merchant_context,
+    list_catalog_bindings,
+    resolve_merchant_access_token,
+    upsert_catalog_binding,
+)
 
 
 SNAPSHOT_DIR = Path("data/catalog_snapshots")
@@ -84,49 +124,543 @@ SERVER_ASSIGNED_FIELDS = frozenset({
     "location_overrides",
 })
 
+# Also ignored by verify: legacy per-account IDs Square assigns on its own.
+VERIFY_IGNORED_FIELDS = SERVER_ASSIGNED_FIELDS | {"catalog_v1_ids"}
 
-def export_snapshot(client, account_slug):
-    """Read catalog from `client` and write a snapshot file."""
-    objects = []
+# Per-merchant references the SDK models do define, so the SDK strip keeps
+# them: sales-channel IDs (CH_...) that exist only in the source account.
+# Exact paths, not key names: the variation-level channels field is unknown to
+# the SDK and goes through the strip report and --accept-strip instead.
+PER_MERCHANT_PATHS = (
+    "CATEGORY.category_data.availability_period_ids",
+    "CATEGORY.category_data.channels",
+    "ITEM.item_data.channels",
+)
+
+# BatchUpsertCatalogObjects accepts at most 1,000 objects per batch.
+MAX_UPSERT_BATCH = 1000
+# BatchRetrieveCatalogObjects accepts at most 1,000 IDs per call.
+MAX_BATCH_GET = 1000
+# BatchChangeInventory accepts at most 100 changes per call.
+MAX_INVENTORY_CHANGES = 100
+
+# Binding mapping fields that hold catalog IDs, and where the IDs sit.
+BINDING_ID_KEY_FIELDS = ("sold_variation_aliases", "modifier_aliases")
+BINDING_ID_VALUE_FIELDS = ("inventory_variation_ids",)
+BINDING_ID_LIST_FIELDS = ("ignored_live_variation_ids", "ignored_live_modifier_ids")
+
+SQUARE_ID_PATTERN = re.compile(r"^[A-Z0-9]{20,32}$")
+
+PROD_TABLE_ENV_VARS = (
+    "DYNAMODB_MERCHANT_CONNECTION_TABLE",
+    "DYNAMODB_MERCHANT_CATALOG_BINDING_TABLE",
+    "MERCHANT_SECRET_PREFIX",
+)
+
+
+# ---------------------------------------------------------------- paths
+
+
+def _snapshot_path(slug):
+    return SNAPSHOT_DIR / f"{slug}.json"
+
+
+def _idmap_path(slug):
+    return SNAPSHOT_DIR / f"{slug}.idmap.json"
+
+
+def _counts_path(slug):
+    return SNAPSHOT_DIR / f"{slug}.counts.json"
+
+
+def _load_json(path):
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    return json.loads(path.read_text())
+
+
+def _write_json(path, payload):
+    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+# ---------------------------------------------------------------- guards
+
+
+def refuse_production_writes(environment):
+    """Writes go to sandbox only: never production, never the prod tables."""
+    if environment == "production":
+        raise ValueError("Refusing to write: this subcommand never writes to production.")
+    prod_settings = [
+        name for name in PROD_TABLE_ENV_VARS if "prod" in (os.getenv(name) or "").lower()
+    ]
+    if prod_settings:
+        raise ValueError(
+            "Refusing to write: these settings point at production: "
+            + ", ".join(prod_settings)
+        )
+
+
+def refuse_source_merchant(account_slug, merchant_id):
+    """Writes never target the merchant the snapshot was exported from.
+
+    The name-based check in refuse_production_writes catches prod settings;
+    this catches the prod merchant ID itself, whatever the settings say.
+    """
+    path = _snapshot_path(account_slug)
+    if not path.exists():
+        # Without the snapshot there is no source merchant to compare against.
+        raise ValueError(f"Refusing to write: snapshot not found: {path}")
+    source = json.loads(path.read_text()).get("source") or {}
+    if source.get("merchant_id") and source["merchant_id"] == merchant_id:
+        raise ValueError(
+            f"Refusing to write: {merchant_id!r} is the merchant this snapshot was "
+            "exported from."
+        )
+
+
+def is_gitignored(path):
+    """True only when git confirms the path is ignored. Errors count as not ignored."""
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", str(path)],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def require_gitignored(paths):
+    not_ignored = [str(p) for p in paths if not is_gitignored(p)]
+    if not_ignored:
+        raise ValueError(
+            "Refusing to export from production: these files are not gitignored: "
+            + ", ".join(not_ignored)
+        )
+
+
+def _target_catalog_is_empty(client):
+    # catalog.list hides archived items, so a target holding only archived
+    # objects looks empty here. A fresh account has none.
+    for catalog_type in SNAPSHOT_TYPES:
+        for _ in client.catalog.list(types=catalog_type):
+            return False
+    return True
+
+
+# ---------------------------------------------------------------- export
+
+
+def _dump(obj):
+    if isinstance(obj, dict):
+        return obj
+    return obj.model_dump(mode="json", exclude_none=True)
+
+
+def _collect_all_ids(node, found=None):
+    """Every id of a {type, id}-shaped dict anywhere in the structure."""
+    found = set() if found is None else found
+    if isinstance(node, dict):
+        if isinstance(node.get("type"), str) and isinstance(node.get("id"), str):
+            found.add(node["id"])
+        for value in node.values():
+            _collect_all_ids(value, found)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_all_ids(value, found)
+    return found
+
+
+def binding_referenced_ids(mapping):
+    ids = set()
+    for field in BINDING_ID_KEY_FIELDS:
+        ids.update((mapping.get(field) or {}).keys())
+    for field in BINDING_ID_VALUE_FIELDS:
+        ids.update((mapping.get(field) or {}).values())
+    for field in BINDING_ID_LIST_FIELDS:
+        ids.update(mapping.get(field) or [])
+    return ids
+
+
+def _batch_get(client, object_ids):
+    objects, related = [], []
+    ids = sorted(object_ids)
+    for start in range(0, len(ids), MAX_BATCH_GET):
+        response = client.catalog.batch_get(
+            object_ids=ids[start : start + MAX_BATCH_GET],
+            include_related_objects=True,
+        )
+        objects.extend(_dump(o) for o in (getattr(response, "objects", None) or []))
+        related.extend(_dump(o) for o in (getattr(response, "related_objects", None) or []))
+    return objects, related
+
+
+def backfill_by_id(client, payloads, ensure_ids, max_rounds=3):
+    """Fetch by ID every object in ``ensure_ids`` that the listing left out.
+
+    catalog.list omits archived items; batch_get returns them. A variation is
+    added through its parent ITEM (which nests it), a MODIFIER through itself
+    plus its MODIFIER_LIST. Returns (added payloads, IDs still missing).
+    """
+    present = _collect_all_ids(payloads)
+    wanted = set(ensure_ids) - present
+    added = []
+    orphan_variations = {}
+
+    def _add(payload):
+        added.append(payload)
+        payloads.append(payload)
+        present.update(_collect_all_ids(payload))
+
+    for _ in range(max_rounds):
+        if not wanted:
+            break
+        objects, related = _batch_get(client, wanted)
+        parents = set()
+        for payload in objects + related:
+            obj_type, obj_id = payload.get("type"), payload.get("id")
+            if obj_id in present:
+                continue
+            if obj_type == "ITEM_VARIATION":
+                orphan_variations[obj_id] = payload
+                parent_id = (payload.get("item_variation_data") or {}).get("item_id")
+                if parent_id:
+                    parents.add(parent_id)
+            elif obj_type == "MODIFIER":
+                _add(payload)
+                list_id = (payload.get("modifier_data") or {}).get("modifier_list_id")
+                if list_id:
+                    parents.add(list_id)
+            elif obj_type == "MODIFIER_LIST":
+                # Replay drops modifiers nested in a list, so add them top-level.
+                # Before the list: adding the list marks its nested IDs present.
+                for modifier in (payload.get("modifier_list_data") or {}).get("modifiers") or []:
+                    if modifier.get("id") not in present:
+                        _add(modifier)
+                _add(payload)
+            elif obj_type in SNAPSHOT_TYPES:
+                _add(payload)
+        wanted = (parents | set(ensure_ids)) - present
+
+    # A variation whose parent never came back is kept on its own.
+    for obj_id, payload in orphan_variations.items():
+        if obj_id not in present:
+            _add(payload)
+
+    return added, sorted(set(ensure_ids) - present)
+
+
+def _list_catalog(client):
+    payloads = []
     seen_ids = set()
-    counts = {}
-
     for catalog_type in SNAPSHOT_TYPES:
         for obj in client.catalog.list(types=catalog_type):
             if obj.id in seen_ids:
                 continue
             seen_ids.add(obj.id)
-            payload = obj.model_dump(mode="json", exclude_none=True)
-            payload = _strip_out_of_scope_refs(payload)
-            objects.append(payload)
-            counts[catalog_type] = counts.get(catalog_type, 0) + 1
+            payloads.append(_dump(obj))
+    return payloads
 
-    id_map = _build_client_id_map(objects)
-    objects = [_rewrite_ids(obj, id_map) for obj in objects]
+
+def _is_archived(payload):
+    return bool((payload.get("item_data") or {}).get("is_archived"))
+
+
+def _count_by_type(payloads):
+    counts = {}
+    for payload in payloads:
+        counts[payload["type"]] = counts.get(payload["type"], 0) + 1
+    return counts
+
+
+def _print_counts(payloads, added):
+    counts = _count_by_type(payloads)
+    for catalog_type, count in counts.items():
+        print(f"  {catalog_type}: {count}")
+    items = [p for p in payloads if p["type"] == "ITEM"]
+    archived = sum(1 for p in items if _is_archived(p))
+    print(f"  ITEM archived: {archived} | active: {len(items) - archived}")
+    if added is not None:
+        print(f"  backfilled by ID: {len(added)} {_count_by_type(added)}")
+
+
+def export_snapshot(client, account_slug, *, source=None):
+    """Read the catalog from ``client`` and write a snapshot file.
+
+    ``source`` ({environment, merchant_id, location_id, binding_version,
+    mapping}) turns on the archived backfill and is saved for
+    translate-binding and export-counts.
+    """
+    payloads = _list_catalog(client)
+
+    added = None
+    still_missing = []
+    if source is not None:
+        added, still_missing = backfill_by_id(
+            client, payloads, binding_referenced_ids(source["mapping"])
+        )
+
+    payloads = [_strip_out_of_scope_refs(p) for p in payloads]
+    id_map = _build_client_id_map(payloads)
+    objects = [_rewrite_ids(p, id_map) for p in payloads]
 
     snapshot = {
         "snapshot_meta": {
             "account_slug": account_slug,
             "exported_at": _iso_now(),
-            "object_counts": counts,
+            "object_counts": _count_by_type(objects),
             "total_objects": len(objects),
+            "archived_items": sum(1 for p in objects if p["type"] == "ITEM" and _is_archived(p)),
         },
         "objects": objects,
     }
+    if source is not None:
+        snapshot["source"] = source
+        snapshot["source_ids"] = id_map
 
-    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = SNAPSHOT_DIR / f"{account_slug}.json"
-    out_path.write_text(json.dumps(snapshot, indent=2) + "\n")
+    out_path = _snapshot_path(account_slug)
+    _write_json(out_path, snapshot)
 
     print(f"Exported {len(objects)} objects to {out_path}")
-    for catalog_type, count in counts.items():
-        print(f"  {catalog_type}: {count}")
+    _print_counts(objects, added)
+    if source is None:
+        print("  (no --merchant: no binding, so no archived backfill)")
+    if still_missing:
+        print(f"WARNING: {len(still_missing)} binding IDs not found by ID either: {still_missing}")
+        return 1
     return 0
 
 
-def replay_snapshot(client, account_slug, apply):
+# ---------------------------------------------------------------- SDK fields
+#
+# The SDK pins one Square-Version and its models define the fields that
+# version accepts. Its models allow extra keys, so fields Square returns but the
+# SDK doesn't define survive model_dump into the snapshot, and Square rejects
+# them on write (e.g. use_location_fulfillment_methods). Replay strips every key
+# the matching SDK model doesn't define.
+
+
+def _annotation_members(annotation):
+    origin = typing.get_origin(annotation)
+    if origin is typing.Annotated:
+        return _annotation_members(typing.get_args(annotation)[0])
+    if origin in (typing.Union, types.UnionType):
+        members = []
+        for arg in typing.get_args(annotation):
+            members.extend(_annotation_members(arg))
+        return members
+    return [annotation]
+
+
+SDK_OBJECT_MODELS = {
+    cls.model_fields["type"].default: cls for cls in _annotation_members(CatalogObject)
+}
+
+
+def _strip_value(value, annotation, path, report):
+    members = _annotation_members(annotation)
+    for member in members:
+        origin = typing.get_origin(member)
+        if origin is list and isinstance(value, list):
+            (inner,) = typing.get_args(member)
+            return [_strip_value(v, inner, f"{path}[]", report) for v in value]
+        if origin is dict and isinstance(value, dict):
+            _, inner = typing.get_args(member)
+            return {k: _strip_value(v, inner, f"{path}.*", report) for k, v in value.items()}
+    models = [m for m in members if isinstance(m, type) and issubclass(m, pydantic.BaseModel)]
+    if isinstance(value, dict) and models:
+        model = models[0] if len(models) == 1 else SDK_OBJECT_MODELS.get(value.get("type"))
+        if model is not None:
+            return _strip_model(value, model, path, report)
+    return value
+
+
+def _strip_model(node, model, path, report):
+    kept = {}
+    for key, value in node.items():
+        field = model.model_fields.get(key)
+        if field is None:
+            report.setdefault(f"{path}.{key}", []).append(value)
+            continue
+        kept[key] = _strip_value(value, field.annotation, f"{path}.{key}", report)
+    return kept
+
+
+def strip_unknown_fields(objects):
+    """Strip every key the SDK model for its type doesn't define.
+
+    Returns (stripped objects, {path: [values]}). Paths start with the object
+    type and use [] for list items, e.g. ITEM.item_data.variations[].x.
+    """
+    report = {}
+    stripped = []
+    for obj in objects:
+        model = SDK_OBJECT_MODELS.get(obj.get("type"))
+        if model is None:
+            raise ValueError(f"No SDK model for catalog type {obj.get('type')!r}.")
+        stripped.append(_strip_model(obj, model, obj["type"], report))
+    return stripped, report
+
+
+def _is_benign(value):
+    return value is None or value is False
+
+
+def _is_sensitive_path(path):
+    lowered = path.lower()
+    return "money" in lowered or "price" in lowered
+
+
+def print_stripped_report(report):
+    """Print the strip report; return the paths with a non-false, non-null value."""
+    blockers = []
+    print(f"stripped fields (not in the SDK models): {len(report)}")
+    for path, values in sorted(report.items()):
+        if not all(_is_benign(v) for v in values):
+            blockers.append(path)
+        if _is_sensitive_path(path):
+            shown = "(values hidden)"
+        else:
+            distinct = sorted({json.dumps(v, sort_keys=True) for v in values})
+            shown = ", ".join(d if len(d) <= 60 else d[:57] + "..." for d in distinct[:5])
+            if len(distinct) > 5:
+                shown += f", ... ({len(distinct)} distinct)"
+        flag = "  <- not false/null" if path in blockers else ""
+        print(f"  {len(values):4d}  {path}  [{shown}]{flag}")
+    return blockers
+
+
+def _has_path(obj, path):
+    parts = path.split(".")
+    node = obj if parts[0] == obj.get("type") else None
+    for part in parts[1:]:
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
+
+
+def remove_paths(obj, paths):
+    """Remove each path (as written by strip_unknown_fields) from one object."""
+    for path in paths:
+        parts = path.split(".")
+        if parts[0] == obj.get("type"):
+            _remove_path(obj, parts[1:])
+    return obj
+
+
+def _remove_path(node, parts):
+    if not parts or not isinstance(node, dict):
+        return
+    head, rest = parts[0], parts[1:]
+    if head == "*":
+        for value in node.values():
+            _remove_path(value, rest)
+        return
+    is_list = head.endswith("[]")
+    key = head[:-2] if is_list else head
+    if key not in node:
+        return
+    if not rest:
+        del node[key]
+    elif is_list:
+        for item in node[key] or []:
+            _remove_path(item, rest)
+    else:
+        _remove_path(node[key], rest)
+
+
+def _is_reference_key(key):
+    return key == "id" or key.endswith("_id") or key.endswith("_ids")
+
+
+def find_leftover_ids(objects):
+    """Paths -> counts of real IDs left in the batch. Values are never returned.
+
+    A reference field (``id``, ``*_id``, ``*_ids``, including list items) whose
+    value is not a #client ID but looks like a Square ID points at an object
+    the snapshot didn't export. A ``CH_`` value anywhere is a source-account
+    sales channel. Free-text fields are not scanned, so long SKUs pass.
+    """
+    leftovers = {}
+
+    def _hit(path):
+        leftovers[path] = leftovers.get(path, 0) + 1
+
+    def _walk(node, path, in_reference):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                _walk(value, f"{path}.{key}", _is_reference_key(key))
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value, f"{path}[]", in_reference)
+        elif isinstance(node, str):
+            if node.startswith("CH_"):
+                _hit(path)
+            elif in_reference and SQUARE_ID_PATTERN.match(node):
+                _hit(path)
+
+    for obj in objects:
+        _walk(obj, obj.get("type", "?"), False)
+    return leftovers
+
+
+# ---------------------------------------------------------------- replay
+
+
+def _names_by_id(objects):
+    names = {}
+
+    def _walk(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("type"), str) and isinstance(node.get("id"), str):
+                names.setdefault(node["id"], (node["type"], _extract_name(node)))
+            for value in node.values():
+                _walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value)
+
+    _walk(objects)
+    return names
+
+
+def build_id_map(snapshot, cleaned, id_mappings):
+    """Join client IDs to the real IDs Square created and back to prod IDs.
+
+    Returns (idmap payload, client IDs with no real ID).
+    """
+    client_to_real = {
+        getattr(m, "client_object_id", None): getattr(m, "object_id", None)
+        for m in id_mappings
+    }
+    prod_to_client = snapshot.get("source_ids") or {}
+    client_to_prod = {client: prod for prod, client in prod_to_client.items()}
+    names = _names_by_id(cleaned)
+
+    expected = _collect_all_ids(cleaned) | set(prod_to_client.values())
+    entries = []
+    for client_id in sorted(expected):
+        obj_type, name = names.get(client_id, (None, None))
+        entries.append({
+            "client_id": client_id,
+            "prod_id": client_to_prod.get(client_id),
+            "sandbox_id": client_to_real.get(client_id),
+            "type": obj_type,
+            "name": name,
+        })
+    missing = sorted(e["client_id"] for e in entries if not e["sandbox_id"])
+    return {
+        "account_slug": snapshot["snapshot_meta"]["account_slug"],
+        "created_at": _iso_now(),
+        "objects": entries,
+    }, missing
+
+
+def replay_snapshot(
+    client, account_slug, apply, *, force=False, environment=None, accept_strip=()
+):
     """Read a snapshot file and recreate the catalog via batch_upsert."""
-    path = SNAPSHOT_DIR / f"{account_slug}.json"
+    path = _snapshot_path(account_slug)
     if not path.exists():
         print(f"Snapshot file not found: {path}")
         return 1
@@ -140,12 +674,68 @@ def replay_snapshot(client, account_slug, apply):
     for catalog_type, count in counts.items():
         print(f"  {catalog_type}: {count}")
 
+    if apply:
+        try:
+            refuse_production_writes(environment)
+        except ValueError as exc:
+            print(exc)
+            return 1
+
+    empty = _target_catalog_is_empty(client)
+    print(f"target catalog empty: {empty}")
+    if not empty and not force:
+        print(
+            "Refusing to replay: the target catalog is not empty and replay creates "
+            "new objects every time, so the menu would be duplicated. Use --force "
+            "only if you mean to."
+        )
+        return 1
+
+    cleaned = [_strip_server_fields(obj) for obj in objects]
+    cleaned = [_strip_nested_duplicates(obj) for obj in cleaned]
+    per_merchant = {
+        path: sum(1 for obj in cleaned if _has_path(obj, path)) for path in PER_MERCHANT_PATHS
+    }
+    cleaned = [remove_paths(obj, PER_MERCHANT_PATHS) for obj in cleaned]
+    print("per-merchant fields stripped: " + ", ".join(f"{p} ({n})" for p, n in per_merchant.items()))
+    cleaned, stripped = strip_unknown_fields(cleaned)
+    blockers = print_stripped_report(stripped)
+    accepted = set(accept_strip)
+    not_needed = sorted(accepted - set(blockers))
+    if not_needed:
+        print(
+            "Refusing to replay: --accept-strip paths that are not non-false stripped "
+            "fields in this report: " + ", ".join(not_needed)
+        )
+        return 1
+    if accepted:
+        print("accepted by --accept-strip: " + ", ".join(sorted(accepted)))
+    unaccepted = [path for path in blockers if path not in accepted]
+    if unaccepted:
+        print(
+            f"Refusing to replay: {len(unaccepted)} stripped fields have values other "
+            "than false/null, so dropping them would change the copy. Decide these by "
+            "hand (--accept-strip): " + ", ".join(unaccepted)
+        )
+        return 1
+    leftovers = find_leftover_ids(cleaned)
+    print(f"leftover real IDs in the batch: {sum(leftovers.values())}")
+    for path, count in sorted(leftovers.items()):
+        print(f"  {count:4d}  {path}")
+    if leftovers:
+        print(
+            "Refusing to replay: the batch still references objects the snapshot "
+            "didn't export, or source sales channels."
+        )
+        return 1
+    if len(cleaned) > MAX_UPSERT_BATCH:
+        print(f"Refusing to replay: {len(cleaned)} objects exceed one batch ({MAX_UPSERT_BATCH}).")
+        return 1
+
     if not apply:
         print("\n(dry-run — no objects created; rerun with --apply)")
         return 0
 
-    cleaned = [_strip_server_fields(obj) for obj in objects]
-    cleaned = [_strip_nested_duplicates(obj) for obj in cleaned]
     response = client.catalog.batch_upsert(
         idempotency_key=str(uuid.uuid4()),
         batches=[{"objects": cleaned}],
@@ -154,7 +744,332 @@ def replay_snapshot(client, account_slug, apply):
     created = getattr(response, "objects", None) or []
     print(f"\nupserted: {len(created)} objects")
     print(f"id mappings (client_id -> real_id): {len(id_mappings)}")
+
+    idmap, missing = build_id_map(snapshot, cleaned, id_mappings)
+    idmap["stripped_fields"] = sorted(stripped)
+    idmap["accepted_strip_fields"] = sorted(accepted)
+    _write_json(_idmap_path(account_slug), idmap)
+    print(f"wrote {_idmap_path(account_slug)} ({len(idmap['objects'])} objects)")
+    if missing:
+        print(f"ERROR: {len(missing)} objects have no real ID in the response: {missing}")
+        return 1
     return 0
+
+
+# ---------------------------------------------------------------- binding
+
+
+def _prod_to_sandbox(idmap):
+    return {e["prod_id"]: e["sandbox_id"] for e in idmap["objects"] if e.get("prod_id")}
+
+
+def translate_binding_mapping(mapping, prod_to_sandbox, drop_missing=()):
+    """Rewrite every prod ID in a binding mapping. Raises on any unmapped ID.
+
+    ``drop_missing`` names prod IDs to leave out instead. Each must be
+    referenced by the binding and absent from the ID map; anything else is
+    refused, so a typo or a live object can never be dropped. Returns
+    (translated mapping, [(field, dropped id)]).
+    """
+    drop = set(drop_missing)
+    referenced = binding_referenced_ids(mapping)
+    not_referenced = sorted(drop - referenced)
+    if not_referenced:
+        raise ValueError(f"--drop-missing IDs the binding does not reference: {not_referenced}")
+    not_missing = sorted(i for i in drop if prod_to_sandbox.get(i))
+    if not_missing:
+        raise ValueError(f"--drop-missing IDs that are in the ID map (not missing): {not_missing}")
+
+    missing = set()
+    dropped = []
+
+    def _keep(field, prod_id):
+        if prod_id in drop:
+            dropped.append((field, prod_id))
+            return False
+        return True
+
+    def _map(prod_id):
+        sandbox_id = prod_to_sandbox.get(prod_id)
+        if not sandbox_id:
+            missing.add(prod_id)
+        return sandbox_id
+
+    translated = {}
+    for field, value in mapping.items():
+        if field in BINDING_ID_KEY_FIELDS:
+            translated[field] = {_map(k): v for k, v in value.items() if _keep(field, k)}
+        elif field in BINDING_ID_VALUE_FIELDS:
+            translated[field] = {k: _map(v) for k, v in value.items() if _keep(field, v)}
+        elif field in BINDING_ID_LIST_FIELDS:
+            translated[field] = [_map(v) for v in value if _keep(field, v)]
+        else:
+            leftover = _collect_id_like_strings(value) & set(prod_to_sandbox)
+            if leftover:
+                raise ValueError(
+                    f"Binding field {field!r} holds prod catalog IDs but is not a known "
+                    f"ID field: {sorted(leftover)}"
+                )
+            translated[field] = value
+
+    if missing:
+        raise ValueError(
+            f"{len(missing)} prod IDs in the binding are not in the ID map: {sorted(missing)}"
+        )
+    return translated, sorted(dropped)
+
+
+def _collect_id_like_strings(node, found=None):
+    found = set() if found is None else found
+    if isinstance(node, dict):
+        for key, value in node.items():
+            _collect_id_like_strings(key, found)
+            _collect_id_like_strings(value, found)
+    elif isinstance(node, list):
+        for value in node:
+            _collect_id_like_strings(value, found)
+    elif isinstance(node, str) and SQUARE_ID_PATTERN.match(node):
+        found.add(node)
+    return found
+
+
+def translate_binding(account_slug, environment, merchant_id, location_id, drop_missing=()):
+    refuse_production_writes(environment)
+    snapshot = _load_json(_snapshot_path(account_slug))
+    idmap = _load_json(_idmap_path(account_slug))
+    source = snapshot.get("source")
+    if not source:
+        raise ValueError("The snapshot has no source binding; export it with --merchant.")
+
+    location_id = location_id or _merchant_location(environment, merchant_id)
+    mapping, dropped = translate_binding_mapping(
+        source["mapping"], _prod_to_sandbox(idmap), drop_missing
+    )
+    notes = f"1:1 copy of prod binding v{source.get('binding_version')} via {account_slug}"
+    if dropped:
+        notes += (
+            "; dropped (in the prod binding but missing from the prod catalog, deleted): "
+            + ", ".join(f"{field}:{prod_id}" for field, prod_id in dropped)
+        )
+        for field, prod_id in dropped:
+            print(f"dropping {field}: {prod_id} (missing from the prod catalog)")
+
+    existing = list_catalog_bindings(environment, merchant_id, location_id=location_id)
+    version = max((int(b.get("version") or 0) for b in existing), default=0) + 1
+    upsert_catalog_binding(
+        environment,
+        merchant_id,
+        location_id,
+        version,
+        mapping,
+        notes=notes,
+    )
+    print(f"upserted DRAFT binding v{version} for {merchant_id} at {location_id}")
+
+    report = build_coverage_report(environment, merchant_id, location_id, version)
+    summary = report.get("summary", report)
+    ready = summary.get("ready_for_approval")
+    print(f"coverage: ready_for_approval={ready}")
+    for key in ("blocking_issue_count", "warning_count"):
+        if key in summary:
+            print(f"  {key}: {summary[key]}")
+    if not ready:
+        print(json.dumps(report.get("blocking_issues", report), indent=2, default=str)[:4000])
+        return 1, version
+    return 0, version
+
+
+def build_coverage_report(environment, merchant_id, location_id, version):
+    from app.binding_coverage_report import build_binding_coverage_report
+
+    return build_binding_coverage_report(
+        environment, merchant_id, location_id, binding_version=version
+    )
+
+
+def _merchant_location(environment, merchant_id):
+    context = get_merchant_context(environment, merchant_id)
+    if not context or not context.location_id:
+        raise ValueError(f"No selected location for merchant {merchant_id!r} in {environment!r}.")
+    return context.location_id
+
+
+# ---------------------------------------------------------------- verify
+
+
+def _normalize(payload, real_to_client):
+    payload = _strip_out_of_scope_refs(payload)
+    payload = _rewrite_ids(payload, real_to_client)
+    payload = _strip_fields(payload, VERIFY_IGNORED_FIELDS)
+    return _strip_nested_duplicates(payload)
+
+
+def _strip_fields(obj, fields):
+    if isinstance(obj, dict):
+        return {k: _strip_fields(v, fields) for k, v in obj.items() if k not in fields}
+    if isinstance(obj, list):
+        return [_strip_fields(v, fields) for v in obj]
+    return obj
+
+
+def _diff_paths(left, right, path=""):
+    if isinstance(left, dict) and isinstance(right, dict):
+        paths = []
+        for key in sorted(set(left) | set(right)):
+            sub = f"{path}.{key}" if path else key
+            if key not in left or key not in right:
+                paths.append(sub)
+            else:
+                paths.extend(_diff_paths(left[key], right[key], sub))
+        return paths
+    if isinstance(left, list) and isinstance(right, list) and len(left) == len(right):
+        paths = []
+        for index, (a, b) in enumerate(zip(left, right)):
+            paths.extend(_diff_paths(a, b, f"{path}[{index}]"))
+        return paths
+    return [] if left == right else [path or "(root)"]
+
+
+def compare_catalogs(snapshot_objects, target_payloads, idmap):
+    """Compare snapshot objects with the target's through the ID map."""
+    real_to_client = {e["sandbox_id"]: e["client_id"] for e in idmap["objects"] if e.get("sandbox_id")}
+    stripped = list(idmap.get("stripped_fields") or []) + list(PER_MERCHANT_PATHS)
+    expected = {
+        o["id"]: remove_paths(_normalize(o, {}), stripped) for o in snapshot_objects
+    }
+    actual = {}
+    for payload in target_payloads:
+        normalized = remove_paths(_normalize(payload, real_to_client), stripped)
+        actual[normalized["id"]] = normalized
+
+    def _label(obj):
+        return f"{obj.get('type')} {_extract_name(obj) or obj.get('id')!r}"
+
+    report = {"missing": [], "extra": [], "different": []}
+    for key, obj in expected.items():
+        if key not in actual:
+            report["missing"].append(_label(obj))
+        elif actual[key] != obj:
+            paths = _diff_paths(obj, actual[key])
+            report["different"].append({
+                "object": _label(obj),
+                "fields": paths,
+                "is_archived_changed": any(p.endswith("is_archived") for p in paths),
+            })
+    for key, obj in actual.items():
+        if key not in expected:
+            report["extra"].append(_label(obj))
+    return report
+
+
+def verify(client, account_slug):
+    snapshot = _load_json(_snapshot_path(account_slug))
+    idmap = _load_json(_idmap_path(account_slug))
+    payloads = _list_catalog(client)
+    sandbox_ids = {e["sandbox_id"] for e in idmap["objects"] if e.get("sandbox_id")}
+    backfill_by_id(client, payloads, sandbox_ids)
+
+    report = compare_catalogs(snapshot["objects"], payloads, idmap)
+    total = sum(len(v) for v in report.values())
+    print(f"snapshot objects: {len(snapshot['objects'])} | target objects: {len(payloads)}")
+    _print_counts(payloads, None)
+    print(
+        f"missing: {len(report['missing'])} | extra: {len(report['extra'])} | "
+        f"different: {len(report['different'])}"
+    )
+    for label in report["missing"]:
+        print(f"  MISSING    {label}")
+    for label in report["extra"]:
+        print(f"  EXTRA      {label}")
+    for diff in report["different"]:
+        flag = "  (is_archived changed)" if diff["is_archived_changed"] else ""
+        print(f"  DIFFERENT  {diff['object']}: {', '.join(diff['fields'])}{flag}")
+    return 1 if total else 0
+
+
+# ---------------------------------------------------------------- counts
+
+
+def export_counts(client, account_slug):
+    snapshot = _load_json(_snapshot_path(account_slug))
+    source = snapshot.get("source")
+    if not source:
+        raise ValueError("The snapshot has no source binding; export it with --merchant.")
+    inventory_ids = sorted(set(source["mapping"].get("inventory_variation_ids", {}).values()))
+    counts = {object_id: "0" for object_id in inventory_ids}
+    for count in client.inventory.batch_get_counts(
+        catalog_object_ids=inventory_ids,
+        location_ids=[source["location_id"]],
+        states=["IN_STOCK"],
+    ):
+        counts[count.catalog_object_id] = str(count.quantity)
+    _write_json(_counts_path(account_slug), {"read_at": _iso_now(), "counts": counts})
+    print(f"read {len(counts)} prod counts into {_counts_path(account_slug)}")
+    return 0
+
+
+def _inventory_key_names(account_slug):
+    path = _snapshot_path(account_slug)
+    if not path.exists():
+        return {}
+    source = json.loads(path.read_text()).get("source") or {}
+    mapping = (source.get("mapping") or {}).get("inventory_variation_ids") or {}
+    return {prod_id: key for key, prod_id in mapping.items()}
+
+
+def copy_counts(client, account_slug, environment, location_id, apply, *, skip_negative=False):
+    if apply:
+        refuse_production_writes(environment)
+    counts = _load_json(_counts_path(account_slug))["counts"]
+    prod_to_sandbox = _prod_to_sandbox(_load_json(_idmap_path(account_slug)))
+    missing = sorted(p for p in counts if not prod_to_sandbox.get(p))
+    if missing:
+        raise ValueError(f"{len(missing)} counted prod IDs are not in the ID map: {missing}")
+
+    if skip_negative:
+        # A physical count is an absolute on-hand number; deduct-only items run
+        # below zero in prod. Skipped items stay uncounted (0) in the target.
+        names = _inventory_key_names(account_slug)
+        negative = sorted(p for p, q in counts.items() if Decimal(str(q)) < 0)
+        if negative:
+            print(
+                f"skipping {len(negative)} negative counts: "
+                + ", ".join(sorted(names.get(p, p) for p in negative))
+            )
+        counts = {p: q for p, q in counts.items() if p not in negative}
+
+    occurred_at = _iso_now()
+    changes = [
+        {
+            "type": "PHYSICAL_COUNT",
+            "physical_count": {
+                "reference_id": f"{account_slug}:{prod_id}",
+                "catalog_object_id": prod_to_sandbox[prod_id],
+                "state": "IN_STOCK",
+                "location_id": location_id,
+                "quantity": quantity,
+                "occurred_at": occurred_at,
+            },
+        }
+        for prod_id, quantity in sorted(counts.items())
+    ]
+    print(f"mode: {'APPLY' if apply else 'DRY-RUN'} | {len(changes)} physical counts at {location_id}")
+    for change in changes:
+        count = change["physical_count"]
+        print(f"  {count['catalog_object_id']}  {count['quantity']}")
+    if not apply:
+        print("\n(dry-run — no counts written; rerun with --apply)")
+        return 0
+    for start in range(0, len(changes), MAX_INVENTORY_CHANGES):
+        client.inventory.batch_create_changes(
+            idempotency_key=str(uuid.uuid4()),
+            changes=changes[start : start + MAX_INVENTORY_CHANGES],
+        )
+    print(f"wrote {len(changes)} physical counts")
+    return 0
+
+
+# ---------------------------------------------------------------- shared helpers
 
 
 def _build_client_id_map(objects):
@@ -253,15 +1168,7 @@ def _rewrite_ids(obj, id_map):
 
 def _strip_server_fields(obj):
     """Remove fields Square assigns server-side so upsert doesn't conflict."""
-    if isinstance(obj, dict):
-        return {
-            k: _strip_server_fields(v)
-            for k, v in obj.items()
-            if k not in SERVER_ASSIGNED_FIELDS
-        }
-    if isinstance(obj, list):
-        return [_strip_server_fields(v) for v in obj]
-    return obj
+    return _strip_fields(obj, SERVER_ASSIGNED_FIELDS)
 
 
 def _strip_nested_duplicates(obj):
@@ -303,36 +1210,143 @@ def _iso_now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def main():
-    client, remaining = create_square_client_from_args(sys.argv[1:])
+# ---------------------------------------------------------------- CLI
 
+
+def create_client(environment, merchant_id):
+    """Square client for one environment. Production never refreshes its token:
+    a refresh writes to the prod secret, and prod stays read-only here."""
+    if not merchant_id:
+        return create_square_client(environment_name=environment)
+    access_token = resolve_merchant_access_token(
+        environment,
+        merchant_id,
+        refresh_if_needed=environment != "production",
+    )
+    if not access_token:
+        raise ValueError(
+            f"No active Square access token for merchant {merchant_id!r} in {environment!r}."
+        )
+    return create_square_client(access_token=access_token, environment_name=environment)
+
+
+def load_source(environment, merchant_id):
+    location_id = _merchant_location(environment, merchant_id)
+    binding = get_active_catalog_binding(environment, merchant_id, location_id)
+    if not binding:
+        raise ValueError(f"No active binding for {merchant_id!r} at {location_id!r}.")
+    # DynamoDB returns numbers as Decimal, which json cannot write.
+    version = binding.get("version")
+    return {
+        "environment": environment,
+        "merchant_id": merchant_id,
+        "location_id": location_id,
+        "binding_version": int(version) if version is not None else None,
+        "mapping": to_jsonable(binding["mapping"]),
+    }
+
+
+def _parse_args(argv):
     parser = argparse.ArgumentParser(
         prog="catalog_snapshot",
-        description=(
-            "Snapshot or replay a Square catalog. Sandbox use only — "
-            "populates fresh test accounts with the same menu structure."
-        ),
+        description="Copy a Square catalog 1:1 onto a fresh sandbox account.",
     )
     parser.add_argument(
         "subcommand",
-        choices=["export", "replay"],
-        help="export reads from the current account; replay writes to it.",
+        choices=["export", "replay", "translate-binding", "verify", "export-counts", "copy-counts"],
     )
+    parser.add_argument("--account", required=True, help="snapshot slug in data/catalog_snapshots/")
+    parser.add_argument("--merchant")
+    parser.add_argument("--environment", choices=["sandbox", "production"])
+    parser.add_argument("--location-id")
+    parser.add_argument("--apply", action="store_true", help="replay / copy-counts: actually write")
+    parser.add_argument("--force", action="store_true", help="replay: allow a non-empty target")
     parser.add_argument(
-        "--account",
-        required=True,
-        help="snapshot file label (writes/reads data/catalog_snapshots/<slug>.json)",
-    )
-    parser.add_argument(
-        "--apply",
+        "--skip-negative",
         action="store_true",
-        help="(replay only) actually mutate the target catalog (default: dry-run preview)",
+        help="copy-counts: leave out counts below zero (printed by inventory key)",
     )
-    args = parser.parse_args(remaining)
+    parser.add_argument(
+        "--accept-strip",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="replay: accept stripping this non-false field path from the strip report (repeatable)",
+    )
+    parser.add_argument(
+        "--drop-missing",
+        action="append",
+        default=[],
+        metavar="PROD_ID",
+        help="translate-binding: leave out this prod ID, which must be missing from the ID map (repeatable)",
+    )
+    return parser.parse_args(argv)
 
-    if args.subcommand == "export":
-        return export_snapshot(client, args.account)
-    return replay_snapshot(client, args.account, args.apply)
+
+def main(argv=None):
+    args = _parse_args(sys.argv[1:] if argv is None else argv)
+    environment = args.environment or get_square_environment_name()
+    print(f"environment: {environment} | merchant: {args.merchant or '(env token)'} | account: {args.account}")
+
+    try:
+        if environment == "production" and not args.merchant:
+            raise ValueError("--environment production needs --merchant (no env-token fallback).")
+
+        if args.subcommand in ("export", "export-counts") and environment == "production":
+            out_path = (
+                _snapshot_path(args.account)
+                if args.subcommand == "export"
+                else _counts_path(args.account)
+            )
+            require_gitignored([out_path])
+        if args.subcommand == "export":
+            source = load_source(environment, args.merchant) if args.merchant else None
+            return export_snapshot(create_client(environment, args.merchant), args.account, source=source)
+        if args.subcommand == "export-counts":
+            return export_counts(create_client(environment, args.merchant), args.account)
+
+        if not args.merchant:
+            raise ValueError(f"{args.subcommand} needs --merchant for the target account.")
+
+        writes = (
+            args.subcommand == "translate-binding"
+            or (args.subcommand in ("replay", "copy-counts") and args.apply)
+        )
+        if args.subcommand == "replay" or writes:
+            refuse_production_writes(environment)
+        if writes:
+            refuse_source_merchant(args.account, args.merchant)
+
+        if args.subcommand == "translate-binding":
+            exit_code, _ = translate_binding(
+                args.account, environment, args.merchant, args.location_id, args.drop_missing
+            )
+            return exit_code
+
+        client = create_client(environment, args.merchant)
+        if args.subcommand == "replay":
+            return replay_snapshot(
+                client,
+                args.account,
+                args.apply,
+                force=args.force,
+                environment=environment,
+                accept_strip=args.accept_strip,
+            )
+        if args.subcommand == "verify":
+            return verify(client, args.account)
+        location_id = args.location_id or _merchant_location(environment, args.merchant)
+        return copy_counts(
+            client,
+            args.account,
+            environment,
+            location_id,
+            args.apply,
+            skip_negative=args.skip_negative,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
 
 if __name__ == "__main__":
