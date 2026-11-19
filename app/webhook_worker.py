@@ -109,9 +109,13 @@ def _resolve_processing_outcome(result):
 def _record_applied_usage(merchant_processing_context, result):
     """Log each applied order's ingredient usage, including log-only ingredients.
 
-    Runs before the order is marked applied: if this raises, the job is retried,
-    Square's idempotency key absorbs the repeat write, and these rows are
-    rewritten under the same keys.
+    Runs before the order is marked applied: if this raises, the job is retried.
+    The retry sends Square an identical request (same idempotency key, and
+    occurred_at from the order's created_at; see
+    order_processor.deterministic_occurred_at), so Square returns the original
+    result instead of deducting again, and these rows are rewritten under the
+    same keys. Orders older than 23 hours use the current time instead, so for
+    them a retry after a successful write is refused and ends failed.
     """
     for projected_order in result["projected_orders"]:
         order_id = projected_order["order_id"]

@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from square.core.api_error import ApiError
 
 from app.catalog_binding_resolver import resolve_inventory_variation_id
@@ -76,10 +78,57 @@ def resolve_inventory_request(plan, *, binding=None):
     }
 
 
+# Square rejects an adjustment whose occurred_at is more than 24 hours old.
+# Keep an hour of room for retries.
+OCCURRED_AT_MAX_AGE = timedelta(hours=23)
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _parse_rfc3339(value):
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed.tzinfo else None
+
+
+def deterministic_occurred_at(order_summaries, *, now=None):
+    """The adjustment timestamp: the latest order's Square created_at.
+
+    The idempotency key depends only on the orders and their usage, so the
+    request body must not change between attempts either. A retry after a
+    successful write (the usage log or the state update raised) then sends the
+    identical request, Square returns the original result, and the order ends
+    applied with one deduction. A timestamp taken at processing time made the
+    retry a different request under a used key, which Square refuses.
+
+    Returns None (the plan then uses the current time, as before) when any
+    order lacks a parseable created_at, or when the latest is in the future or
+    older than OCCURRED_AT_MAX_AGE: Square rejects occurred_at older than 24
+    hours, so orders recovered or replayed a day later still use now, and a
+    retry after a successful write can still end failed for them.
+    """
+    now = now or _utcnow()
+    stamps = [
+        (_parse_rfc3339(summary.get("created_at")), summary.get("created_at"))
+        for summary in order_summaries
+    ]
+    if not stamps or any(parsed is None for parsed, _ in stamps):
+        return None
+    latest, raw = max(stamps, key=lambda stamp: stamp[0])
+    if latest > now or now - latest > OCCURRED_AT_MAX_AGE:
+        return None
+    return raw
+
+
 def build_inventory_plan(order_summaries, *, skipped_orders=None):
     return build_inventory_plan_from_order_summaries(
         order_summaries,
         skipped_orders=skipped_orders,
+        occurred_at=deterministic_occurred_at(order_summaries),
     )
 
 

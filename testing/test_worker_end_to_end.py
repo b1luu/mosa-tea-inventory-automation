@@ -10,10 +10,12 @@ The only patch inside ``app`` is ``create_square_client_for_merchant``, which
 would otherwise build a real SDK client.
 """
 
+import copy
 import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -151,6 +153,28 @@ class FakeSquareClient:
         self.inventory_requests.append(request)
         if self._inventory_error is not None:
             raise self._inventory_error
+        return _FakeInventoryResponse()
+
+
+class IdempotentFakeSquareClient(FakeSquareClient):
+    """Square's idempotency rule: a repeated key with the same body returns the
+    original result without applying it again; with a different body it fails."""
+
+    def __init__(self, order):
+        super().__init__(order)
+        self.applied_requests = {}
+
+    def _batch_create_changes(self, **request):
+        self.inventory_requests.append(request)
+        key = request["idempotency_key"]
+        if key in self.applied_requests:
+            if self.applied_requests[key] != request:
+                raise ApiError(
+                    status_code=400,
+                    body={"errors": [{"code": "IDEMPOTENCY_KEY_REUSED"}]},
+                )
+            return _FakeInventoryResponse()
+        self.applied_requests[key] = copy.deepcopy(request)
         return _FakeInventoryResponse()
 
 
@@ -419,6 +443,56 @@ class WorkerEndToEndTests(unittest.TestCase):
             "2026-03-27T00:00:00.000Z",
         )
         self.assertEqual(rows, [])
+
+    # -- retry after a successful Square write --------------------------------
+
+    def _retry_after_write(self, *, minutes_after_creation):
+        """First attempt writes to Square, then the usage log raises; SQS retries."""
+        self._connect_merchant()
+        self._ingest_order_event()
+        order = _build_live_square_order(self.canonical_order)
+        created = datetime.fromisoformat(order.created_at.replace("Z", "+00:00"))
+        client = IdempotentFakeSquareClient(order)
+        clock = [created + timedelta(minutes=minutes_after_creation)]
+
+        def _now():
+            clock[0] += timedelta(minutes=2)  # time passes between attempts
+            return clock[0]
+
+        with (
+            patch("app.order_processor._utcnow", side_effect=_now),
+            patch("app.inventory_plan.datetime") as plan_datetime,
+            patch(
+                "app.webhook_worker.record_order_usage",
+                side_effect=[RuntimeError("usage log unavailable"), None],
+            ),
+        ):
+            plan_datetime.now.side_effect = lambda tz=None: _now()
+            with self.assertRaises(RuntimeError):
+                self._run_worker(client)
+            self.assertEqual(get_order_processing_state(ORDER_ID), "pending")
+            retry_state, _ = self._run_worker(client)
+        return retry_state, client
+
+    def test_retry_after_a_successful_write_ends_applied_with_one_deduction(self):
+        retry_state, client = self._retry_after_write(minutes_after_creation=10)
+
+        self.assertEqual(retry_state, "applied")
+        self.assertEqual(get_order_processing_state(ORDER_ID), "applied")
+        self.assertEqual(len(client.inventory_requests), 2)
+        self.assertEqual(client.inventory_requests[0], client.inventory_requests[1])
+        self.assertEqual(len(client.applied_requests), 1)
+        adjustment = client.inventory_requests[0]["changes"][0]["adjustment"]
+        self.assertEqual(adjustment["occurred_at"], "2026-03-26T19:30:00.000Z")
+
+    def test_orders_older_than_the_window_still_end_failed_on_that_retry(self):
+        # Known limit: Square rejects occurred_at older than 24 hours, so these
+        # orders use the current time and the retry is a different request.
+        retry_state, client = self._retry_after_write(minutes_after_creation=24 * 60)
+
+        self.assertEqual(retry_state, "failed")
+        self.assertEqual(len(client.applied_requests), 1)
+        self.assertNotEqual(client.inventory_requests[0], client.inventory_requests[1])
 
 
 if __name__ == "__main__":
