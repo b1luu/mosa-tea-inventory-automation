@@ -605,6 +605,51 @@ class WebhookWorkerTests(unittest.TestCase):
         self.assertEqual(result, "cancelled_before_apply")
 
 
+class BindingContractTests(unittest.TestCase):
+    @unittest.expectedFailure
+    def test_recipe_ingredient_missing_from_binding_blocks_instead_of_retrying(self):
+        # Gap: resolve_inventory_variation_id raises KeyError for an inventory key the
+        # binding doesn't map. Nothing catches it, so the worker releases the claim and
+        # re-raises: three SQS retries, then the DLQ, and the daily check calls it STUCK.
+        # An unmapped drink blocks cleanly; an unmapped ingredient should too.
+        from app.order_processor import process_order_summaries
+        from testing.order_projection_utils import load_fixture_order
+
+        order_summary = load_fixture_order("completed_matcha_latte_boba")
+        # Every ingredient of the drink is mapped except boba.
+        binding = {
+            "mapping": {
+                "inventory_variation_ids": {
+                    "matcha": "LIVE-MATCHA",
+                    "milk": "LIVE-MILK",
+                    "u600_cup": "LIVE-CUP",
+                    "big_straw": "LIVE-STRAW",
+                }
+            }
+        }
+
+        def run_real_projection(order_ids, *, apply_changes, client, binding):
+            return process_order_summaries(
+                [order_summary],
+                apply_changes=apply_changes,
+                client=client,
+                binding=binding,
+            )
+
+        with _merchant_path(merchant_context=_active_merchant_context(), binding=binding):
+            with (
+                patch("app.webhook_worker.claim_order_processing", return_value=True),
+                patch("app.webhook_worker.process_orders", side_effect=run_real_projection),
+                patch("app.webhook_worker.mark_order_blocked", return_value=True) as mock_blocked,
+                patch("app.webhook_worker.release_order_processing_claim"),
+                patch("app.webhook_worker.set_webhook_event_status"),
+            ):
+                result = process_webhook_job(MERCHANT_BOUND_JOB)
+
+        mock_blocked.assert_called_once()
+        self.assertEqual(result, "blocked")
+
+
 _APPLIED_RESULT = {
     "mode": {"apply": True},
     "projected_orders": [{"order_id": REAL_SUCCESS_JOB["order_id"]}],
