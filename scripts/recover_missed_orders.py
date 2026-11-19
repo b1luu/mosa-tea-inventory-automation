@@ -77,14 +77,17 @@ def _parse_args(argv):
     return environment, merchant_id, location_id, since, values.get("--order-id"), apply_changes
 
 
-def _check_store_mode(environment):
-    """Refuse to run against production with a local SQLite store.
+def _check_store_mode(environment, apply_changes):
+    """Refuse a local SQLite store for production and for every --apply run.
 
     With sqlite order processing, every prod order looks unprocessed and
     --apply would queue all of them. With a sqlite merchant store, the Square
-    token comes from the local database instead of prod.
+    token comes from the local database instead of the deployed one. And
+    --apply always sends to SQS, where the deployed worker reads DynamoDB, so a
+    reservation written to sqlite is one the worker can never claim, in any
+    environment. Sandbox dry runs may still use sqlite.
     """
-    if environment != "production":
+    if environment != "production" and not apply_changes:
         return
     wrong = [
         name
@@ -96,9 +99,9 @@ def _check_store_mode(environment):
     ]
     if wrong:
         raise ValueError(
-            "Refusing to run against production: set "
+            f"Refusing to run ({environment}, {'apply' if apply_changes else 'dry run'}): set "
             + " and ".join(f"{name}=dynamodb" for name in wrong)
-            + " so the script reads the prod tables."
+            + " so the script uses the same tables as the deployed worker."
         )
 
 
@@ -235,7 +238,7 @@ def main():
             environment, merchant_id, location_id, since, order_id, apply_changes
         ):
             print(line)
-        _check_store_mode(environment)
+        _check_store_mode(environment, apply_changes)
     except ValueError as exc:
         print(exc)
         return 1

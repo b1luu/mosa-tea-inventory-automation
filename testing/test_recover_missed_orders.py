@@ -166,19 +166,31 @@ class RecoverMissedOrdersTests(unittest.TestCase):
     def test_production_refuses_a_sqlite_order_processing_store(self):
         with _store_modes(order_processing="sqlite", merchant="dynamodb"):
             with self.assertRaisesRegex(ValueError, "ORDER_PROCESSING_STORE_MODE"):
-                recovery._check_store_mode("production")
+                recovery._check_store_mode("production", False)
 
     def test_production_refuses_a_sqlite_merchant_store(self):
         # Otherwise the Square token comes from the local database, not prod.
         with _store_modes(order_processing="dynamodb", merchant="sqlite"):
             with self.assertRaisesRegex(ValueError, "MERCHANT_STORE_MODE"):
-                recovery._check_store_mode("production")
+                recovery._check_store_mode("production", False)
 
-    def test_production_allows_dynamodb_stores_and_sandbox_allows_sqlite(self):
+    def test_apply_refuses_sqlite_stores_in_sandbox_too(self):
+        # --apply always sends to SQS, and the deployed worker reads DynamoDB.
+        for order_processing, merchant, expected in (
+            ("sqlite", "dynamodb", "ORDER_PROCESSING_STORE_MODE"),
+            ("dynamodb", "sqlite", "MERCHANT_STORE_MODE"),
+        ):
+            with self.subTest(order_processing=order_processing, merchant=merchant):
+                with _store_modes(order_processing=order_processing, merchant=merchant):
+                    with self.assertRaisesRegex(ValueError, expected):
+                        recovery._check_store_mode("sandbox", True)
+
+    def test_dynamodb_stores_pass_and_sandbox_dry_run_allows_sqlite(self):
         with _store_modes(order_processing="dynamodb", merchant="dynamodb"):
-            recovery._check_store_mode("production")
+            recovery._check_store_mode("production", True)
+            recovery._check_store_mode("sandbox", True)
         with _store_modes(order_processing="sqlite", merchant="sqlite"):
-            recovery._check_store_mode("sandbox")
+            recovery._check_store_mode("sandbox", False)
 
     def test_main_exits_before_calling_square_when_store_mode_is_wrong(self):
         argv = [
