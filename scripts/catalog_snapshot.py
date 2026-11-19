@@ -534,9 +534,31 @@ def _prod_to_sandbox(idmap):
     return {e["prod_id"]: e["sandbox_id"] for e in idmap["objects"] if e.get("prod_id")}
 
 
-def translate_binding_mapping(mapping, prod_to_sandbox):
-    """Rewrite every prod ID in a binding mapping. Raises on any unmapped ID."""
+def translate_binding_mapping(mapping, prod_to_sandbox, drop_missing=()):
+    """Rewrite every prod ID in a binding mapping. Raises on any unmapped ID.
+
+    ``drop_missing`` names prod IDs to leave out instead. Each must be
+    referenced by the binding and absent from the ID map; anything else is
+    refused, so a typo or a live object can never be dropped. Returns
+    (translated mapping, [(field, dropped id)]).
+    """
+    drop = set(drop_missing)
+    referenced = binding_referenced_ids(mapping)
+    not_referenced = sorted(drop - referenced)
+    if not_referenced:
+        raise ValueError(f"--drop-missing IDs the binding does not reference: {not_referenced}")
+    not_missing = sorted(i for i in drop if prod_to_sandbox.get(i))
+    if not_missing:
+        raise ValueError(f"--drop-missing IDs that are in the ID map (not missing): {not_missing}")
+
     missing = set()
+    dropped = []
+
+    def _keep(field, prod_id):
+        if prod_id in drop:
+            dropped.append((field, prod_id))
+            return False
+        return True
 
     def _map(prod_id):
         sandbox_id = prod_to_sandbox.get(prod_id)
@@ -547,11 +569,11 @@ def translate_binding_mapping(mapping, prod_to_sandbox):
     translated = {}
     for field, value in mapping.items():
         if field in BINDING_ID_KEY_FIELDS:
-            translated[field] = {_map(k): v for k, v in value.items()}
+            translated[field] = {_map(k): v for k, v in value.items() if _keep(field, k)}
         elif field in BINDING_ID_VALUE_FIELDS:
-            translated[field] = {k: _map(v) for k, v in value.items()}
+            translated[field] = {k: _map(v) for k, v in value.items() if _keep(field, v)}
         elif field in BINDING_ID_LIST_FIELDS:
-            translated[field] = [_map(v) for v in value]
+            translated[field] = [_map(v) for v in value if _keep(field, v)]
         else:
             leftover = _collect_id_like_strings(value) & set(prod_to_sandbox)
             if leftover:
@@ -565,7 +587,7 @@ def translate_binding_mapping(mapping, prod_to_sandbox):
         raise ValueError(
             f"{len(missing)} prod IDs in the binding are not in the ID map: {sorted(missing)}"
         )
-    return translated
+    return translated, sorted(dropped)
 
 
 def _collect_id_like_strings(node, found=None):
@@ -582,7 +604,7 @@ def _collect_id_like_strings(node, found=None):
     return found
 
 
-def translate_binding(account_slug, environment, merchant_id, location_id):
+def translate_binding(account_slug, environment, merchant_id, location_id, drop_missing=()):
     refuse_production_writes(environment)
     snapshot = _load_json(_snapshot_path(account_slug))
     idmap = _load_json(_idmap_path(account_slug))
@@ -591,7 +613,17 @@ def translate_binding(account_slug, environment, merchant_id, location_id):
         raise ValueError("The snapshot has no source binding; export it with --merchant.")
 
     location_id = location_id or _merchant_location(environment, merchant_id)
-    mapping = translate_binding_mapping(source["mapping"], _prod_to_sandbox(idmap))
+    mapping, dropped = translate_binding_mapping(
+        source["mapping"], _prod_to_sandbox(idmap), drop_missing
+    )
+    notes = f"1:1 copy of prod binding v{source.get('binding_version')} via {account_slug}"
+    if dropped:
+        notes += (
+            "; dropped (in the prod binding but missing from the prod catalog, deleted): "
+            + ", ".join(f"{field}:{prod_id}" for field, prod_id in dropped)
+        )
+        for field, prod_id in dropped:
+            print(f"dropping {field}: {prod_id} (missing from the prod catalog)")
 
     existing = list_catalog_bindings(environment, merchant_id, location_id=location_id)
     version = max((int(b.get("version") or 0) for b in existing), default=0) + 1
@@ -601,10 +633,7 @@ def translate_binding(account_slug, environment, merchant_id, location_id):
         location_id,
         version,
         mapping,
-        notes=(
-            f"1:1 copy of prod binding v{source.get('binding_version')} "
-            f"via {account_slug}"
-        ),
+        notes=notes,
     )
     print(f"upserted DRAFT binding v{version} for {merchant_id} at {location_id}")
 
@@ -979,6 +1008,13 @@ def _parse_args(argv):
     parser.add_argument("--location-id")
     parser.add_argument("--apply", action="store_true", help="replay / copy-counts: actually write")
     parser.add_argument("--force", action="store_true", help="replay: allow a non-empty target")
+    parser.add_argument(
+        "--drop-missing",
+        action="append",
+        default=[],
+        metavar="PROD_ID",
+        help="translate-binding: leave out this prod ID, which must be missing from the ID map (repeatable)",
+    )
     return parser.parse_args(argv)
 
 
@@ -1017,7 +1053,9 @@ def main(argv=None):
             refuse_source_merchant(args.account, args.merchant)
 
         if args.subcommand == "translate-binding":
-            exit_code, _ = translate_binding(args.account, environment, args.merchant, args.location_id)
+            exit_code, _ = translate_binding(
+                args.account, environment, args.merchant, args.location_id, args.drop_missing
+            )
             return exit_code
 
         client = create_client(environment, args.merchant)

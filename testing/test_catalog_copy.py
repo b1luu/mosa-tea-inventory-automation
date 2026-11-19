@@ -328,7 +328,7 @@ class IdMapTests(unittest.TestCase):
 
 
 class TranslateBindingTests(unittest.TestCase):
-    def _translate(self, tmp, *, report_ready=True, mapping=None):
+    def _translate(self, tmp, *, report_ready=True, mapping=None, drop_missing=()):
         if mapping is not None:
             path = tmp / "mosa_prod_test.json"
             snapshot = json.loads(path.read_text())
@@ -346,7 +346,9 @@ class TranslateBindingTests(unittest.TestCase):
             ),
             patch.object(cs, "get_merchant_context", side_effect=_strict("get_merchant_context")),
         ):
-            result = cs.translate_binding("mosa_prod_test", "sandbox", SANDBOX_MERCHANT, SANDBOX_LOCATION)
+            result = cs.translate_binding(
+                "mosa_prod_test", "sandbox", SANDBOX_MERCHANT, SANDBOX_LOCATION, drop_missing
+            )
         return result, upserts
 
     def test_translation_rewrites_every_id_field(self):
@@ -364,6 +366,77 @@ class TranslateBindingTests(unittest.TestCase):
         self.assertEqual(mapping["modifier_aliases"], {p2s["MODBOBA00000000000000000"]: "boba"})
         self.assertEqual(mapping["inventory_variation_ids"], {"tgy": p2s["VARTGYLEAF00000000000000"]})
         self.assertFalse(cs._collect_id_like_strings(mapping) & set(p2s))
+
+    # --drop-missing
+    @staticmethod
+    def _stale_mapping():
+        mapping = copy.deepcopy(PROD_MAPPING)
+        mapping["modifier_aliases"]["MODDELETED00000000000000"] = "silky_custard"
+        mapping["ignored_live_variation_ids"] = ["VARDELETED00000000000000"]
+        return mapping
+
+    def test_drop_missing_drops_only_the_named_ids_and_records_them_in_notes(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            (exit_code, _), upserts = self._translate(
+                tmp,
+                mapping=self._stale_mapping(),
+                drop_missing=["MODDELETED00000000000000", "VARDELETED00000000000000"],
+            )
+
+        ((args, kwargs),) = upserts
+        mapping = args[4]
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(mapping["modifier_aliases"]), 1)
+        self.assertEqual(list(mapping["modifier_aliases"].values()), ["boba"])
+        self.assertEqual(mapping["ignored_live_variation_ids"], [])
+        self.assertIn("modifier_aliases:MODDELETED00000000000000", kwargs["notes"])
+        self.assertIn("ignored_live_variation_ids:VARDELETED00000000000000", kwargs["notes"])
+
+    def test_drop_missing_never_drops_an_id_that_was_not_named(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            with (
+                self.assertRaisesRegex(ValueError, "VARDELETED00000000000000"),
+                patch.object(cs, "upsert_catalog_binding", side_effect=_strict("upsert_catalog_binding")),
+            ):
+                self._translate(
+                    tmp, mapping=self._stale_mapping(), drop_missing=["MODDELETED00000000000000"]
+                )
+
+    def test_drop_missing_refuses_an_id_that_is_in_the_id_map(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            with self.assertRaisesRegex(ValueError, "not missing"):
+                self._translate(
+                    tmp,
+                    mapping=self._stale_mapping(),
+                    drop_missing=["MODDELETED00000000000000", "VARDELETED00000000000000", "MODBOBA00000000000000000"],
+                )
+
+    def test_drop_missing_refuses_an_id_the_binding_does_not_reference(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            with self.assertRaisesRegex(ValueError, "does not reference"):
+                self._translate(
+                    tmp,
+                    mapping=self._stale_mapping(),
+                    drop_missing=["MODDELETED00000000000000", "VARDELETED00000000000000", "TYPO0000000000000000000"],
+                )
+
+    def test_drop_missing_reaches_translate_binding_from_the_cli(self):
+        with _snapshot_dir() as tmp:
+            _export_and_replay(tmp)
+            with (
+                _sandbox_settings(),
+                patch.object(cs, "translate_binding", return_value=(0, 1)) as mock_translate,
+            ):
+                cs.main(
+                    ["translate-binding", "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                     "--environment", "sandbox", "--location-id", SANDBOX_LOCATION,
+                     "--drop-missing", "A", "--drop-missing", "B"]
+                )
+        self.assertEqual(mock_translate.call_args.args[4], ["A", "B"])
 
     def test_unmapped_prod_id_is_an_error_and_nothing_is_upserted(self):
         mapping = copy.deepcopy(PROD_MAPPING)
