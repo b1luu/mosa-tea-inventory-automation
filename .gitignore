@@ -29,6 +29,9 @@ data/backend_inventory_created_ids.json
 # Contains commercially-sensitive on-hand quantities — never commit. Keep
 # locally only; the script reads them once and writes nothing back.
 data/initial_stock_counts*.json
+# Catalog snapshots, ID maps and stock counts copied from production: the real
+# menu, prod catalog IDs, the prod merchant/location and on-hand quantities.
+data/catalog_snapshots/*prod*.json
 
 # Other env files (keep .env.example committable; block real ones)
 .env.local
