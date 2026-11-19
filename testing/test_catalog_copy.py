@@ -508,5 +508,109 @@ class CountsTests(unittest.TestCase):
         self.assertEqual(target.change_calls, [])
 
 
+@contextmanager
+def _no_clients():
+    """Any attempt to build a Square client or read a token fails the test."""
+    with (
+        patch.object(cs, "create_client", side_effect=_strict("create_client")),
+        patch.object(cs, "create_square_client", side_effect=_strict("create_square_client")),
+        patch.object(cs, "resolve_merchant_access_token", side_effect=_strict("resolve_merchant_access_token")),
+        patch.object(cs, "load_source", side_effect=_strict("load_source")),
+        patch.object(cs, "translate_binding", side_effect=_strict("translate_binding")),
+    ):
+        yield
+
+
+class MainGuardTests(unittest.TestCase):
+    def _with_snapshot(self, tmp):
+        cs.export_snapshot(_prod_square(), "mosa_prod_test", source=SOURCE)
+
+    # 1. Identity guard.
+    def test_writes_refuse_the_snapshots_source_merchant(self):
+        commands = (
+            ["replay", "--apply"],
+            ["translate-binding"],
+            ["copy-counts", "--apply"],
+        )
+        with _snapshot_dir() as tmp:
+            self._with_snapshot(tmp)
+            for command in commands:
+                with self.subTest(command=command), _sandbox_settings(), _no_clients():
+                    exit_code = cs.main(
+                        [command[0], "--account", "mosa_prod_test", "--merchant", PROD_MERCHANT,
+                         "--environment", "sandbox", "--location-id", SANDBOX_LOCATION, *command[1:]]
+                    )
+                    self.assertEqual(exit_code, 1)
+
+    def test_a_different_target_merchant_passes_the_identity_guard(self):
+        with _snapshot_dir() as tmp:
+            self._with_snapshot(tmp)
+            with (
+                _sandbox_settings(),
+                patch.object(cs, "translate_binding", return_value=(0, 1)) as mock_translate,
+            ):
+                exit_code = cs.main(
+                    ["translate-binding", "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                     "--environment", "sandbox", "--location-id", SANDBOX_LOCATION]
+                )
+        self.assertEqual(exit_code, 0)
+        mock_translate.assert_called_once()
+
+    # 2. Gitignore guard.
+    def test_git_confirms_prod_snapshot_names_are_ignored_and_others_are_not(self):
+        repo = Path(__file__).resolve().parents[1]
+        snapshots = repo / "data" / "catalog_snapshots"
+        for name in ("mosa_prod_2026-11-19.json", "mosa_prod_2026-11-19.idmap.json", "mosa_prod_2026-11-19.counts.json"):
+            self.assertTrue(cs.is_gitignored(snapshots / name), name)
+        self.assertFalse(cs.is_gitignored(snapshots / "fresh_copy_test.json"))
+
+    def test_production_export_refuses_a_file_that_is_not_gitignored(self):
+        for command in ("export", "export-counts"):
+            with self.subTest(command=command), _snapshot_dir() as tmp, _no_clients():
+                with patch.object(cs, "is_gitignored", return_value=False):
+                    exit_code = cs.main(
+                        [command, "--account", "mosa_prod_test", "--merchant", PROD_MERCHANT,
+                         "--environment", "production"]
+                    )
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(list(tmp.iterdir()), [])
+
+    def test_production_export_writes_when_the_file_is_gitignored(self):
+        with _snapshot_dir() as tmp:
+            with (
+                patch.object(cs, "is_gitignored", return_value=True) as mock_ignored,
+                patch.object(cs, "load_source", return_value=SOURCE),
+                patch.object(cs, "create_client", return_value=_prod_square()),
+            ):
+                exit_code = cs.main(
+                    ["export", "--account", "mosa_prod_test", "--merchant", PROD_MERCHANT,
+                     "--environment", "production"]
+                )
+            written = (tmp / "mosa_prod_test.json").exists()
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(written)
+        mock_ignored.assert_called_once_with(tmp / "mosa_prod_test.json")
+
+    # 3. main()-level production guard for replay.
+    def test_main_replay_against_production_exits_before_any_client_or_token(self):
+        with _snapshot_dir() as tmp:
+            self._with_snapshot(tmp)
+            for extra in ([], ["--apply"]):
+                with self.subTest(extra=extra), _sandbox_settings(), _no_clients():
+                    exit_code = cs.main(
+                        ["replay", "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                         "--environment", "production", *extra]
+                    )
+                    self.assertEqual(exit_code, 1)
+
+    # 4. Production always names a merchant.
+    def test_production_requires_merchant(self):
+        for command in ("export", "export-counts", "verify"):
+            with self.subTest(command=command), _snapshot_dir(), _no_clients():
+                with patch.object(cs, "is_gitignored", return_value=True):
+                    exit_code = cs.main([command, "--account", "mosa_prod_test", "--environment", "production"])
+                self.assertEqual(exit_code, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -63,6 +63,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -183,7 +184,45 @@ def refuse_production_writes(environment):
         )
 
 
+def refuse_source_merchant(account_slug, merchant_id):
+    """Writes never target the merchant the snapshot was exported from.
+
+    The name-based check in refuse_production_writes catches prod settings;
+    this catches the prod merchant ID itself, whatever the settings say.
+    """
+    path = _snapshot_path(account_slug)
+    if not path.exists():
+        return
+    source = json.loads(path.read_text()).get("source") or {}
+    if source.get("merchant_id") and source["merchant_id"] == merchant_id:
+        raise ValueError(
+            f"Refusing to write: {merchant_id!r} is the merchant this snapshot was "
+            "exported from."
+        )
+
+
+def is_gitignored(path):
+    """True only when git confirms the path is ignored. Errors count as not ignored."""
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", str(path)],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def require_gitignored(paths):
+    not_ignored = [str(p) for p in paths if not is_gitignored(p)]
+    if not_ignored:
+        raise ValueError(
+            "Refusing to export from production: these files are not gitignored: "
+            + ", ".join(not_ignored)
+        )
+
+
 def _target_catalog_is_empty(client):
+    # catalog.list hides archived items, so a target holding only archived
+    # objects looks empty here. A fresh account has none.
     for catalog_type in SNAPSHOT_TYPES:
         for _ in client.catalog.list(types=catalog_type):
             return False
@@ -945,6 +984,16 @@ def main(argv=None):
     print(f"environment: {environment} | merchant: {args.merchant or '(env token)'} | account: {args.account}")
 
     try:
+        if environment == "production" and not args.merchant:
+            raise ValueError("--environment production needs --merchant (no env-token fallback).")
+
+        if args.subcommand in ("export", "export-counts") and environment == "production":
+            out_path = (
+                _snapshot_path(args.account)
+                if args.subcommand == "export"
+                else _counts_path(args.account)
+            )
+            require_gitignored([out_path])
         if args.subcommand == "export":
             source = load_source(environment, args.merchant) if args.merchant else None
             return export_snapshot(create_client(environment, args.merchant), args.account, source=source)
@@ -953,12 +1002,20 @@ def main(argv=None):
 
         if not args.merchant:
             raise ValueError(f"{args.subcommand} needs --merchant for the target account.")
+
+        writes = (
+            args.subcommand == "translate-binding"
+            or (args.subcommand in ("replay", "copy-counts") and args.apply)
+        )
+        if args.subcommand == "replay" or writes:
+            refuse_production_writes(environment)
+        if writes:
+            refuse_source_merchant(args.account, args.merchant)
+
         if args.subcommand == "translate-binding":
             exit_code, _ = translate_binding(args.account, environment, args.merchant, args.location_id)
             return exit_code
 
-        if args.subcommand == "replay" or (args.subcommand == "copy-counts" and args.apply):
-            refuse_production_writes(environment)
         client = create_client(environment, args.merchant)
         if args.subcommand == "replay":
             return replay_snapshot(
