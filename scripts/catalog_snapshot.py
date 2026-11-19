@@ -71,6 +71,7 @@ from pathlib import Path
 
 from app.client import create_square_client
 from app.config import get_square_environment_name
+from app.json_utils import to_jsonable
 from app.merchant_store import (
     get_active_catalog_binding,
     get_merchant_context,
@@ -192,7 +193,8 @@ def refuse_source_merchant(account_slug, merchant_id):
     """
     path = _snapshot_path(account_slug)
     if not path.exists():
-        return
+        # Without the snapshot there is no source merchant to compare against.
+        raise ValueError(f"Refusing to write: snapshot not found: {path}")
     source = json.loads(path.read_text()).get("source") or {}
     if source.get("merchant_id") and source["merchant_id"] == merchant_id:
         raise ValueError(
@@ -951,12 +953,14 @@ def load_source(environment, merchant_id):
     binding = get_active_catalog_binding(environment, merchant_id, location_id)
     if not binding:
         raise ValueError(f"No active binding for {merchant_id!r} at {location_id!r}.")
+    # DynamoDB returns numbers as Decimal, which json cannot write.
+    version = binding.get("version")
     return {
         "environment": environment,
         "merchant_id": merchant_id,
         "location_id": location_id,
-        "binding_version": binding.get("version"),
-        "mapping": binding["mapping"],
+        "binding_version": int(version) if version is not None else None,
+        "mapping": to_jsonable(binding["mapping"]),
     }
 
 

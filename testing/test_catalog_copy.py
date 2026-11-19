@@ -542,6 +542,30 @@ class MainGuardTests(unittest.TestCase):
                     )
                     self.assertEqual(exit_code, 1)
 
+    def test_writes_refuse_when_the_snapshot_is_missing(self):
+        commands = (["replay", "--apply"], ["translate-binding"], ["copy-counts", "--apply"])
+        with _snapshot_dir():
+            for command in commands:
+                with self.subTest(command=command), _sandbox_settings(), _no_clients():
+                    exit_code = cs.main(
+                        [command[0], "--account", "mosa_prod_test", "--merchant", SANDBOX_MERCHANT,
+                         "--environment", "sandbox", "--location-id", SANDBOX_LOCATION, *command[1:]]
+                    )
+                    self.assertEqual(exit_code, 1)
+
+    def test_load_source_makes_dynamodb_decimals_writable(self):
+        from decimal import Decimal
+
+        stored = {"version": Decimal("7"), "mapping": {**PROD_MAPPING, "note_count": Decimal("2")}}
+        context = SimpleNamespace(location_id=PROD_LOCATION)
+        with (
+            patch.object(cs, "get_merchant_context", return_value=context),
+            patch.object(cs, "get_active_catalog_binding", return_value=stored),
+        ):
+            source = cs.load_source("production", PROD_MERCHANT)
+        self.assertEqual(source["binding_version"], 7)
+        json.dumps(source)
+
     def test_a_different_target_merchant_passes_the_identity_guard(self):
         with _snapshot_dir() as tmp:
             self._with_snapshot(tmp)
