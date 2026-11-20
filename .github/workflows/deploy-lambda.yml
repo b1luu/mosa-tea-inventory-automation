@@ -1,6 +1,19 @@
 name: Deploy Lambda Functions
 
 on:
+  # Continuous deploy to SANDBOX ONLY. A push can never target production: the
+  # target below is hard-wired to sandbox for push events, and the first step
+  # fails the job otherwise. Production stays a manual workflow_dispatch.
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "server.py"
+      - "requirements.txt"
+      - "data/recipe_map.json"
+      - "data/inventory_item_map.json"
+      - ".github/workflows/deploy-lambda.yml"
   workflow_dispatch:
     inputs:
       environment:
@@ -16,7 +29,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-lambda-functions-${{ inputs.environment }}
+  group: deploy-lambda-functions-${{ github.event_name == 'push' && 'sandbox' || inputs.environment }}
   cancel-in-progress: false
 
 env:
@@ -24,18 +37,19 @@ env:
   PYTHON_VERSION: "3.14"
   RUNTIME313_PYTHON_VERSION: "3.13"
   AWS_REGION: ${{ vars.AWS_REGION }}
-  TARGET_ENVIRONMENT: ${{ inputs.environment }}
+  # push -> sandbox, always; workflow_dispatch -> the chosen input.
+  TARGET_ENVIRONMENT: ${{ github.event_name == 'push' && 'sandbox' || inputs.environment }}
   # Lambda function names are sourced from PROD_* repo vars when deploying to
   # production, and from the unprefixed sandbox vars otherwise. The legacy
   # fallback variable is forced empty in production so a missing PROD_* var
   # cannot silently fall through to a sandbox function.
-  WORKER_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_WORKER_LAMBDA_FUNCTION_NAME || vars.WORKER_LAMBDA_FUNCTION_NAME }}
-  LEGACY_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && '' || vars.LAMBDA_FUNCTION_NAME }}
-  WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME || vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
-  MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME || vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
-  OAUTH_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_OAUTH_LAMBDA_FUNCTION_NAME || vars.OAUTH_LAMBDA_FUNCTION_NAME }}
-  BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME || vars.BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME }}
-  OAUTH_REFRESH_LAMBDA_FUNCTION_NAME: ${{ inputs.environment == 'production' && vars.PROD_OAUTH_REFRESH_LAMBDA_FUNCTION_NAME || vars.OAUTH_REFRESH_LAMBDA_FUNCTION_NAME }}
+  WORKER_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_WORKER_LAMBDA_FUNCTION_NAME || vars.WORKER_LAMBDA_FUNCTION_NAME }}
+  LEGACY_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && '' || vars.LAMBDA_FUNCTION_NAME }}
+  WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME || vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
+  MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME || vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
+  OAUTH_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_OAUTH_LAMBDA_FUNCTION_NAME || vars.OAUTH_LAMBDA_FUNCTION_NAME }}
+  BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME || vars.BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME }}
+  OAUTH_REFRESH_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_OAUTH_REFRESH_LAMBDA_FUNCTION_NAME || vars.OAUTH_REFRESH_LAMBDA_FUNCTION_NAME }}
   AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
 jobs:
@@ -45,8 +59,50 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Refuse production from a push
+        if: github.event_name == 'push'
+        run: |
+          if [ "${TARGET_ENVIRONMENT}" != "sandbox" ]; then
+            echo "::error::A push may only deploy to sandbox; resolved target is '${TARGET_ENVIRONMENT}'."
+            exit 1
+          fi
+          for NAME in WORKER_LAMBDA_FUNCTION_NAME LEGACY_LAMBDA_FUNCTION_NAME \
+            WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME \
+            OAUTH_LAMBDA_FUNCTION_NAME BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME \
+            OAUTH_REFRESH_LAMBDA_FUNCTION_NAME; do
+            case "${!NAME}" in
+              *prod*)
+                echo "::error::A push may only deploy to sandbox, but ${NAME} is '${!NAME}'."
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Require production function names
+        # Each name falls back to the sandbox variable when its PROD_* variable
+        # is missing, which would deploy sandbox while the run shows green.
+        if: env.TARGET_ENVIRONMENT == 'production'
+        run: |
+          for NAME in WORKER_LAMBDA_FUNCTION_NAME \
+            WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME \
+            OAUTH_LAMBDA_FUNCTION_NAME BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME \
+            OAUTH_REFRESH_LAMBDA_FUNCTION_NAME; do
+            case "${!NAME}" in
+              *-prod) ;;
+              *)
+                echo "::error::A production deploy needs PROD_${NAME} set to a -prod function; resolved '${!NAME}'."
+                exit 1
+                ;;
+            esac
+          done
+          if [ -n "${LEGACY_LAMBDA_FUNCTION_NAME}" ]; then
+            echo "::error::LEGACY_LAMBDA_FUNCTION_NAME must be empty for a production deploy."
+            exit 1
+          fi
+
       - name: Announce target environment
         run: |
+          echo "Event: ${GITHUB_EVENT_NAME}"
           echo "Target environment: ${TARGET_ENVIRONMENT}"
           if [ "${TARGET_ENVIRONMENT}" = "production" ]; then
             echo "::warning::Production deploy selected. This affects real merchant traffic."
