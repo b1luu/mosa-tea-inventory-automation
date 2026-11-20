@@ -11,6 +11,8 @@ on:
       - "app/**"
       - "server.py"
       - "requirements.txt"
+      - "data/recipe_map.json"
+      - "data/inventory_item_map.json"
       - ".github/workflows/deploy-lambda.yml"
   workflow_dispatch:
     inputs:
@@ -75,6 +77,28 @@ jobs:
                 ;;
             esac
           done
+
+      - name: Require production function names
+        # Each name falls back to the sandbox variable when its PROD_* variable
+        # is missing, which would deploy sandbox while the run shows green.
+        if: env.TARGET_ENVIRONMENT == 'production'
+        run: |
+          for NAME in WORKER_LAMBDA_FUNCTION_NAME \
+            WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME \
+            OAUTH_LAMBDA_FUNCTION_NAME BINDING_COVERAGE_CHECK_LAMBDA_FUNCTION_NAME \
+            OAUTH_REFRESH_LAMBDA_FUNCTION_NAME; do
+            case "${!NAME}" in
+              *-prod) ;;
+              *)
+                echo "::error::A production deploy needs PROD_${NAME} set to a -prod function; resolved '${!NAME}'."
+                exit 1
+                ;;
+            esac
+          done
+          if [ -n "${LEGACY_LAMBDA_FUNCTION_NAME}" ]; then
+            echo "::error::LEGACY_LAMBDA_FUNCTION_NAME must be empty for a production deploy."
+            exit 1
+          fi
 
       - name: Announce target environment
         run: |
