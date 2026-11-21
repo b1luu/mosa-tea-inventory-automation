@@ -11,6 +11,7 @@ from app.inventory_plan import (
 )
 from app.order_inventory_projection import is_log_only_inventory_key
 from app.order_loader import load_order_summaries_for_processing
+from app.square_errors import square_error_details
 
 
 def _serialize_response_model(response):
@@ -155,7 +156,10 @@ def apply_inventory_plan(plan, *, apply_changes=False, client=None, binding=None
         response = client.inventory.batch_create_changes(**inventory_request)
         return _serialize_response_model(response)
     except ApiError as error:
-        return {"error": f"Square API error: {error}"}
+        return {
+            "error": f"Square API error: {error}",
+            "square_errors": square_error_details(error),
+        }
 
 
 def process_order_summaries(

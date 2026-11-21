@@ -178,7 +178,11 @@ class IdempotentFakeSquareClient(FakeSquareClient):
         return _FakeInventoryResponse()
 
 
-class WorkerEndToEndTests(unittest.TestCase):
+class WorkerEndToEndHarness(unittest.TestCase):
+    """Real SQLite stores in a temp directory and a fake Square client."""
+
+    access_token = "fake-access-token"
+
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
@@ -221,7 +225,7 @@ class WorkerEndToEndTests(unittest.TestCase):
         upsert_manual_merchant(
             ENVIRONMENT,
             MERCHANT_ID,
-            "fake-access-token",
+            self.access_token,
             selected_location_id=LOCATION_ID,
             display_name="End To End Tea",
             writes_enabled=writes_enabled,
@@ -278,6 +282,8 @@ class WorkerEndToEndTests(unittest.TestCase):
     def _event_status(self):
         return get_webhook_event(EVENT_ID)["status"]
 
+
+class WorkerEndToEndTests(WorkerEndToEndHarness):
     # -- tests ---------------------------------------------------------------
 
     def test_completed_order_is_deducted_through_the_merchant_binding(self):

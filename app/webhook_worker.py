@@ -1,3 +1,5 @@
+import logging
+
 from app.client import create_square_client_for_merchant
 from app.config import get_square_environment_name
 from app.merchant_store import (
@@ -26,6 +28,7 @@ from app.order_processing_store import (
 )
 from app.order_processor import process_orders
 from app.usage_log_store import record_order_usage
+from app.worker_log import log_job_error, log_order_outcome
 from app.webhook_event_store import (
     EVENT_STATUS_FAILED,
     EVENT_STATUS_PROCESSED,
@@ -245,6 +248,15 @@ def _process_claimed_order(order_id, *, job=None):
         release_order_processing_claim(order_id)
         raise
 
+    # Logged only once the order is in its terminal state, so a failed
+    # transition is logged once, as a job_error, not also as an outcome.
+    log_order_outcome(
+        order_id=order_id,
+        merchant_id=merchant_processing_context["merchant_id"],
+        environment=merchant_processing_context["environment"],
+        processing_state=processing_state,
+        result=result,
+    )
     return processing_state, result
 
 
@@ -352,14 +364,20 @@ def replay_order_job(order_id):
 
 def process_webhook_job(job):
     event_id = job.get("event_id")
+    # The order's state as this run last knew it, for the job_error line.
+    known_state = None
 
     try:
         order_id = job["order_id"]
         claimed = claim_order_processing(order_id)
         if claimed:
+            # If this raises, the claim has been released back to pending.
+            known_state = PROCESSING_STATE_PENDING
             processing_state, _ = _process_claimed_order(order_id, job=job)
+            known_state = processing_state
         else:
             current_state = get_order_processing_state(order_id)
+            known_state = current_state
             if current_state in TERMINAL_PROCESSING_STATES:
                 processing_state = current_state
             else:
@@ -375,9 +393,20 @@ def process_webhook_job(job):
             )
             set_webhook_event_status(event_id, event_status)
         return processing_state
-    except RetryableWebhookJobError:
+    except RetryableWebhookJobError as error:
+        # A normal SQS retry (e.g. a duplicate delivery racing a live run).
+        log_job_error(
+            job,
+            error,
+            reason_code="order_not_ready",
+            processing_state=known_state,
+            level=logging.WARNING,
+        )
         raise
-    except Exception:
+    except Exception as error:
+        log_job_error(
+            job, error, reason_code="unhandled_exception", processing_state=known_state
+        )
         if event_id:
             set_webhook_event_status(event_id, EVENT_STATUS_FAILED)
         raise
