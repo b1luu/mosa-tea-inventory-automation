@@ -2,6 +2,7 @@ import json
 
 from app import order_processing_db
 from app.webhook_worker import process_webhook_job
+from app.worker_log import log_job_error
 
 
 def _check_claim_lease_outlives_this_run(context):
@@ -29,6 +30,15 @@ def lambda_handler(event, context):
         message_id = record["messageId"]
         try:
             job = json.loads(record["body"])
+            if not isinstance(job, dict):
+                raise TypeError(f"Job body is a {type(job).__name__}, not an object.")
+        except Exception as error:
+            # process_webhook_job logs its own errors; this covers a body it
+            # never sees.
+            log_job_error(None, error, reason_code="invalid_job_body")
+            batch_item_failures.append({"itemIdentifier": message_id})
+            continue
+        try:
             process_webhook_job(job)
         except Exception:
             batch_item_failures.append({"itemIdentifier": message_id})

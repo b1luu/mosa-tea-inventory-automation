@@ -7,6 +7,7 @@ from app.order_processing_store import (
     PROCESSING_STATE_APPLIED,
     get_order_processing_state,
 )
+from app.square_errors import square_error_details
 
 
 def normalize_square_order_for_inventory_plan(order):
@@ -49,6 +50,7 @@ def load_order_summaries_for_processing(order_ids, client=None, binding=None):
                 {
                     "order_id": order_id,
                     "reason": f"Square API error: {error}",
+                    "square_errors": square_error_details(error),
                 }
             )
             continue
