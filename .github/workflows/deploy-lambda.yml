@@ -42,9 +42,11 @@ env:
   # Lambda function names are sourced from PROD_* repo vars when deploying to
   # production, and from the unprefixed sandbox vars otherwise. The legacy
   # fallback variable is forced empty in production so a missing PROD_* var
-  # cannot silently fall through to a sandbox function.
+  # cannot silently fall through to a sandbox function. It is written
+  # `!= 'production' && vars.X || ''`, not `== 'production' && '' || vars.X`:
+  # '' is falsy in GitHub expressions, so the latter yields vars.X in production.
   WORKER_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_WORKER_LAMBDA_FUNCTION_NAME || vars.WORKER_LAMBDA_FUNCTION_NAME }}
-  LEGACY_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && '' || vars.LAMBDA_FUNCTION_NAME }}
+  LEGACY_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) != 'production' && vars.LAMBDA_FUNCTION_NAME || '' }}
   WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME || vars.WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME }}
   MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME || vars.MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME }}
   OAUTH_LAMBDA_FUNCTION_NAME: ${{ (github.event_name == 'push' && 'sandbox' || inputs.environment) == 'production' && vars.PROD_OAUTH_LAMBDA_FUNCTION_NAME || vars.OAUTH_LAMBDA_FUNCTION_NAME }}

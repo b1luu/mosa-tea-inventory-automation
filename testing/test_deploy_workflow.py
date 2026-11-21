@@ -2,7 +2,7 @@
 
 A push to main must only ever resolve to sandbox. These tests evaluate the
 workflow's own ${{ }} expressions for push and workflow_dispatch events (a
-small evaluator for the ==, &&, || and quoting they use), and check that the
+small evaluator for the ==, !=, &&, || and quoting they use), and check that the
 push guard runs before anything touches AWS. actionlint in CI checks syntax.
 """
 
@@ -19,7 +19,9 @@ TARGET_EXPRESSION = "github.event_name == 'push' && 'sandbox' || inputs.environm
 SANDBOX_VARS = {
     "AWS_REGION": "us-west-2",
     "WORKER_LAMBDA_FUNCTION_NAME": "mosa-tea-webhook-worker",
-    "LAMBDA_FUNCTION_NAME": "",
+    # Set, as in the real repo. With it empty, `== 'production' && '' || vars.X`
+    # looked right in tests and resolved to vars.X in a real production deploy.
+    "LAMBDA_FUNCTION_NAME": "mosa-tea-webhook-worker",
     "WEBHOOK_INGRESS_LAMBDA_FUNCTION_NAME": "mosa-tea-webhook-ingress",
     "MANUAL_COUNT_SYNC_LAMBDA_FUNCTION_NAME": "mosa-tea-manual-count-sync",
     "OAUTH_LAMBDA_FUNCTION_NAME": "mosa-tea-oauth",
@@ -36,9 +38,11 @@ ALL_VARS = {**SANDBOX_VARS, **PROD_VARS}
 
 
 def _evaluate(expression, *, event_name, environment_input, variables=None):
-    """Evaluate a GitHub expression made of ==, &&, ||, parentheses, quoted
-    strings, github.event_name, inputs.environment and vars.NAME."""
-    tokens = re.findall(r"'[^']*'|&&|\|\||==|\(|\)|[A-Za-z_][A-Za-z0-9_.]*", expression)
+    """Evaluate a GitHub expression made of ==, !=, &&, ||, parentheses, quoted
+    strings, github.event_name, inputs.environment and vars.NAME.
+
+    && and || return an operand, and '' is falsy, as in GitHub expressions."""
+    tokens = re.findall(r"'[^']*'|&&|\|\||==|!=|\(|\)|[A-Za-z_][A-Za-z0-9_.]*", expression)
     if "".join(tokens) != re.sub(r"\s+", "", expression):
         raise ValueError(f"Unsupported expression: {expression}")
     python = []
@@ -47,7 +51,7 @@ def _evaluate(expression, *, event_name, environment_input, variables=None):
             python.append(" and ")
         elif token == "||":
             python.append(" or ")
-        elif token in ("==", "(", ")"):
+        elif token in ("==", "!=", "(", ")"):
             python.append(f" {token} ")
         elif token.startswith("'"):
             python.append(repr(token[1:-1]))
@@ -122,6 +126,37 @@ class DeployWorkflowTargetTests(unittest.TestCase):
         sandbox = _resolve("workflow_dispatch", "sandbox")
         self.assertEqual(sandbox["TARGET_ENVIRONMENT"], "sandbox")
         self.assertEqual(sandbox["WORKER_LAMBDA_FUNCTION_NAME"], "mosa-tea-webhook-worker")
+
+    def test_legacy_name_is_empty_in_production_whatever_the_variable_holds(self):
+        for legacy_value in ("mosa-tea-webhook-worker", "anything-else", ""):
+            with self.subTest(LAMBDA_FUNCTION_NAME=legacy_value):
+                variables = dict(ALL_VARS, LAMBDA_FUNCTION_NAME=legacy_value)
+
+                production = _resolve("workflow_dispatch", "production", variables)
+                self.assertEqual(production["LEGACY_LAMBDA_FUNCTION_NAME"], "")
+
+                for event_name, environment_input in (
+                    ("push", ""),
+                    ("push", "production"),
+                    ("workflow_dispatch", "sandbox"),
+                ):
+                    sandbox = _resolve(event_name, environment_input, variables)
+                    self.assertEqual(
+                        sandbox["LEGACY_LAMBDA_FUNCTION_NAME"], legacy_value
+                    )
+
+    def test_no_expression_uses_an_empty_string_as_a_ternary_branch(self):
+        # `cond && '' || x` always yields x, because '' is falsy.
+        for name, expression in _expressions().items():
+            with self.subTest(name=name):
+                self.assertIsNone(
+                    re.search(r"&&\s*(''|\"\")\s*\|\|", expression), expression
+                )
+        # Also every other line (if:, run:, step env), skipping comments.
+        for line in _workflow_text().splitlines():
+            if line.strip().startswith("#"):
+                continue
+            self.assertIsNone(re.search(r"&&\s*(''|\"\")\s*\|\|", line), line)
 
     def test_every_environment_choice_goes_through_the_target_expression(self):
         text = _workflow_text()
@@ -209,8 +244,19 @@ class DeployWorkflowGuardScriptTests(unittest.TestCase):
         self.assertEqual(steps.index(self.PROD_GUARD), 1)
 
     def test_production_guard_passes_when_every_prod_var_is_set(self):
+        # ALL_VARS has LAMBDA_FUNCTION_NAME set, as in the real repo (run #43).
+        self.assertTrue(ALL_VARS["LAMBDA_FUNCTION_NAME"])
         result = _run_step(self.PROD_GUARD, _resolve("workflow_dispatch", "production"), "workflow_dispatch")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_production_guard_fails_when_the_legacy_name_leaks_through(self):
+        resolved = dict(
+            _resolve("workflow_dispatch", "production"),
+            LEGACY_LAMBDA_FUNCTION_NAME="mosa-tea-webhook-worker",
+        )
+        result = _run_step(self.PROD_GUARD, resolved, "workflow_dispatch")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("LEGACY_LAMBDA_FUNCTION_NAME must be empty", result.stdout)
 
     def test_a_missing_prod_var_fails_the_production_guard(self):
         for missing in sorted(PROD_VARS):
