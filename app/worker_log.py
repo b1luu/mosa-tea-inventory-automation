@@ -163,7 +163,13 @@ def _failed_reason_and_details(result):
 
 
 def _emit(level, event):
-    logger.log(level, json.dumps(event, default=str))
+    # Swallow everything: the callers run inside except blocks, before the
+    # webhook event is marked failed and the original error is re-raised. A
+    # logging failure there would hide the real error and skip the update.
+    try:
+        logger.log(level, json.dumps(event, default=str))
+    except Exception:
+        pass
 
 
 def _event(event, *, order_id, merchant_id, environment, processing_state, reason_code, details):
@@ -210,7 +216,9 @@ def log_order_outcome(*, order_id, merchant_id, environment, processing_state, r
     )
 
 
-def log_job_error(job, error, *, reason_code, processing_state=None):
+def log_job_error(
+    job, error, *, reason_code, processing_state=None, level=logging.ERROR
+):
     """Log one line for a job that raised. Never raises."""
     job = job if isinstance(job, dict) else {}
     try:
@@ -222,7 +230,7 @@ def log_job_error(job, error, *, reason_code, processing_state=None):
     except Exception:
         details = {"exception_type": "unknown"}
     _emit(
-        logging.ERROR,
+        level,
         _event(
             EVENT_JOB_ERROR,
             order_id=job.get("order_id"),

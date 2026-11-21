@@ -123,6 +123,29 @@ def worker_lines(captured):
     return events
 
 
+def worker_levels(captured):
+    prefix = f" {WORKER_LOGGER} "
+    return [line.split(" ", 1)[0] for line in captured["lines"] if prefix in line]
+
+
+class _RaisingHandler(logging.Handler):
+    """A broken log handler: Logger.log lets its exception propagate."""
+
+    def emit(self, record):
+        raise OSError("log sink unavailable")
+
+
+@contextlib.contextmanager
+def broken_worker_logger():
+    worker_logger = logging.getLogger(WORKER_LOGGER)
+    handler = _RaisingHandler()
+    worker_logger.addHandler(handler)
+    try:
+        yield
+    finally:
+        worker_logger.removeHandler(handler)
+
+
 class WorkerFailureLoggingTests(WorkerEndToEndHarness):
     access_token = FAKE_TOKEN
 
@@ -370,6 +393,7 @@ class WorkerFailureLoggingTests(WorkerEndToEndHarness):
             reason_code="unhandled_exception",
         )
         self.assertEqual(get_order_processing_state(ORDER_ID), "pending")
+        self.assertEqual(worker_levels(captured), ["ERROR"])
         self.assertEqual(event["details"]["exception_type"], "RuntimeError")
         self.assertTrue(event["details"]["message"].startswith("connection reset;"))
 
@@ -440,6 +464,8 @@ class WorkerFailureLoggingTests(WorkerEndToEndHarness):
             processing_state="processing",
             reason_code="order_not_ready",
         )
+        # A normal SQS retry, not an error.
+        self.assertEqual(worker_levels(captured), ["WARNING"])
 
     def test_lambda_logs_a_job_that_raises_once(self):
         self._connect_merchant()
@@ -480,6 +506,45 @@ class WorkerFailureLoggingTests(WorkerEndToEndHarness):
                 order_id=None,
                 reason_code="invalid_job_body",
             )
+
+    # -- a broken logger never changes what the worker does -------------------
+
+    def test_broken_logger_does_not_mask_the_job_error(self):
+        self._connect_merchant()
+        self._ingest_order_event()
+        client = FakeSquareClient(
+            self._order(), order_error=RuntimeError("the real error")
+        )
+
+        with broken_worker_logger():
+            with self.assertRaises(RuntimeError) as raised:
+                self._run_worker(client)
+
+        self.assertEqual(str(raised.exception), "the real error")
+        self.assertEqual(self._event_status(), "failed")
+        self.assertEqual(get_order_processing_state(ORDER_ID), "pending")
+
+    def test_broken_logger_does_not_mask_order_not_ready(self):
+        with (
+            patch("app.webhook_worker.claim_order_processing", return_value=False),
+            patch(
+                "app.webhook_worker.get_order_processing_state",
+                return_value="processing",
+            ),
+            broken_worker_logger(),
+        ):
+            with self.assertRaises(RetryableWebhookJobError):
+                process_webhook_job(self.job)
+
+    def test_broken_logger_does_not_fail_a_blocked_order(self):
+        self._connect_merchant(writes_enabled=False)
+        self._ingest_order_event()
+
+        with broken_worker_logger():
+            processing_state, _ = self._run_worker(FakeSquareClient(self._order()))
+
+        self.assertEqual(processing_state, "blocked")
+        self.assertEqual(self._event_status(), "processed")
 
     # -- no line -------------------------------------------------------------
 

@@ -1,3 +1,5 @@
+import logging
+
 from app.client import create_square_client_for_merchant
 from app.config import get_square_environment_name
 from app.merchant_store import (
@@ -392,8 +394,13 @@ def process_webhook_job(job):
             set_webhook_event_status(event_id, event_status)
         return processing_state
     except RetryableWebhookJobError as error:
+        # A normal SQS retry (e.g. a duplicate delivery racing a live run).
         log_job_error(
-            job, error, reason_code="order_not_ready", processing_state=known_state
+            job,
+            error,
+            reason_code="order_not_ready",
+            processing_state=known_state,
+            level=logging.WARNING,
         )
         raise
     except Exception as error:
