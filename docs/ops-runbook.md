@@ -114,9 +114,9 @@ aws --no-cli-pager lambda get-function-configuration \
 | Section | Meaning | Action |
 |---|---|---|
 | BLOCKED | the worker refused the order (the `reason` line says why: usually an unmapped drink) | fix the mapping or recipe; replay only if no recount has happened since the sale |
-| FAILED | the Square write failed | check worker logs for that order; replay under the same recount rule |
+| FAILED | a Square call failed, or the order could not be applied when fetched | find the order's `order_failed` line in the worker logs; replay under the same recount rule |
 | STUCK | the order never finished processing (crash mid-job, or the worker Lambda was killed at its timeout) | check the DLQ and worker logs, then replay (an SQS retry normally takes over a `processing` claim once it is 90 s old, so this shows up only if that also failed) |
-| MISSED | no processing record: the webhook never arrived or was ignored | check the webhook event store for the order; replay under the recount rule |
+| MISSED | no processing record: the webhook never arrived or was ignored | check the webhook event store for the order; recover it with `scripts.recover_missed_orders` under the recount rule |
 | REVERSED AFTER DEDUCTION | cancelled after we deducted | nothing; the recount corrects it. Watch the volume (a revisit trigger in [order-state-handling-decision.md](order-state-handling-decision.md)) |
 | PAID BUT NOT DEDUCTIBLE | 3+ paid orders from one channel that the deduction rule skips | a channel behaves in a way the rule doesn't expect (as the Kiosk once did): investigate before it costs a recount |
 | Binding coverage issues | live items the binding can't deduct | see *Binding coverage alarm* below |
@@ -131,7 +131,7 @@ aws --no-cli-pager lambda get-function-configuration \
 
 A STUCK order in `processing` replays only once its claim is older than the 90-second lease (`CLAIM_LEASE_SECONDS`); before that, `replay_order` refuses it because the run holding it may still be alive. A normal SQS retry takes it over the same way.
 
-A MISSED order has no processing record, so `replay_order` refuses it (replay needs the stored merchant context). Those are left to the recount for now.
+A MISSED order has no processing record, so `replay_order` refuses it (replay needs the stored merchant context). Use `scripts.recover_missed_orders` instead: it is a dry run by default, `--apply` queues the order, and `--order-id` limits the run to one order.
 
 **Run it by hand** (for example after fixing a mapping):
 

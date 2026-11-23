@@ -7,6 +7,7 @@ This repo now includes a public-safe Terraform scaffold under [`infra/`](../infr
 - manual count sync Lambda
 - OAuth Lambda
 - scheduled binding coverage check Lambda
+- scheduled OAuth refresh Lambda
 - webhook HTTP API
 - manual sync HTTP API
 - OAuth HTTP API
@@ -28,13 +29,15 @@ The Terraform scaffold now includes a minimal CloudWatch alarm set for the webho
 - oldest visible message age on the main webhook jobs queue
 - webhook worker Lambda errors
 - scheduled binding coverage check Lambda errors
+- scheduled OAuth refresh Lambda errors
 
 Default thresholds:
 
 - DLQ visible messages: `1`
-- oldest visible main-queue message age: `300` seconds
+- oldest visible main-queue message age: `1200` seconds (paid-but-open orders are queued with a 900-second hold, so this must exceed 900)
 - webhook worker Lambda errors: `1` over `5` minutes
 - binding coverage check Lambda errors: `1` over `5` minutes
+- OAuth refresh Lambda errors: `1` over `5` minutes
 
 These alarms are intentionally infrastructure-level only. They do not require any application refactor or custom metrics.
 
@@ -89,14 +92,18 @@ Files:
 
 - [`infra/versions.tf`](../infra/versions.tf)
 - [`infra/variables.tf`](../infra/variables.tf)
+- [`infra/locals.tf`](../infra/locals.tf)
 - [`infra/dynamodb.tf`](../infra/dynamodb.tf)
 - [`infra/sqs.tf`](../infra/sqs.tf)
 - [`infra/cloudwatch.tf`](../infra/cloudwatch.tf)
 - [`infra/iam.tf`](../infra/iam.tf)
 - [`infra/lambda.tf`](../infra/lambda.tf)
+- [`infra/binding_coverage_check.tf`](../infra/binding_coverage_check.tf)
+- [`infra/oauth_refresh.tf`](../infra/oauth_refresh.tf)
 - [`infra/api_gateway.tf`](../infra/api_gateway.tf)
 - [`infra/outputs.tf`](../infra/outputs.tf)
 - [`infra/sandbox.tfvars.example`](../infra/sandbox.tfvars.example)
+- [`infra/production.tfvars.example`](../infra/production.tfvars.example)
 
 ## Adopt Existing AWS Resources
 
@@ -175,7 +182,7 @@ Current package ownership:
   - used by the existing 3.14-backed webhook ingress / worker / manual sync Lambdas during local packaging flows
 - `runtime313_lambda_package_path`
   - defaults to `../.build/runtime313/lambda-package.zip`
-  - used by the 3.13-backed OAuth and binding coverage check Lambdas
+  - used by the 3.13-backed OAuth, OAuth refresh and binding coverage check Lambdas
 
 When adopting the current live stack, make sure these variables match the IAM role names AWS already assigned to the Lambdas:
 
@@ -212,12 +219,12 @@ Until that second apply is complete, the deployed OAuth callback should be treat
 
 ## Runtime Compatibility Note
 
-The current live Lambdas run `python3.14`, but the Terraform AWS provider version used by this scaffold currently validates Lambda runtimes only through `python3.13`.
+The live webhook ingress, worker and manual count sync Lambdas run `python3.14`; the OAuth, OAuth refresh and binding coverage check Lambdas run `python3.13`. The Terraform AWS provider version used by this scaffold currently validates Lambda runtimes only through `python3.13`.
 
 To keep planning and import safe:
 
 - the scaffold defaults `lambda_runtime` to `python3.13`
-- the Lambda resources ignore runtime drift during adoption
+- every Lambda resource except OAuth (which is on `python3.13`) ignores runtime drift
 
 This is a temporary compatibility shim for Terraform planning. Once the provider supports `python3.14`, you can remove the workaround and align the runtime in Terraform with the live AWS setting.
 
@@ -238,14 +245,15 @@ The live stack already has some hand-applied tags and queue settings. To keep th
 
 - `manage_resource_tags` defaults to `false`
 - SQS defaults are aligned with the current live queues
+- both queues ignore `visibility_timeout_seconds` drift, so changing the variable does not change the live queue; apply that change with `aws sqs set-queue-attributes` too
 - the merchant bindings table is modeled as a hash-only table, matching the live schema
 
 That reduces noisy drift and avoids dangerous replacement of the bindings table during import.
 
 ## Notes
 
-- The Terraform scaffold uses a shared Lambda package, matching the current GitHub Actions deploy model.
-- Terraform ignores Lambda package/hash drift for all four functions, so infra-only applies do not accidentally redeploy code when the local build artifact differs from what is live in AWS.
+- The Terraform scaffold uses one shared Lambda package per Python runtime (3.14 and 3.13), matching the current GitHub Actions deploy model.
+- Terraform ignores Lambda package/hash drift for all six functions, so infra-only applies do not accidentally redeploy code when the local build artifact differs from what is live in AWS.
 - It parameterizes sensitive values but does not store them.
 - It now includes a dedicated OAuth state table with TTL for short-lived callback state.
 - The OAuth API is intentionally separate from the webhook API and manual sync API to keep automation ingress, reconciliation tooling, and auth/onboarding concerns modular.

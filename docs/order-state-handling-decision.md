@@ -59,7 +59,7 @@ To satisfy that gate, the deployed system must provide all of the following:
 - no other order state reaches the inventory write path
 
 2. Explicit ignore behavior for non-terminal states
-- `DRAFT`, `OPEN`, and `CANCELED` events are recorded for observability
+- `DRAFT`, unpaid `OPEN`, and `CANCELED` events are recorded for observability
 - those events do not reserve or commit inventory
 
 3. Reversal events stay out of scope
@@ -99,7 +99,7 @@ That complexity is not justified for a single-merchant deployment with low rever
 Because this decision is locked in:
 
 - `app/webhook_ingress.py` and `app/order_loader.py` gate on `app/order_commit_rules.py`: `COMPLETED`, or `OPEN` and paid in full
-- the webhook event ledger records non-`COMPLETED` order events as ignored for observability
+- the webhook event ledger records order events that do not commit as ignored for observability
 - the manual count sync path is load-bearing for reconciliation correctness
 - the manual reconciliation path must not be deprecated without revisiting this decision
 
@@ -232,7 +232,7 @@ So a paid-but-`OPEN` order is queued with a **900-second SQS delay**
   reserved by its paid event is ignored, so each order is deducted once.
 
 A cancellation after the hold is a reversal, and stays out of scope as above:
-the recount corrects it, and the planned daily reconciliation reports it.
+the recount corrects it, and the daily reconciliation reports it.
 
 The queue-age alarm threshold moved from 300 s to **1,200 s**, because a held
 job is already 900 s old when it becomes visible.
