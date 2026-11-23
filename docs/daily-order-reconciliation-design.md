@@ -3,8 +3,9 @@
 > **Status: built 2026-10-19.** The paid-in-full rule shipped in PR #61; the
 > daily check is `app/order_reconciliation.py`, run by the daily Lambda. All
 > decisions are recorded at the end. One gap found while building: a MISSED
-> order has no processing record, so `scripts/replay_order` cannot replay it;
-> those are left to the recount.
+> order has no processing record, so `scripts/replay_order` cannot replay it.
+> `scripts/recover_missed_orders.py` (PR #73) now queues those orders; the same
+> recount rule applies.
 
 ## Problem
 
@@ -115,7 +116,7 @@ puts each one in exactly one bucket.
 | Bucket | Meaning | Example cause |
 |---|---|---|
 | **blocked** | should commit; processing state `blocked` | unmapped drink, hot drink with jelly |
-| **failed** | should commit; state `failed` | Square API error during apply |
+| **failed** | should commit; state `failed` | Square API error during fetch or apply |
 | **stuck** | should commit; state `pending` or `processing` | crash mid-job (the 2026-10-10 deploy) |
 | **missed** | should commit; **no processing record at all** | webhook never arrived, or ingress ignored it |
 | **reversed after deduction** | state `applied`, but Square now shows `CANCELED` | refund or cancellation after we deducted |
@@ -152,6 +153,10 @@ failed or stuck order, it runs a **dry run** of the same projection the worker
 runs (`process_orders(..., apply_changes=False)` with the active binding) and
 reports the skipped line items' reasons, e.g.
 `No recipe mapping found for sold variation 'XYZ' (Momo Frost)`.
+
+Since PR #77 the worker also logs the original reason as one structured line
+(`order_blocked` or `order_failed`) in CloudWatch. The email still uses the dry
+run.
 
 The reason reflects **today's** recipes and binding. If the problem has since
 been fixed, the dry run comes back clean, and the email says *"would apply now"*
@@ -222,7 +227,7 @@ and the Square order ID (omitted above for width) so it can be found or
 replayed.
 
 On clean days, **no daily email**. The run still logs a one-line summary
-(`reconciliation_clean | orders=124 applied=90 ...`), and a crash still alarms.
+(`order_reconciliation | payload={...}`), and a crash still alarms.
 
 ### Weekly summary (every Monday)
 
@@ -273,10 +278,11 @@ final.
 ## Implementation outline
 
 1. `app/order_reconciliation.py`
-   - `fetch_orders_for_local_day(client, location_id, day, tz)`
-   - `classify(orders, processing_records)`: pure, returns the buckets
-   - `explain(order_ids, binding)`: dry-run reasons
-   - `format_email(report)`
+   - `fetch_orders_for_day(client, location_id, day)`
+   - `classify(orders, records_by_order_id)`: pure, returns the buckets
+   - `explain(entries, client, binding)`: dry-run reasons
+   - `format_day_lines(report)`, `format_totals_line(report)` and
+     `format_weekly_lines(day_reports)`
 2. `app/lambda_binding_coverage_check.py`: after the coverage step, run the
    reconciliation for yesterday; merge findings into one email; one subject
    line covering both. On Mondays (Pacific), also send the weekly summary.

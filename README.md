@@ -1,6 +1,6 @@
 # Mosa Tea Inventory Automation
 
-Turns completed Square drink orders into raw ingredient and packaging depletion.
+Turns paid Square drink orders into raw ingredient and packaging depletion.
 
 This project exists because POS sales are not the same thing as inventory consumption. A single drink sale can imply tea leaves, milk, sugar-level rules, toppings, foam, cups, lids, and straws. This service maps that gap and writes the resulting inventory adjustments back to Square.
 
@@ -70,7 +70,7 @@ This project exists because POS sales are not the same thing as inventory consum
 - Local mode with SQLite
 - AWS-backed mode with SQS, Lambda, DynamoDB, Secrets Manager, and DLQ
 - Public-safe Terraform scaffold for the AWS footprint
-- GitHub Actions CI plus manual Lambda deploy workflow
+- GitHub Actions CI, automatic Lambda deploys to sandbox on push to `main`, and manual production deploys
 
 ## Stack
 
@@ -131,9 +131,10 @@ Use one command before pushing or after infra changes:
 ./scripts/sanity_check.sh
 ```
 
-It does two things by default:
+It does three things by default:
 
 - bytecode compile check for `app/`, `scripts/`, and `server.py`
+- recipe map validation
 - full `unittest` suite
 
 For an infra-aware version after `terraform -chdir=infra init`, run:
@@ -187,7 +188,7 @@ aws --no-cli-pager sqs get-queue-attributes \
 Expected success signals:
 
 - Ingress logs show `order.created` / `order.updated` webhook receipts, then duplicate deliveries being ignored.
-- Worker logs show one invocation for the completed order.
+- Worker logs show one invocation for the completed order. An order that ends blocked or failed, or a job that raises, also logs one structured JSON line (`order_blocked`, `order_failed` or `job_error`).
 - Canary output moves `processing_state` from `null` to `pending` to `processing` to `applied`.
 - Canary ends with `canary_complete | success=true`.
 - SQS shows `ApproximateNumberOfMessages=0` and `ApproximateNumberOfMessagesNotVisible=0`.
@@ -259,7 +260,7 @@ Google Sheets button -> Apps Script batch request -> API Gateway -> manual count
 
 Manual sync is intentionally separate from the order webhook pipeline:
 
-- order automation handles depletion caused by completed drink sales
+- order automation handles depletion caused by paid drink sales
 - manual sync handles physical recount reconciliation from the sheet
 
 Current operator model:
@@ -292,6 +293,7 @@ Expected success behavior:
 - `app/lambda_manual_count_sync.py`: Lambda handler for Google Sheets batch recount sync
 - `app/order_processor.py`: shared processing pipeline
 - `app/webhook_worker.py`: queue job execution
+- `app/worker_log.py`: structured failure log lines
 - `app/lambda_sqs_worker.py`: Lambda handler
 - `app/order_inventory_projection.py`: recipe resolution and usage projection
 - `app/order_processing_store.py`: order-processing state abstraction

@@ -2,11 +2,11 @@
 
 This project uses a main SQS queue for normal webhook jobs:
 
-- `mosa-tea-webhook-jobs`
+- `mosa-tea-webhook-jobs` (sandbox), `mosa-tea-webhook-jobs-prod` (production)
 
 and a dead-letter queue (DLQ) for jobs that keep failing:
 
-- `mosa-tea-webhook-jobs-dlq`
+- `mosa-tea-webhook-jobs-dlq` (sandbox), `mosa-tea-webhook-jobs-dlq-prod` (production)
 
 ## What a DLQ Is
 
@@ -40,19 +40,19 @@ From SQS's point of view, a job succeeds when `process_webhook_job` returns with
 
 - `applied` — inventory changes were written to Square
 - `blocked` — a write-readiness gate or unmapped line item stopped the write
-- `failed` — the Square inventory call returned an error
+- `failed` — the Square inventory call returned an error, or the order could not be applied when the worker fetched it (Square fetch error, order not found, no longer paid in full)
 - `cancelled_before_apply` — the order was cancelled during the hold, before apply
 
 All four are terminal: the message is acknowledged and removed from the queue, and a later duplicate delivery for the same order is a no-op.
 
-Note that `failed` is terminal but not a happy outcome. The worker records it in the order state and marks the webhook event `FAILED`, but the message does **not** go to the DLQ. Recover these with `scripts/replay_failed_orders.py` or `scripts/replay_order.py`.
+Note that `failed` is terminal but not a happy outcome. The worker records it in the order state and marks the webhook event `FAILED`, but the message does **not** go to the DLQ. The worker logs why as one `order_failed` JSON line (`app/worker_log.py`). Recover these with `scripts/replay_failed_orders.py` or `scripts/replay_order.py`.
 
 A job is reported to SQS as failed (via `batchItemFailures` in `app/lambda_sqs_worker.py`) when the worker raises instead:
 
 - `RetryableWebhookJobError` — the order could not be claimed and is not yet terminal (for example, another worker claimed it as `processing` less than `CLAIM_LEASE_SECONDS` ago)
 - any other exception — malformed body, missing `order_id`, unresolved merchant context, a failed state transition, and so on; the processing claim is released first so a retry can claim it again
 
-Those messages are retried and, after `maxReceiveCount` receives (`webhook_queue_max_receive_count`, default `3`), moved to the DLQ.
+Each raised job logs one `job_error` JSON line (`order_not_ready` at WARNING, the rest at ERROR). Those messages are retried and, after `maxReceiveCount` receives (`webhook_queue_max_receive_count`, default `3`), moved to the DLQ.
 
 ## A Run Killed Mid-Job
 
@@ -66,7 +66,7 @@ With the default settings:
 | ~120 s | SQS redelivers (visibility timeout); the claim is older than 90 s, so the retry takes it over and finishes the order |
 | ~240 s | last retry, only reached if the ~120 s one also failed |
 
-Re-running is safe: the Square write reuses the same idempotency key, and usage-log rows have fixed keys.
+Re-running is safe: the Square write reuses the same idempotency key and, for orders up to 23 hours old, the same `occurred_at`, so a retry after a successful write ends `applied` with one deduction. Usage-log rows have fixed keys. Older orders use the current time, so Square refuses that retry and the order ends `failed` even though it was deducted once.
 
 If the order still ends up in the DLQ, `scripts/replay_order.py` recovers it the same way; it refuses a claim younger than the lease, because that run may still be alive.
 
