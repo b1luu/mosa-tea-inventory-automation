@@ -8,7 +8,7 @@ This runbook is for operator response to alarms and inventory incidents. It assu
 
 ### DLQ has messages
 
-**When this fires:** the `mosa-tea-webhook-jobs-dlq-visible-messages` alarm fired because at least one webhook job was redriven to the dead-letter queue.
+**When this fires:** the `mosa-tea-webhook-jobs-dlq-visible-messages-prod` alarm (sandbox: `…-sandbox`) fired because at least one webhook job was redriven to the dead-letter queue.
 
 **Diagnose:**
 
@@ -47,7 +47,7 @@ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 30m
 
 ### Main queue is aging
 
-**When this fires:** the `mosa-tea-webhook-jobs-oldest-message-age` alarm fired because the oldest visible webhook job has been waiting too long in the main queue. The threshold is 1,200 s: paid-but-open orders are deliberately queued with a 15-minute hold, so a job is normally up to 900 s old when it runs. Jobs waiting in their hold (`ApproximateNumberOfMessagesDelayed`) are expected and are not a problem.
+**When this fires:** the `mosa-tea-webhook-jobs-oldest-message-age-prod` alarm (sandbox: `…-sandbox`) fired because the oldest visible webhook job has been waiting too long in the main queue. The threshold is 1,200 s: paid-but-open orders are deliberately queued with a 15-minute hold, so a job is normally up to 900 s old when it runs. Jobs waiting in their hold (`ApproximateNumberOfMessagesDelayed`) are expected and are not a problem.
 
 **Diagnose:**
 
@@ -76,7 +76,7 @@ aws --no-cli-pager logs tail /aws/lambda/mosa-tea-webhook-worker --since 30m
 
 ### Worker Lambda errors
 
-**When this fires:** the `mosa-tea-webhook-worker-errors` alarm fired because the worker Lambda emitted one or more errors in a five-minute window.
+**When this fires:** the `mosa-tea-webhook-worker-errors-prod` alarm (sandbox: `…-sandbox`) fired because the worker Lambda emitted one or more errors in a five-minute window.
 
 **Diagnose:**
 
@@ -241,7 +241,7 @@ Then the same command with `--apply`. Use one delivery id per shipment: re-runni
 
 **When this fires:** either
 
-- the `mosa-tea-oauth-refresh-errors` alarm emails: the daily scheduled refresh (`mosa-tea-oauth-refresh-prod`) failed for at least one merchant. It renews tokens 10 days before expiry, so there is usually more than a week before order deductions are affected; or
+- the `mosa-tea-oauth-refresh-errors-prod` alarm emails: the daily scheduled refresh (`mosa-tea-oauth-refresh-prod`) failed for at least one merchant. It renews tokens 10 days before expiry, so there is usually more than a week before order deductions are affected; or
 - the worker logs show auth or token-refresh failures while attempting merchant-scoped Square API calls (the worker also renews a token on demand within 5 minutes of expiry).
 
 **Diagnose:**

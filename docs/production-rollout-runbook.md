@@ -37,8 +37,8 @@ workspace.** Always run `terraform workspace show` before any apply.
 
 ## Known gotchas (read this once)
 
-One oddity of this stack to be aware of. Tracked for a follow-up cleanup PR;
-the runbook works around it.
+Two historical gotchas of this stack, both now fixed. Item 2 needs a one-time
+migration before its first apply.
 
 1. **`terraform.tfvars` auto-load — RESOLVED**. Previously Terraform read
    `infra/terraform.tfvars` automatically for every workspace, so sandbox
@@ -48,16 +48,7 @@ the runbook works around it.
    must now pass `-var-file=sandbox.tfvars` or `-var-file=production.tfvars`
    explicitly** — no implicit default.
 
-2. **Three CloudWatch alarm names are not workspace-suffixed.** Specifically
-   `mosa-tea-binding-coverage-check-errors`,
-   `mosa-tea-webhook-jobs-dlq-visible-messages`,
-   `mosa-tea-webhook-jobs-oldest-message-age`, and
-   `mosa-tea-webhook-worker-errors`. CloudWatch alarm names are globally
-   unique per AWS account, and `PutMetricAlarm` is UPSERT. On the first
-   production apply these alarms get hijacked from sandbox — production
-   takes ownership and the alarms start watching production Lambdas/queues.
-   This is harmless for production but **leaves sandbox temporarily
-   un-alarmed**. The fix (workspace-suffixed names) is a separate PR.
+2. **Account-unique names are now environment-suffixed — migration required once.** EventBridge rule names and CloudWatch alarm names are unique per account, and `PutRule` and `PutMetricAlarm` are upserts. The two rules (`…-oauth-refresh`, `…-binding-coverage-check`) and all **five** alarms (`…-webhook-jobs-dlq-visible-messages`, `…-webhook-jobs-oldest-message-age`, `…-webhook-worker-errors`, `…-oauth-refresh-errors`, `…-binding-coverage-check-errors`) used to be named from `project_name` only. Sandbox and production therefore shared one physical copy, and whichever workspace applied last owned it. That was not harmless: a sandbox apply would repoint prod's OAuth refresh, coverage check and alarms at sandbox. They now end in `-prod` or `-sandbox` (`local.name_suffix`). The migration does not create the `-sandbox` copies; they come with a later sandbox reconciliation apply. Before the first apply of that change, follow [One-time migration](terraform-infrastructure.md#one-time-migration-environment-scoped-rule-and-alarm-names).
 
 ---
 

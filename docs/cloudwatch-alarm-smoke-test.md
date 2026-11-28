@@ -30,9 +30,11 @@ aws sqs send-message \
 
 ## 3. Wait about 90 seconds, then check the DLQ alarm
 
+The `-sandbox` alarm exists only after the sandbox reconciliation apply (see [One-time migration](terraform-infrastructure.md#one-time-migration-environment-scoped-rule-and-alarm-names), step 5).
+
 ```bash
 aws cloudwatch describe-alarms \
-  --alarm-names "mosa-tea-webhook-jobs-dlq-visible-messages" \
+  --alarm-names "mosa-tea-webhook-jobs-dlq-visible-messages-sandbox" \
   --query 'MetricAlarms[0].{State:StateValue,Reason:StateReason,Updated:StateUpdatedTimestamp}' \
   --output table
 ```
@@ -66,9 +68,11 @@ Expected:
 
 ## 6. Wait about 90 seconds, then check the alarm again
 
+The `-sandbox` alarm exists only after the sandbox reconciliation apply (see [One-time migration](terraform-infrastructure.md#one-time-migration-environment-scoped-rule-and-alarm-names), step 5).
+
 ```bash
 aws cloudwatch describe-alarms \
-  --alarm-names "mosa-tea-webhook-jobs-dlq-visible-messages" \
+  --alarm-names "mosa-tea-webhook-jobs-dlq-visible-messages-sandbox" \
   --query 'MetricAlarms[0].{State:StateValue,Reason:StateReason,Updated:StateUpdatedTimestamp}' \
   --output table
 ```
