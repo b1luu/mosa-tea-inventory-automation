@@ -11,9 +11,14 @@ variable "project_name" {
 }
 
 variable "environment_name" {
-  description = "Logical environment label used in tags."
+  description = "Logical environment label used in tags and in the -prod/-sandbox suffix of account-unique names."
   type        = string
   default     = "sandbox"
+
+  validation {
+    condition     = contains(["sandbox", "production"], var.environment_name)
+    error_message = "environment_name must be \"sandbox\" or \"production\"."
+  }
 }
 
 variable "lambda_package_path" {
