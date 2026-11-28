@@ -2,9 +2,17 @@
 # token is within five minutes of expiry; this schedule renews ten days ahead
 # so a failure alarms while there is still time to reconnect.
 resource "aws_cloudwatch_event_rule" "oauth_refresh" {
-  name                = "${var.project_name}-oauth-refresh"
+  name                = "${var.project_name}-oauth-refresh${local.name_suffix}"
   description         = "Refresh Square OAuth tokens that expire within ten days."
   schedule_expression = var.oauth_refresh_schedule_expression
+
+  # Only the rules are create-before-destroy. Terraform forces CBD onto
+  # everything a CBD resource depends on. The rules depend on no resources,
+  # but the targets and alarms depend on fixed-name Lambdas and queues, which
+  # a create-first replacement would collide with ("already exists").
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_cloudwatch_event_target" "oauth_refresh" {
