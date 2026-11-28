@@ -30,6 +30,10 @@ locals {
     }
   )
 
+  # Shared-namespace names (EventBridge rules, CloudWatch alarms) are unique per
+  # account, and sandbox and production share one account.
+  name_suffix = var.environment_name == "production" ? "-prod" : "-sandbox"
+
   oauth_state_env = {
     OAUTH_STATE_STORE_MODE      = "dynamodb"
     DYNAMODB_OAUTH_STATE_TABLE  = aws_dynamodb_table.oauth_state.name
