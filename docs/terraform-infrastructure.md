@@ -250,6 +250,82 @@ The live stack already has some hand-applied tags and queue settings. To keep th
 
 That reduces noisy drift and avoids dangerous replacement of the bindings table during import.
 
+## One-time migration: environment-scoped rule and alarm names
+
+Both workspaces' states track the same physical binding-coverage rule, its target and 4 alarms. Sandbox must forget them before it ever applies, or it would delete resources prod depends on. Run each step from `infra/` on the merged commit. Check `terraform workspace show` before every plan or apply. Do not apply if a plan differs from what is described.
+
+1. **Back up both states.** Keep the backups outside the repo; they contain secrets.
+   ```
+   mkdir -p ~/tf-backups
+   terraform workspace select default
+   terraform state pull > ~/tf-backups/sandbox-pre-suffix.tfstate
+   terraform workspace select production
+   terraform state pull > ~/tf-backups/production-pre-suffix.tfstate
+   ```
+2. **Sandbox: forget the shared resources.** Do not remove `aws_lambda_permission.allow_binding_coverage_check_schedule`; it belongs to the sandbox function. Keep it in state on purpose: if you removed it, a later sandbox apply would try to create the same `statement_id` on the sandbox function, which already has it, and fail with `ResourceConflictException`.
+   ```
+   terraform workspace select default
+   terraform state rm aws_cloudwatch_event_rule.binding_coverage_check aws_cloudwatch_event_target.binding_coverage_check 'aws_cloudwatch_metric_alarm.binding_coverage_check_errors[0]' 'aws_cloudwatch_metric_alarm.webhook_jobs_dlq_visible_messages[0]' 'aws_cloudwatch_metric_alarm.webhook_jobs_oldest_message_age[0]' 'aws_cloudwatch_metric_alarm.webhook_worker_errors[0]'
+   ```
+3. **Production: plan and apply.**
+   ```
+   terraform workspace select production
+   terraform plan -var-file=production.tfvars -out suffix-prod.tfplan
+   ```
+   Expected plan:
+   - The 2 rules show `+/-` (create before destroy), with new names ending in `-prod`.
+   - The 2 targets and 5 alarms show `-/+` (destroy, then create), with new names ending in `-prod`.
+   - The 2 lambda permissions show `-/+`, because source_arn changes.
+   - About 11 to add, 0 to change, 11 to destroy.
+
+   Stop if anything else appears. Then run:
+   ```
+   terraform apply suffix-prod.tfplan
+   ```
+4. **Verify prod** (read-only).
+   ```
+   aws events list-rules --name-prefix mosa-tea --query 'Rules[].Name'
+   aws events list-targets-by-rule --rule mosa-tea-oauth-refresh-prod
+   aws events list-targets-by-rule --rule mosa-tea-binding-coverage-check-prod
+   aws cloudwatch describe-alarms --alarm-name-prefix mosa-tea --query 'MetricAlarms[].AlarmName'
+   ```
+   Only the `-prod` rules and alarms should exist (the unsuffixed ones are gone), and each target ARN should end in `-prod`.
+5. **Sandbox: no apply in this migration.** After step 2, sandbox state holds no rules, targets or alarms. It still tracks `allow_binding_coverage_check_schedule`, whose `source_arn` now names the deleted unsuffixed rule (harmless). Sandbox loses nothing real, because the shared rule and alarms point at `-prod` resources today (prod applied last).
+
+   The sandbox copies, all named `-sandbox`, are created later, as a deliberate, separate task that reconciles sandbox drift. The known drift that task must handle:
+   - creating the usage-log table (`aws_dynamodb_table.usage_log`);
+   - Lambda timeout and environment updates (`binding_coverage_check`, `webhook_worker`, the ingress Lambda);
+   - an IAM policy change;
+   - creating the sandbox oauth-refresh Lambda, role and log group;
+   - re-enabling `aws_lambda_event_source_mapping.webhook_worker_queue`, which is disabled on purpose. The sandbox queue's 30 s visibility timeout is below the 90 s claim lease.
+
+   Do NOT run `terraform apply` in `default` until that reconciliation is done. Even a `-target`ed apply of only the rules and alarms pulls in Lambda and table dependencies.
+6. **Final check.**
+   - Production: the plan should show No changes.
+     ```
+     terraform workspace select production
+     terraform plan -var-file=production.tfvars
+     ```
+   - Sandbox: plan read-only and do NOT apply it.
+     ```
+     terraform workspace select default
+     terraform plan -var-file=sandbox.tfvars
+     ```
+     For rules, targets, schedule permissions and alarms, expect only:
+     - creates of `aws_cloudwatch_event_rule.binding_coverage_check`, `aws_cloudwatch_event_rule.oauth_refresh`, `aws_cloudwatch_event_target.binding_coverage_check`, `aws_cloudwatch_event_target.oauth_refresh`, and the 5 `aws_cloudwatch_metric_alarm` resources, every name ending in `-sandbox`;
+     - a create of `aws_lambda_permission.allow_oauth_refresh_schedule`;
+     - one replace (`-/+`): `aws_lambda_permission.allow_binding_coverage_check_schedule`, whose `source_arn` moves from the deleted unsuffixed rule to the `-sandbox` rule.
+
+     No name may end in `-prod` or be unsuffixed, and nothing else in this set may be destroyed or replaced. Other drift is expected and out of scope (see step 5). Do not apply.
+   - Repeat the step 4 AWS checks: only the `-prod` rules and alarms exist.
+
+**Rollback:** if sandbox has been applied since the migration (it holds `-sandbox` rules or alarms; check with `terraform workspace select default`, then `terraform state list`, and look for `aws_cloudwatch_event_rule.` or `aws_cloudwatch_metric_alarm.` entries), first destroy them in `default`:
+```
+terraform workspace select default
+terraform destroy -var-file=sandbox.tfvars -target=aws_cloudwatch_event_rule.binding_coverage_check -target=aws_cloudwatch_event_target.binding_coverage_check -target=aws_lambda_permission.allow_binding_coverage_check_schedule -target=aws_cloudwatch_event_rule.oauth_refresh -target=aws_cloudwatch_event_target.oauth_refresh -target=aws_lambda_permission.allow_oauth_refresh_schedule -target='aws_cloudwatch_metric_alarm.webhook_jobs_dlq_visible_messages[0]' -target='aws_cloudwatch_metric_alarm.webhook_jobs_oldest_message_age[0]' -target='aws_cloudwatch_metric_alarm.webhook_worker_errors[0]' -target='aws_cloudwatch_metric_alarm.oauth_refresh_errors[0]' -target='aws_cloudwatch_metric_alarm.binding_coverage_check_errors[0]'
+```
+Then `git revert` the change and repeat step 3 (production) only. Never apply sandbox on the reverted code: its unsuffixed names would upsert prod's rules and alarms and repoint them at sandbox. If a state is damaged, restore it with `terraform state push -force ~/tf-backups/<file>`.
+
 ## Notes
 
 - The Terraform scaffold uses one shared Lambda package per Python runtime (3.14 and 3.13), matching the current GitHub Actions deploy model.
