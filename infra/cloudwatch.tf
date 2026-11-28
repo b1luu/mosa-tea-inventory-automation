@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_metric_alarm" "webhook_jobs_dlq_visible_messages" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 
-  alarm_name          = "${var.project_name}-webhook-jobs-dlq-visible-messages"
+  alarm_name          = "${var.project_name}-webhook-jobs-dlq-visible-messages${local.name_suffix}"
   alarm_description   = "The webhook DLQ should normally stay empty. Investigate poison jobs before replaying them."
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateNumberOfMessagesVisible"
@@ -22,7 +22,7 @@ resource "aws_cloudwatch_metric_alarm" "webhook_jobs_dlq_visible_messages" {
 resource "aws_cloudwatch_metric_alarm" "webhook_jobs_oldest_message_age" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 
-  alarm_name          = "${var.project_name}-webhook-jobs-oldest-message-age"
+  alarm_name          = "${var.project_name}-webhook-jobs-oldest-message-age${local.name_suffix}"
   alarm_description   = "The webhook worker should keep the main queue draining. A stale oldest message means the pipeline is stuck or underprovisioned."
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateAgeOfOldestMessage"
@@ -43,7 +43,7 @@ resource "aws_cloudwatch_metric_alarm" "webhook_jobs_oldest_message_age" {
 resource "aws_cloudwatch_metric_alarm" "webhook_worker_errors" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 
-  alarm_name          = "${var.project_name}-webhook-worker-errors"
+  alarm_name          = "${var.project_name}-webhook-worker-errors${local.name_suffix}"
   alarm_description   = "The webhook worker should not be raising Lambda errors during normal processing."
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
@@ -64,7 +64,7 @@ resource "aws_cloudwatch_metric_alarm" "webhook_worker_errors" {
 resource "aws_cloudwatch_metric_alarm" "oauth_refresh_errors" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 
-  alarm_name          = "${var.project_name}-oauth-refresh-errors"
+  alarm_name          = "${var.project_name}-oauth-refresh-errors${local.name_suffix}"
   alarm_description   = "A scheduled OAuth token refresh failed. Check the oauth_refresh_failed log line; a merchant may need to reconnect before its token expires and order deductions stop."
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
@@ -85,7 +85,7 @@ resource "aws_cloudwatch_metric_alarm" "oauth_refresh_errors" {
 resource "aws_cloudwatch_metric_alarm" "binding_coverage_check_errors" {
   count = var.create_cloudwatch_alarms ? 1 : 0
 
-  alarm_name          = "${var.project_name}-binding-coverage-check-errors"
+  alarm_name          = "${var.project_name}-binding-coverage-check-errors${local.name_suffix}"
   alarm_description   = "The scheduled binding coverage check should not fail. Investigate token refresh or report execution errors before coverage drift goes silent."
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
